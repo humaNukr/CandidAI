@@ -1,0 +1,77 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write
+
+jobs:
+  build:
+    name: Build & Verify
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '25'
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Cache Gradle packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Run checkstyle and tests with JaCoCo
+        run: ./gradlew checkstyleMain checkstyleTest test jacocoTestReport
+
+      - name: JaCoCo PR Coverage Comment
+        uses: madrapps/jacoco-report@v1.6.1
+        if: github.event_name == 'pull_request' && hashFiles('build/reports/jacoco/test/jacocoTestReport.xml') != ''
+        with:
+          paths: ${{ github.workspace }}/build/reports/jacoco/test/jacocoTestReport.xml
+          token: ${{ secrets.GITHUB_TOKEN }}
+          min-coverage-overall: 0
+          min-coverage-changed-files: 0
+          title: 'JaCoCo Code Coverage'
+          update-comment: true
+
+      - name: Annotate Uncovered Lines in PR Diff
+        if: github.event_name == 'pull_request' && hashFiles('build/reports/jacoco/test/jacocoTestReport.xml') != ''
+        run: |
+          python .github/scripts/highlight_uncovered_lines.py \
+            --jacoco-xml build/reports/jacoco/test/jacocoTestReport.xml \
+            --base-ref "${{ github.base_ref }}"
+
+      - name: Upload JaCoCo and Checkstyle reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: verification-reports
+          path: |
+            build/reports/jacoco/
+            build/reports/checkstyle/
