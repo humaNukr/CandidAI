@@ -48,4 +48,44 @@ class Vacancy {
     private Instant expiresAt;
     private Instant createdAt;
     private Instant updatedAt;
+
+    public static Vacancy create(CreateVacancyRequest request, UUID id, Instant now) {
+        return Vacancy.builder()
+                .id(id)
+                .authorId(request.authorId())
+                .assignedRecruiterId(request.assignedRecruiterId())
+                .title(request.title())
+                .category(request.category())
+                .specialization(request.specialization())
+                .seniorityLevel(request.seniorityLevel())
+                .minYearsOfExperience(request.minYearsOfExperience())
+                .description(request.description())
+                .requiredSkills(request.requiredSkills())
+                .preferredSkills(request.preferredSkills())
+                .minEnglishLevel(request.minEnglishLevel())
+                .salaryMin(request.salaryMin())
+                .salaryMax(request.salaryMax())
+                .currency(request.currency())
+                .employmentType(request.employmentType())
+                .locationType(request.locationType())
+                .location(request.location())
+                .status(VacancyStatus.OPEN)
+                .deleted(false)
+                .publishedAt(now)
+                .expiresAt(request.expiresAt())
+                .createdAt(now)
+                .updatedAt(now)
+                .build();
+    }
+
+    public void updateStatus(VacancyStatus status, Instant updatedAt) {
+        this.status = status;
+        this.updatedAt = updatedAt;
+    }
+
+    public void softDelete(Instant deletedAt) {
+        this.deleted = true;
+        this.deletedAt = deletedAt;
+        this.updatedAt = deletedAt;
+    }
 }
