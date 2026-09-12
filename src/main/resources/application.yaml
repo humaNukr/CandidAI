@@ -1,3 +1,12 @@
 spring:
   application:
     name: CandidAI
+  jackson:
+    deserialization:
+      FAIL_ON_UNKNOWN_PROPERTIES: true
+  mvc:
+    problem-details:
+      enabled: true
+
+
+
