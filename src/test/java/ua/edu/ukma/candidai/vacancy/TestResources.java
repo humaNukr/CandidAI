@@ -20,6 +20,47 @@ class TestResources {
             }
             """;
 
+    static final String VALIDATION_ERROR_JSON = """
+            {
+                "type": "https://candidai.ukma.edu.ua/errors/validation",
+                "title": "Validation Error",
+                "status": 400,
+                "detail": "Input validation failed"
+            }
+            """;
+
+    static final String INVALID_SALARY_RANGE_ERROR_JSON = """
+            {
+                "type": "https://candidai.ukma.edu.ua/errors/validation",
+                "title": "Validation Error",
+                "status": 400,
+                "detail": "Input validation failed",
+                "errors": {
+                    "salaryMin": "Minimum salary cannot be greater than maximum salary"
+                }
+            }
+            """;
+
+    static final String JSON_PARSING_ERROR_JSON = """
+            {
+                "type": "https://candidai.ukma.edu.ua/errors/bad-request",
+                "title": "JSON Parsing Error",
+                "status": 400,
+                "detail": "Malformed request body or unknown properties"
+            }
+            """;
+
+    static String notFoundProblemDetailJson(UUID id) {
+        return """
+                {
+                    "type": "https://candidai.ukma.edu.ua/errors/not-found",
+                    "title": "Resource Not Found",
+                    "status": 404,
+                    "detail": "Vacancy not found with id: %s"
+                }
+                """.formatted(id);
+    }
+
     static CreateVacancyRequestBuilder aCreateVacancyRequest() {
         return new CreateVacancyRequestBuilder();
     }

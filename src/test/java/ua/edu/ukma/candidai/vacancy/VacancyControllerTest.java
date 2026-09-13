@@ -40,16 +40,15 @@ class VacancyControllerTest {
     @DisplayName("POST /api/v1/vacancies - should create vacancy and return 201 with Location header")
     void givenValidRequest_createVacancy_shouldReturn201Created() throws Exception {
         CreateVacancyRequest request = validCreateVacancyRequest();
-        when(vacancyService.createVacancy(request)).thenReturn(aVacancyResponse());
+        VacancyResponse expectedResponse = aVacancyResponse();
+        when(vacancyService.createVacancy(request)).thenReturn(expectedResponse);
 
         mockMvc.perform(post(BASE_URL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
                 .andExpect(header().string("Location", containsString(BASE_URL)))
-                .andExpect(jsonPath("$.id").value(DEFAULT_ID.toString()))
-                .andExpect(jsonPath("$.title").value("Senior Java Engineer"))
-                .andExpect(jsonPath("$.status").value("OPEN"));
+                .andExpect(content().json(objectMapper.writeValueAsString(expectedResponse)));
 
         verify(vacancyService).createVacancy(request);
     }
@@ -63,7 +62,7 @@ class VacancyControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(invalidRequest)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.title").value("Validation Error"))
+                .andExpect(content().json(VALIDATION_ERROR_JSON))
                 .andExpect(jsonPath("$.errors.title").exists());
     }
 
@@ -79,8 +78,7 @@ class VacancyControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(invalidRequest)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.title").value("Validation Error"))
-                .andExpect(jsonPath("$.errors.salaryMin").exists());
+                .andExpect(content().json(INVALID_SALARY_RANGE_ERROR_JSON));
     }
 
     @Test
@@ -90,18 +88,18 @@ class VacancyControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(JSON_WITH_UNKNOWN_PROPERTY))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.title").value("JSON Parsing Error"));
+                .andExpect(content().json(JSON_PARSING_ERROR_JSON));
     }
 
     @Test
     @DisplayName("GET /api/v1/vacancies/{id} - should return 200 and vacancy when exists")
     void givenExistingId_getVacancyById_shouldReturn200Ok() throws Exception {
-        when(vacancyService.getVacancyById(DEFAULT_ID)).thenReturn(aVacancyResponse());
+        VacancyResponse expectedResponse = aVacancyResponse();
+        when(vacancyService.getVacancyById(DEFAULT_ID)).thenReturn(expectedResponse);
 
         mockMvc.perform(get(BASE_URL + "/" + DEFAULT_ID))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(DEFAULT_ID.toString()))
-                .andExpect(jsonPath("$.title").value("Senior Java Engineer"));
+                .andExpect(content().json(objectMapper.writeValueAsString(expectedResponse)));
 
         verify(vacancyService).getVacancyById(DEFAULT_ID);
     }
@@ -114,7 +112,7 @@ class VacancyControllerTest {
 
         mockMvc.perform(get(BASE_URL + "/" + NON_EXISTENT_ID))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.title").value("Resource Not Found"));
+                .andExpect(content().json(notFoundProblemDetailJson(NON_EXISTENT_ID)));
 
         verify(vacancyService).getVacancyById(NON_EXISTENT_ID);
     }
@@ -123,15 +121,15 @@ class VacancyControllerTest {
     @DisplayName("GET /api/v1/vacancies - should return 200 with paged content")
     void givenValidParams_getAllVacancies_shouldReturn200OkWithPagedContent() throws Exception {
         PageRequest pageable = PageRequest.of(0, 20, Sort.by(Sort.Direction.DESC, "createdAt"));
+        PageImpl<VacancyResponse> expectedPage = new PageImpl<>(List.of(aVacancyResponse()));
         when(vacancyService.getAllVacancies(VacancyStatus.OPEN, JobCategory.ENGINEERING, pageable))
-                .thenReturn(new PageImpl<>(List.of(aVacancyResponse())));
+                .thenReturn(expectedPage);
 
         mockMvc.perform(get(BASE_URL)
                         .param("status", "OPEN")
                         .param("category", "ENGINEERING"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content").isArray())
-                .andExpect(jsonPath("$.content[0].id").value(DEFAULT_ID.toString()));
+                .andExpect(content().json(objectMapper.writeValueAsString(expectedPage)));
 
         verify(vacancyService).getAllVacancies(VacancyStatus.OPEN, JobCategory.ENGINEERING, pageable);
     }
@@ -140,13 +138,14 @@ class VacancyControllerTest {
     @DisplayName("PATCH /api/v1/vacancies/{id}/status - should update status and return 200")
     void givenValidStatusUpdate_updateVacancyStatus_shouldReturn200Ok() throws Exception {
         UpdateVacancyStatusRequest request = validUpdateVacancyStatusRequest();
-        when(vacancyService.updateVacancyStatus(DEFAULT_ID, request)).thenReturn(aVacancyResponse());
+        VacancyResponse expectedResponse = aVacancyResponse();
+        when(vacancyService.updateVacancyStatus(DEFAULT_ID, request)).thenReturn(expectedResponse);
 
         mockMvc.perform(patch(BASE_URL + "/" + DEFAULT_ID + "/status")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(DEFAULT_ID.toString()));
+                .andExpect(content().json(objectMapper.writeValueAsString(expectedResponse)));
 
         verify(vacancyService).updateVacancyStatus(DEFAULT_ID, request);
     }
