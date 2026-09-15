@@ -1,4 +1,4 @@
-package ua.edu.ukma.candidai.vacancy;
+package ua.edu.ukma.candidai.vacancy.model;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
+import ua.edu.ukma.candidai.vacancy.dto.request.CreateVacancyRequest;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -20,7 +21,7 @@ import java.util.UUID;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-class Vacancy {
+public class Vacancy {
 
     @EqualsAndHashCode.Include
     private UUID id;

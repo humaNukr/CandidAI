@@ -1,4 +1,4 @@
-package ua.edu.ukma.candidai.vacancy;
+package ua.edu.ukma.candidai.vacancy.model;
 
 public enum LocationType {
     REMOTE,

@@ -1,4 +1,4 @@
-package ua.edu.ukma.candidai.vacancy;
+package ua.edu.ukma.candidai.vacancy.dto.request;
 
 import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.Max;
@@ -8,6 +8,11 @@ import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
+import ua.edu.ukma.candidai.vacancy.model.EmploymentType;
+import ua.edu.ukma.candidai.vacancy.model.EnglishLevel;
+import ua.edu.ukma.candidai.vacancy.model.JobCategory;
+import ua.edu.ukma.candidai.vacancy.model.LocationType;
+import ua.edu.ukma.candidai.vacancy.validation.ValidSalaryRange;
 
 import java.math.BigDecimal;
 import java.time.Instant;

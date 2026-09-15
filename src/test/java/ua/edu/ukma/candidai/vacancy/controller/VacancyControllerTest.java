@@ -1,4 +1,4 @@
-package ua.edu.ukma.candidai.vacancy;
+package ua.edu.ukma.candidai.vacancy.controller;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -13,6 +13,12 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.ObjectMapper;
 import ua.edu.ukma.candidai.common.exception.ResourceNotFoundException;
+import ua.edu.ukma.candidai.vacancy.model.JobCategory;
+import ua.edu.ukma.candidai.vacancy.model.VacancyStatus;
+import ua.edu.ukma.candidai.vacancy.dto.request.CreateVacancyRequest;
+import ua.edu.ukma.candidai.vacancy.dto.request.UpdateVacancyStatusRequest;
+import ua.edu.ukma.candidai.vacancy.dto.response.VacancyResponse;
+import ua.edu.ukma.candidai.vacancy.service.VacancyService;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -21,7 +27,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-import static ua.edu.ukma.candidai.vacancy.TestResources.*;
+import static ua.edu.ukma.candidai.vacancy.controller.TestResources.*;
 
 @WebMvcTest(VacancyController.class)
 @EnableSpringDataWebSupport

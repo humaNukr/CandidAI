@@ -1,8 +1,9 @@
-package ua.edu.ukma.candidai.vacancy;
+package ua.edu.ukma.candidai.vacancy.validation;
 
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
 import ua.edu.ukma.candidai.common.util.ValidationUtils;
+import ua.edu.ukma.candidai.vacancy.dto.request.CreateVacancyRequest;
 
 import java.math.BigDecimal;
 

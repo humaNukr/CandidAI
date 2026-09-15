@@ -1,4 +1,4 @@
-package ua.edu.ukma.candidai.vacancy;
+package ua.edu.ukma.candidai.vacancy.service;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -8,6 +8,12 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import ua.edu.ukma.candidai.common.exception.ResourceNotFoundException;
 import ua.edu.ukma.candidai.common.util.CommonGenerator;
+import ua.edu.ukma.candidai.vacancy.model.JobCategory;
+import ua.edu.ukma.candidai.vacancy.model.VacancyStatus;
+import ua.edu.ukma.candidai.vacancy.dto.request.CreateVacancyRequest;
+import ua.edu.ukma.candidai.vacancy.dto.request.UpdateVacancyStatusRequest;
+import ua.edu.ukma.candidai.vacancy.dto.response.VacancyResponse;
+import ua.edu.ukma.candidai.vacancy.model.Vacancy;
 
 import java.util.Comparator;
 import java.util.List;
@@ -17,7 +23,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 @RequiredArgsConstructor
-class VacancyService {
+public class VacancyService {
 
     private final CommonGenerator generator;
     private final VacancyMapper vacancyMapper;

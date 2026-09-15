@@ -1,4 +1,4 @@
-package ua.edu.ukma.candidai.vacancy;
+package ua.edu.ukma.candidai.vacancy.controller;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +17,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+import ua.edu.ukma.candidai.vacancy.model.JobCategory;
+import ua.edu.ukma.candidai.vacancy.model.VacancyStatus;
+import ua.edu.ukma.candidai.vacancy.dto.request.CreateVacancyRequest;
+import ua.edu.ukma.candidai.vacancy.dto.request.UpdateVacancyStatusRequest;
+import ua.edu.ukma.candidai.vacancy.dto.response.VacancyResponse;
+import ua.edu.ukma.candidai.vacancy.service.VacancyService;
 
 import java.net.URI;
 import java.util.UUID;

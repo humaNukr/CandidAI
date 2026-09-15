@@ -1,4 +1,4 @@
-package ua.edu.ukma.candidai.vacancy;
+package ua.edu.ukma.candidai.vacancy.validation;
 
 import jakarta.validation.Constraint;
 import jakarta.validation.Payload;

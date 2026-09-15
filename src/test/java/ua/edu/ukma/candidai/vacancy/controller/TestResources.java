@@ -1,4 +1,13 @@
-package ua.edu.ukma.candidai.vacancy;
+package ua.edu.ukma.candidai.vacancy.controller;
+
+import ua.edu.ukma.candidai.vacancy.model.EmploymentType;
+import ua.edu.ukma.candidai.vacancy.model.EnglishLevel;
+import ua.edu.ukma.candidai.vacancy.model.JobCategory;
+import ua.edu.ukma.candidai.vacancy.model.LocationType;
+import ua.edu.ukma.candidai.vacancy.model.VacancyStatus;
+import ua.edu.ukma.candidai.vacancy.dto.request.CreateVacancyRequest;
+import ua.edu.ukma.candidai.vacancy.dto.request.UpdateVacancyStatusRequest;
+import ua.edu.ukma.candidai.vacancy.dto.response.VacancyResponse;
 
 import java.math.BigDecimal;
 import java.time.Instant;
