@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
+import org.hibernate.validator.constraints.URL;
 
 import java.util.UUID;
 
@@ -24,6 +25,7 @@ public record ApplyForVacancyRequest(
         String phone,
 
         @NotBlank(message = "Resume URL is required")
+        @URL(message = "Invalid resume URL format")
         @Size(max = 500, message = "Resume URL must not exceed 500 characters")
         String resumeUrl
         ) {
