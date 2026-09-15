@@ -1,6 +1,7 @@
 package ua.edu.ukma.candidai.recruitment.controller;
 
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -11,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import ua.edu.ukma.candidai.common.exception.ResourceNotFoundException;
+import ua.edu.ukma.candidai.common.util.CommonGenerator;
 import ua.edu.ukma.candidai.recruitment.dto.request.SubmitInterviewFeedbackRequest;
 import ua.edu.ukma.candidai.recruitment.dto.request.UpdateApplicationStatusRequest;
 import ua.edu.ukma.candidai.recruitment.dto.response.ApplicationResponse;
@@ -26,8 +28,10 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 @RestController
 @RequestMapping("/api/v1/applications")
+@RequiredArgsConstructor
 public class ApplicationController {
 
+    private final CommonGenerator generator;
     private final Map<UUID, ApplicationResponse> applications = new ConcurrentHashMap<>();
     private final Map<UUID, List<InterviewFeedbackResponse>> feedbacks = new ConcurrentHashMap<>();
 
@@ -41,7 +45,7 @@ public class ApplicationController {
             throw new ResourceNotFoundException("Application not found with id: " + id);
         }
 
-        Instant now = Instant.now();
+        Instant now = generator.now();
         String comment = request.comment() != null ? request.comment() : existing.comment();
 
         ApplicationResponse updated = new ApplicationResponse(
@@ -70,7 +74,7 @@ public class ApplicationController {
             throw new ResourceNotFoundException("Application not found with id: " + id);
         }
 
-        UUID feedbackId = UUID.randomUUID();
+        UUID feedbackId = generator.uuid();
         InterviewFeedbackResponse feedback = new InterviewFeedbackResponse(
                 feedbackId,
                 id,
@@ -78,7 +82,7 @@ public class ApplicationController {
                 request.technicalScore(),
                 request.notes(),
                 request.decision(),
-                Instant.now()
+                generator.now()
         );
 
         feedbacks.computeIfAbsent(id, k -> new CopyOnWriteArrayList<>()).add(feedback);

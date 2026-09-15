@@ -51,20 +51,20 @@ class TestResources {
                 """.formatted(id);
     }
 
+    static UpdateApplicationStatusRequestBuilder aUpdateStatusRequest() {
+        return new UpdateApplicationStatusRequestBuilder();
+    }
+
+    static SubmitInterviewFeedbackRequestBuilder aSubmitFeedbackRequest() {
+        return new SubmitInterviewFeedbackRequestBuilder();
+    }
+
     static UpdateApplicationStatusRequest validUpdateStatusRequest() {
-        return new UpdateApplicationStatusRequest(
-                ApplicationStatus.INTERVIEW,
-                "Candidate passed screening successfully"
-        );
+        return aUpdateStatusRequest().build();
     }
 
     static SubmitInterviewFeedbackRequest validSubmitFeedbackRequest() {
-        return new SubmitInterviewFeedbackRequest(
-                "Alex Techlead",
-                4,
-                "Strong knowledge of Java and Spring Boot architecture",
-                InterviewDecision.HIRE
-        );
+        return aSubmitFeedbackRequest().build();
     }
 
     static ApplicationResponse anApplicationResponse() {
@@ -80,5 +80,55 @@ class TestResources {
                 Instant.parse("2026-09-12T10:00:00Z"),
                 Instant.parse("2026-09-12T10:00:00Z")
         );
+    }
+
+    static class UpdateApplicationStatusRequestBuilder {
+        private ApplicationStatus status = ApplicationStatus.INTERVIEW;
+        private String comment = "Candidate passed screening successfully";
+
+        public UpdateApplicationStatusRequestBuilder status(ApplicationStatus status) {
+            this.status = status;
+            return this;
+        }
+
+        public UpdateApplicationStatusRequestBuilder comment(String comment) {
+            this.comment = comment;
+            return this;
+        }
+
+        public UpdateApplicationStatusRequest build() {
+            return new UpdateApplicationStatusRequest(status, comment);
+        }
+    }
+
+    static class SubmitInterviewFeedbackRequestBuilder {
+        private String interviewerName = "Alex Techlead";
+        private Integer technicalScore = 4;
+        private String notes = "Strong knowledge of Java and Spring Boot architecture";
+        private InterviewDecision decision = InterviewDecision.HIRE;
+
+        public SubmitInterviewFeedbackRequestBuilder interviewerName(String interviewerName) {
+            this.interviewerName = interviewerName;
+            return this;
+        }
+
+        public SubmitInterviewFeedbackRequestBuilder technicalScore(Integer technicalScore) {
+            this.technicalScore = technicalScore;
+            return this;
+        }
+
+        public SubmitInterviewFeedbackRequestBuilder notes(String notes) {
+            this.notes = notes;
+            return this;
+        }
+
+        public SubmitInterviewFeedbackRequestBuilder decision(InterviewDecision decision) {
+            this.decision = decision;
+            return this;
+        }
+
+        public SubmitInterviewFeedbackRequest build() {
+            return new SubmitInterviewFeedbackRequest(interviewerName, technicalScore, notes, decision);
+        }
     }
 }

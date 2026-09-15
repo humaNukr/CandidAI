@@ -5,10 +5,11 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.ObjectMapper;
-import ua.edu.ukma.candidai.recruitment.dto.model.InterviewDecision;
+import ua.edu.ukma.candidai.common.util.CommonGenerator;
 import ua.edu.ukma.candidai.recruitment.dto.request.SubmitInterviewFeedbackRequest;
 import ua.edu.ukma.candidai.recruitment.dto.request.UpdateApplicationStatusRequest;
 
@@ -20,18 +21,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static ua.edu.ukma.candidai.recruitment.controller.TestResources.BASE_URL;
-import static ua.edu.ukma.candidai.recruitment.controller.TestResources.DEFAULT_ID;
-import static ua.edu.ukma.candidai.recruitment.controller.TestResources.JSON_PARSING_ERROR_JSON;
-import static ua.edu.ukma.candidai.recruitment.controller.TestResources.JSON_WITH_UNKNOWN_PROPERTY;
-import static ua.edu.ukma.candidai.recruitment.controller.TestResources.NON_EXISTENT_ID;
-import static ua.edu.ukma.candidai.recruitment.controller.TestResources.VALIDATION_ERROR_JSON;
-import static ua.edu.ukma.candidai.recruitment.controller.TestResources.anApplicationResponse;
-import static ua.edu.ukma.candidai.recruitment.controller.TestResources.notFoundProblemDetailJson;
-import static ua.edu.ukma.candidai.recruitment.controller.TestResources.validSubmitFeedbackRequest;
-import static ua.edu.ukma.candidai.recruitment.controller.TestResources.validUpdateStatusRequest;
+import static ua.edu.ukma.candidai.recruitment.controller.TestResources.*;
 
 @WebMvcTest(ApplicationController.class)
+@Import(CommonGenerator.class)
 class ApplicationControllerTest {
 
     @Autowired
@@ -65,7 +58,7 @@ class ApplicationControllerTest {
     @Test
     @DisplayName("PATCH /api/v1/applications/{id}/status - should return 400 ProblemDetail when status is null")
     void givenNullStatus_updateApplicationStatus_shouldReturn400BadRequest() throws Exception {
-        UpdateApplicationStatusRequest invalidRequest = new UpdateApplicationStatusRequest(null, "comment");
+        UpdateApplicationStatusRequest invalidRequest = aUpdateStatusRequest().status(null).build();
 
         mockMvc.perform(patch(BASE_URL + "/" + DEFAULT_ID + "/status")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -117,12 +110,7 @@ class ApplicationControllerTest {
     @Test
     @DisplayName("POST /api/v1/applications/{id}/feedbacks - should return 400 when technical score is below 1")
     void givenTechnicalScoreBelowMin_submitFeedback_shouldReturn400BadRequest() throws Exception {
-        SubmitInterviewFeedbackRequest invalidRequest = new SubmitInterviewFeedbackRequest(
-                "Alex Techlead",
-                0,
-                "Valid notes",
-                InterviewDecision.HIRE
-        );
+        SubmitInterviewFeedbackRequest invalidRequest = aSubmitFeedbackRequest().technicalScore(0).build();
 
         mockMvc.perform(post(BASE_URL + "/" + DEFAULT_ID + "/feedbacks")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -135,12 +123,7 @@ class ApplicationControllerTest {
     @Test
     @DisplayName("POST /api/v1/applications/{id}/feedbacks - should return 400 when technical score is above 5")
     void givenTechnicalScoreAboveMax_submitFeedback_shouldReturn400BadRequest() throws Exception {
-        SubmitInterviewFeedbackRequest invalidRequest = new SubmitInterviewFeedbackRequest(
-                "Alex Techlead",
-                6,
-                "Valid notes",
-                InterviewDecision.HIRE
-        );
+        SubmitInterviewFeedbackRequest invalidRequest = aSubmitFeedbackRequest().technicalScore(6).build();
 
         mockMvc.perform(post(BASE_URL + "/" + DEFAULT_ID + "/feedbacks")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -153,12 +136,7 @@ class ApplicationControllerTest {
     @Test
     @DisplayName("POST /api/v1/applications/{id}/feedbacks - should return 400 when notes are blank")
     void givenBlankNotes_submitFeedback_shouldReturn400BadRequest() throws Exception {
-        SubmitInterviewFeedbackRequest invalidRequest = new SubmitInterviewFeedbackRequest(
-                "Alex Techlead",
-                4,
-                "   ",
-                InterviewDecision.HIRE
-        );
+        SubmitInterviewFeedbackRequest invalidRequest = aSubmitFeedbackRequest().notes("   ").build();
 
         mockMvc.perform(post(BASE_URL + "/" + DEFAULT_ID + "/feedbacks")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -171,12 +149,7 @@ class ApplicationControllerTest {
     @Test
     @DisplayName("POST /api/v1/applications/{id}/feedbacks - should return 400 when interviewer name is blank")
     void givenBlankInterviewerName_submitFeedback_shouldReturn400BadRequest() throws Exception {
-        SubmitInterviewFeedbackRequest invalidRequest = new SubmitInterviewFeedbackRequest(
-                "",
-                4,
-                "Valid notes",
-                InterviewDecision.HIRE
-        );
+        SubmitInterviewFeedbackRequest invalidRequest = aSubmitFeedbackRequest().interviewerName("").build();
 
         mockMvc.perform(post(BASE_URL + "/" + DEFAULT_ID + "/feedbacks")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -189,12 +162,7 @@ class ApplicationControllerTest {
     @Test
     @DisplayName("POST /api/v1/applications/{id}/feedbacks - should return 400 when decision is null")
     void givenNullDecision_submitFeedback_shouldReturn400BadRequest() throws Exception {
-        SubmitInterviewFeedbackRequest invalidRequest = new SubmitInterviewFeedbackRequest(
-                "Alex Techlead",
-                4,
-                "Valid notes",
-                null
-        );
+        SubmitInterviewFeedbackRequest invalidRequest = aSubmitFeedbackRequest().decision(null).build();
 
         mockMvc.perform(post(BASE_URL + "/" + DEFAULT_ID + "/feedbacks")
                         .contentType(MediaType.APPLICATION_JSON)
