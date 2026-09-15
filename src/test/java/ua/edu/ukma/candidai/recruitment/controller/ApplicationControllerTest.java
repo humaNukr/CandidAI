@@ -10,6 +10,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.ObjectMapper;
 import ua.edu.ukma.candidai.common.util.CommonGenerator;
+import ua.edu.ukma.candidai.recruitment.dto.request.ApplyForVacancyRequest;
 import ua.edu.ukma.candidai.recruitment.dto.request.SubmitInterviewFeedbackRequest;
 import ua.edu.ukma.candidai.recruitment.dto.request.UpdateApplicationStatusRequest;
 
@@ -214,6 +215,102 @@ class ApplicationControllerTest {
     @DisplayName("GET /api/v1/applications/{id}/feedbacks - should return 404 ProblemDetail when application not found")
     void givenNonExistentId_getFeedbacks_shouldReturn404NotFound() throws Exception {
         mockMvc.perform(get(BASE_URL + "/" + NON_EXISTENT_ID + "/feedbacks"))
+                .andExpect(status().isNotFound())
+                .andExpect(content().json(notFoundProblemDetailJson(NON_EXISTENT_ID)));
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/applications - should create application and return 201 Created")
+    void givenValidRequest_applyForVacancy_shouldReturn201Created() throws Exception {
+        ApplyForVacancyRequest request = validApplyRequest();
+        mockMvc.perform(post(BASE_URL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated())
+                .andExpect(header().string("Location", containsString(BASE_URL)))
+                .andExpect(jsonPath("$.id").isNotEmpty())
+                .andExpect(jsonPath("$.vacancyId").value(DEFAULT_VACANCY_ID.toString()))
+                .andExpect(jsonPath("$.candidateName").value("John Doe"))
+                .andExpect(jsonPath("$.email").value("john.doe@example.com"))
+                .andExpect(jsonPath("$.phone").value("+380501234567"))
+                .andExpect(jsonPath("$.resumeUrl").value("https://storage.candidai.ukma.edu.ua/resumes/john_doe.pdf"))
+                .andExpect(jsonPath("$.status").value("APPLIED"))
+                .andExpect(jsonPath("$.appliedAt").isNotEmpty());
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/applications - should return 400 ProblemDetail when email is invalid")
+    void givenInvalidEmail_applyForVacancy_shouldReturn400BadRequest() throws Exception {
+        ApplyForVacancyRequest invalidRequest = anApplyRequest().email("invalid-email-format").build();
+        mockMvc.perform(post(BASE_URL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(invalidRequest)))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().json(VALIDATION_ERROR_JSON))
+                .andExpect(jsonPath("$.errors.email").exists());
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/applications - should return 400 ProblemDetail when candidate name is blank")
+    void givenBlankCandidateName_applyForVacancy_shouldReturn400BadRequest() throws Exception {
+        ApplyForVacancyRequest invalidRequest = anApplyRequest().candidateName("   ").build();
+        mockMvc.perform(post(BASE_URL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(invalidRequest)))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().json(VALIDATION_ERROR_JSON))
+                .andExpect(jsonPath("$.errors.candidateName").exists());
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/applications - should return 400 ProblemDetail when phone is invalid")
+    void givenInvalidPhone_applyForVacancy_shouldReturn400BadRequest() throws Exception {
+        ApplyForVacancyRequest invalidRequest = anApplyRequest().phone("abc12345").build();
+        mockMvc.perform(post(BASE_URL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(invalidRequest)))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().json(VALIDATION_ERROR_JSON))
+                .andExpect(jsonPath("$.errors.phone").exists());
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/applications - should return 400 ProblemDetail when vacancyId is null")
+    void givenNullVacancyId_applyForVacancy_shouldReturn400BadRequest() throws Exception {
+        ApplyForVacancyRequest invalidRequest = anApplyRequest().vacancyId(null).build();
+        mockMvc.perform(post(BASE_URL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(invalidRequest)))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().json(VALIDATION_ERROR_JSON))
+                .andExpect(jsonPath("$.errors.vacancyId").exists());
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/applications - should return 400 when unknown property is provided")
+    void givenUnknownProperty_applyForVacancy_shouldReturn400BadRequest() throws Exception {
+        mockMvc.perform(post(BASE_URL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(JSON_WITH_UNKNOWN_PROPERTY))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().json(JSON_PARSING_ERROR_JSON));
+    }
+
+    @Test
+    @DisplayName("GET /api/v1/applications/{id} - should return 200 Ok with application details")
+    void givenExistingId_getApplicationById_shouldReturn200Ok() throws Exception {
+        mockMvc.perform(get(BASE_URL + "/" + DEFAULT_ID))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(DEFAULT_ID.toString()))
+                .andExpect(jsonPath("$.candidateName").value("John Doe"))
+                .andExpect(jsonPath("$.email").value("john.doe@example.com"))
+                .andExpect(jsonPath("$.status").value("APPLIED"));
+    }
+
+    @Test
+    @DisplayName("GET /api/v1/applications/{id} - should return 404 ProblemDetail when application not found")
+    void givenNonExistentId_getApplicationById_shouldReturn404NotFound() throws Exception {
+        mockMvc.perform(get(BASE_URL + "/" + NON_EXISTENT_ID))
                 .andExpect(status().isNotFound())
                 .andExpect(content().json(notFoundProblemDetailJson(NON_EXISTENT_ID)));
     }
