@@ -2,6 +2,7 @@ package ua.edu.ukma.candidai.recruitment.controller;
 
 import ua.edu.ukma.candidai.recruitment.dto.model.ApplicationStatus;
 import ua.edu.ukma.candidai.recruitment.dto.model.InterviewDecision;
+import ua.edu.ukma.candidai.recruitment.dto.request.ApplyForVacancyRequest;
 import ua.edu.ukma.candidai.recruitment.dto.request.SubmitInterviewFeedbackRequest;
 import ua.edu.ukma.candidai.recruitment.dto.request.UpdateApplicationStatusRequest;
 import ua.edu.ukma.candidai.recruitment.dto.response.ApplicationResponse;
@@ -51,12 +52,20 @@ class TestResources {
                 """.formatted(id);
     }
 
+    static ApplyForVacancyRequestBuilder anApplyRequest() {
+        return new ApplyForVacancyRequestBuilder();
+    }
+
     static UpdateApplicationStatusRequestBuilder aUpdateStatusRequest() {
         return new UpdateApplicationStatusRequestBuilder();
     }
 
     static SubmitInterviewFeedbackRequestBuilder aSubmitFeedbackRequest() {
         return new SubmitInterviewFeedbackRequestBuilder();
+    }
+
+    static ApplyForVacancyRequest validApplyRequest() {
+        return anApplyRequest().build();
     }
 
     static UpdateApplicationStatusRequest validUpdateStatusRequest() {
@@ -129,6 +138,43 @@ class TestResources {
 
         public SubmitInterviewFeedbackRequest build() {
             return new SubmitInterviewFeedbackRequest(interviewerName, technicalScore, notes, decision);
+        }
+    }
+
+    static class ApplyForVacancyRequestBuilder {
+        private UUID vacancyId = DEFAULT_VACANCY_ID;
+        private String candidateName = "John Doe";
+        private String email = "john.doe@example.com";
+        private String phone = "+380501234567";
+        private String resumeUrl = "https://storage.candidai.ukma.edu.ua/resumes/john_doe.pdf";
+
+        public ApplyForVacancyRequestBuilder vacancyId(UUID vacancyId) {
+            this.vacancyId = vacancyId;
+            return this;
+        }
+
+        public ApplyForVacancyRequestBuilder candidateName(String candidateName) {
+            this.candidateName = candidateName;
+            return this;
+        }
+
+        public ApplyForVacancyRequestBuilder email(String email) {
+            this.email = email;
+            return this;
+        }
+
+        public ApplyForVacancyRequestBuilder phone(String phone) {
+            this.phone = phone;
+            return this;
+        }
+
+        public ApplyForVacancyRequestBuilder resumeUrl(String resumeUrl) {
+            this.resumeUrl = resumeUrl;
+            return this;
+        }
+
+        public ApplyForVacancyRequest build() {
+            return new ApplyForVacancyRequest(vacancyId, candidateName, email, phone, resumeUrl);
         }
     }
 }

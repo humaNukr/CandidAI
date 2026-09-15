@@ -13,6 +13,8 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import ua.edu.ukma.candidai.common.exception.ResourceNotFoundException;
 import ua.edu.ukma.candidai.common.util.CommonGenerator;
+import ua.edu.ukma.candidai.recruitment.dto.model.ApplicationStatus;
+import ua.edu.ukma.candidai.recruitment.dto.request.ApplyForVacancyRequest;
 import ua.edu.ukma.candidai.recruitment.dto.request.SubmitInterviewFeedbackRequest;
 import ua.edu.ukma.candidai.recruitment.dto.request.UpdateApplicationStatusRequest;
 import ua.edu.ukma.candidai.recruitment.dto.response.ApplicationResponse;
@@ -93,6 +95,41 @@ public class ApplicationController {
                 .toUri();
 
         return ResponseEntity.created(location).body(feedback);
+    }
+
+    @PostMapping
+    public ResponseEntity<ApplicationResponse> applyForVacancy(
+            @RequestBody @Valid ApplyForVacancyRequest request
+    ) {
+        UUID id = generator.uuid();
+        Instant now = generator.now();
+        ApplicationResponse application = new ApplicationResponse(
+                id,
+                request.vacancyId(),
+                request.candidateName(),
+                request.email(),
+                request.phone(),
+                request.resumeUrl(),
+                ApplicationStatus.APPLIED,
+                null,
+                now,
+                now
+        );
+        applications.put(id, application);
+        URI location = ServletUriComponentsBuilder.fromCurrentRequest()
+                .path("/{id}")
+                .buildAndExpand(id)
+                .toUri();
+        return ResponseEntity.created(location).body(application);
+    }
+
+    @GetMapping("/{id}")
+    public ApplicationResponse getApplicationById(@PathVariable UUID id) {
+        ApplicationResponse application = applications.get(id);
+        if (application == null) {
+            throw new ResourceNotFoundException("Application not found with id: " + id);
+        }
+        return application;
     }
 
     @GetMapping("/{id}/feedbacks")
