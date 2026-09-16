@@ -29,3 +29,7 @@ Thumbs.db
 
 # Log files
 *.log
+
+# Documentation (temporary local)
+docs/
+

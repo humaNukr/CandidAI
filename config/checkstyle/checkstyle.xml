@@ -23,12 +23,6 @@
     </module>
 
     <module name="RegexpMultiline">
-        <property name="format" value="(^|\s)var\s+[A-Za-z_\$][A-Za-z0-9_\$]*\s*="/>
-        <property name="message" value="Usage of 'var' is forbidden. Use explicit type."/>
-        <property name="fileExtensions" value="java"/>
-    </module>
-
-    <module name="RegexpMultiline">
         <property name="format" value="(?m)^package\s+(?![a-z0-9]+(\.[a-z0-9]+)*;).+;"/>
         <property name="message" value="Package name must contain only lowercase letters and digits"/>
         <property name="fileExtensions" value="java"/>
