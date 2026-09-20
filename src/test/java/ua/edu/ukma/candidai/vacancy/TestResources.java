@@ -139,13 +139,21 @@ public class TestResources {
         return aVacancyResponse(status, DEFAULT_NOW);
     }
 
+    public static VacancyResponse aVacancyResponse(JobCategory category) {
+        return aVacancyResponse(VacancyStatus.OPEN, category, DEFAULT_NOW);
+    }
+
     public static VacancyResponse aVacancyResponse(VacancyStatus status, Instant updatedAt) {
+        return aVacancyResponse(status, JobCategory.ENGINEERING, updatedAt);
+    }
+
+    public static VacancyResponse aVacancyResponse(VacancyStatus status, JobCategory category, Instant updatedAt) {
         return new VacancyResponse(
                 DEFAULT_ID,
                 DEFAULT_AUTHOR_ID,
                 null,
                 "Senior Java Engineer",
-                JobCategory.ENGINEERING,
+                category,
                 "Backend",
                 "Senior",
                 5,
