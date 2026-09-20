@@ -32,6 +32,10 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class ApplicationServiceTest {
 
+    private static final UUID VACANCY_ID = UUID.fromString("00000000-0000-0000-0000-000000000010");
+    private static final UUID APPLICATION_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
+    private static final Instant NOW = Instant.parse("2026-09-20T10:00:00Z");
+
     @Mock
     private ApplicationRepository applicationRepository;
 
@@ -46,10 +50,6 @@ class ApplicationServiceTest {
 
     @InjectMocks
     private ApplicationServiceImpl applicationService;
-
-    private static final UUID VACANCY_ID = UUID.fromString("00000000-0000-0000-0000-000000000010");
-    private static final UUID APPLICATION_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
-    private static final Instant NOW = Instant.parse("2026-09-20T10:00:00Z");
 
     @Test
     @DisplayName("apply - should save application and publish ApplicationSubmittedEvent when valid")
@@ -74,9 +74,10 @@ class ApplicationServiceTest {
         assertThat(result.status()).isEqualTo(ApplicationStatus.APPLIED);
         verify(applicationRepository).save(any(ApplicationResponse.class));
 
-        ArgumentCaptor<ApplicationSubmittedEvent> eventCaptor = ArgumentCaptor.forClass(ApplicationSubmittedEvent.class);
-        verify(eventPublisher).publishEvent(eventCaptor.capture());
-        ApplicationSubmittedEvent publishedEvent = eventCaptor.getValue();
+        ArgumentCaptor<ApplicationSubmittedEvent> captor
+                = ArgumentCaptor.forClass(ApplicationSubmittedEvent.class);
+        verify(eventPublisher).publishEvent(captor.capture());
+        ApplicationSubmittedEvent publishedEvent = captor.getValue();
         assertThat(publishedEvent.applicationId()).isEqualTo(APPLICATION_ID);
         assertThat(publishedEvent.vacancyId()).isEqualTo(VACANCY_ID);
         assertThat(publishedEvent.email()).isEqualTo("john.doe@example.com");

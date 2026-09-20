@@ -8,4 +8,5 @@ public record ApplicationSubmittedEvent(
         UUID vacancyId,
         String email,
         Instant submittedAt
-) {}
+) {
+}

@@ -7,14 +7,20 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.ObjectMapper;
+import ua.edu.ukma.candidai.common.exception.ResourceNotFoundException;
 import ua.edu.ukma.candidai.common.util.CommonGenerator;
 import ua.edu.ukma.candidai.recruitment.dto.request.ApplyForVacancyRequest;
 import ua.edu.ukma.candidai.recruitment.dto.request.SubmitInterviewFeedbackRequest;
 import ua.edu.ukma.candidai.recruitment.dto.request.UpdateApplicationStatusRequest;
+import ua.edu.ukma.candidai.recruitment.service.ApplicationService;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -36,6 +42,9 @@ class ApplicationControllerTest {
 
     @Autowired
     private ApplicationController applicationController;
+
+    @MockitoBean
+    private ApplicationService applicationService;
 
     @BeforeEach
     void setUp() {
@@ -223,6 +232,8 @@ class ApplicationControllerTest {
     @DisplayName("POST /api/v1/applications - should create application and return 201 Created")
     void givenValidRequest_applyForVacancy_shouldReturn201Created() throws Exception {
         ApplyForVacancyRequest request = validApplyRequest();
+        when(applicationService.apply(any(ApplyForVacancyRequest.class))).thenReturn(anApplicationResponse());
+
         mockMvc.perform(post(BASE_URL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -236,6 +247,8 @@ class ApplicationControllerTest {
                 .andExpect(jsonPath("$.resumeUrl").value("https://storage.candidai.ukma.edu.ua/resumes/john_doe.pdf"))
                 .andExpect(jsonPath("$.status").value("APPLIED"))
                 .andExpect(jsonPath("$.appliedAt").isNotEmpty());
+
+        verify(applicationService).apply(any(ApplyForVacancyRequest.class));
     }
 
     @Test
@@ -299,19 +312,28 @@ class ApplicationControllerTest {
     @Test
     @DisplayName("GET /api/v1/applications/{id} - should return 200 Ok with application details")
     void givenExistingId_getApplicationById_shouldReturn200Ok() throws Exception {
+        when(applicationService.getById(DEFAULT_ID)).thenReturn(anApplicationResponse());
+
         mockMvc.perform(get(BASE_URL + "/" + DEFAULT_ID))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(DEFAULT_ID.toString()))
                 .andExpect(jsonPath("$.candidateName").value("John Doe"))
                 .andExpect(jsonPath("$.email").value("john.doe@example.com"))
                 .andExpect(jsonPath("$.status").value("APPLIED"));
+
+        verify(applicationService).getById(DEFAULT_ID);
     }
 
     @Test
     @DisplayName("GET /api/v1/applications/{id} - should return 404 ProblemDetail when application not found")
     void givenNonExistentId_getApplicationById_shouldReturn404NotFound() throws Exception {
+        when(applicationService.getById(NON_EXISTENT_ID))
+                .thenThrow(new ResourceNotFoundException("Application not found with id: " + NON_EXISTENT_ID));
+
         mockMvc.perform(get(BASE_URL + "/" + NON_EXISTENT_ID))
                 .andExpect(status().isNotFound())
                 .andExpect(content().json(notFoundProblemDetailJson(NON_EXISTENT_ID)));
+
+        verify(applicationService).getById(NON_EXISTENT_ID);
     }
 }
