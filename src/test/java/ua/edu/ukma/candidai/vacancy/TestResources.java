@@ -1,35 +1,40 @@
-package ua.edu.ukma.candidai.vacancy.controller;
+package ua.edu.ukma.candidai.vacancy;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
+import ua.edu.ukma.candidai.vacancy.dto.request.CreateVacancyRequest;
+import ua.edu.ukma.candidai.vacancy.dto.request.UpdateVacancyStatusRequest;
+import ua.edu.ukma.candidai.vacancy.dto.response.VacancyResponse;
 import ua.edu.ukma.candidai.vacancy.model.EmploymentType;
 import ua.edu.ukma.candidai.vacancy.model.EnglishLevel;
 import ua.edu.ukma.candidai.vacancy.model.JobCategory;
 import ua.edu.ukma.candidai.vacancy.model.LocationType;
+import ua.edu.ukma.candidai.vacancy.model.Vacancy;
 import ua.edu.ukma.candidai.vacancy.model.VacancyStatus;
-import ua.edu.ukma.candidai.vacancy.dto.request.CreateVacancyRequest;
-import ua.edu.ukma.candidai.vacancy.dto.request.UpdateVacancyStatusRequest;
-import ua.edu.ukma.candidai.vacancy.dto.response.VacancyResponse;
 
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
-class TestResources {
+public class TestResources {
 
-    static final String BASE_URL = "/api/v1/vacancies";
-    static final UUID DEFAULT_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
-    static final UUID DEFAULT_AUTHOR_ID = UUID.fromString("00000000-0000-0000-0000-000000000002");
-    static final UUID NON_EXISTENT_ID = UUID.fromString("00000000-0000-0000-0000-000000000099");
-    static final BigDecimal DEFAULT_SALARY_MIN = BigDecimal.valueOf(3000);
-    static final BigDecimal DEFAULT_SALARY_MAX = BigDecimal.valueOf(5000);
+    public static final String BASE_URL = "/api/v1/vacancies";
+    public static final UUID DEFAULT_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
+    public static final UUID DEFAULT_AUTHOR_ID = UUID.fromString("00000000-0000-0000-0000-000000000002");
+    public static final UUID NON_EXISTENT_ID = UUID.fromString("00000000-0000-0000-0000-000000000099");
+    public static final BigDecimal DEFAULT_SALARY_MIN = BigDecimal.valueOf(3000);
+    public static final BigDecimal DEFAULT_SALARY_MAX = BigDecimal.valueOf(5000);
+    public static final Instant DEFAULT_NOW = Instant.parse("2026-09-12T10:00:00Z");
 
-    static final String JSON_WITH_UNKNOWN_PROPERTY = """
+    public static final String JSON_WITH_UNKNOWN_PROPERTY = """
             {
                 "unknownField": "bad"
             }
             """;
 
-    static final String VALIDATION_ERROR_JSON = """
+    public static final String VALIDATION_ERROR_JSON = """
             {
                 "type": "https://candidai.ukma.edu.ua/errors/validation",
                 "title": "Validation Error",
@@ -38,7 +43,7 @@ class TestResources {
             }
             """;
 
-    static final String INVALID_SALARY_RANGE_ERROR_JSON = """
+    public static final String INVALID_SALARY_RANGE_ERROR_JSON = """
             {
                 "type": "https://candidai.ukma.edu.ua/errors/validation",
                 "title": "Validation Error",
@@ -50,7 +55,7 @@ class TestResources {
             }
             """;
 
-    static final String JSON_PARSING_ERROR_JSON = """
+    public static final String JSON_PARSING_ERROR_JSON = """
             {
                 "type": "https://candidai.ukma.edu.ua/errors/bad-request",
                 "title": "JSON Parsing Error",
@@ -59,7 +64,7 @@ class TestResources {
             }
             """;
 
-    static String notFoundProblemDetailJson(UUID id) {
+    public static String notFoundProblemDetailJson(UUID id) {
         return """
                 {
                     "type": "https://candidai.ukma.edu.ua/errors/not-found",
@@ -70,15 +75,71 @@ class TestResources {
                 """.formatted(id);
     }
 
-    static CreateVacancyRequestBuilder aCreateVacancyRequest() {
+    public static CreateVacancyRequestBuilder aCreateVacancyRequest() {
         return new CreateVacancyRequestBuilder();
     }
 
-    static CreateVacancyRequest validCreateVacancyRequest() {
+    public static CreateVacancyRequest validCreateVacancyRequest() {
         return aCreateVacancyRequest().build();
     }
 
-    static VacancyResponse aVacancyResponse() {
+    public static Vacancy aVacancy() {
+        return aVacancyBuilder().build();
+    }
+
+    public static Vacancy aVacancy(VacancyStatus status) {
+        return aVacancyBuilder().status(status).build();
+    }
+
+    public static Vacancy aVacancy(VacancyStatus status, Instant updatedAt) {
+        return aVacancyBuilder().status(status).updatedAt(updatedAt).build();
+    }
+
+    public static Vacancy aDeletedVacancy() {
+        return aVacancyBuilder().deleted(true).deletedAt(DEFAULT_NOW).build();
+    }
+
+    public static Vacancy aDeletedVacancy(Instant deletedAt) {
+        return aVacancyBuilder().deleted(true).deletedAt(deletedAt).updatedAt(deletedAt).build();
+    }
+
+    public static Vacancy.VacancyBuilder aVacancyBuilder() {
+        return Vacancy.builder()
+                .id(DEFAULT_ID)
+                .authorId(DEFAULT_AUTHOR_ID)
+                .assignedRecruiterId(null)
+                .title("Senior Java Engineer")
+                .category(JobCategory.ENGINEERING)
+                .specialization("Backend")
+                .seniorityLevel("Senior")
+                .minYearsOfExperience(5)
+                .description("Great opportunity for Java and Spring Boot developers")
+                .requiredSkills(List.of("Java"))
+                .preferredSkills(List.of("Docker"))
+                .minEnglishLevel(EnglishLevel.B2)
+                .salaryMin(DEFAULT_SALARY_MIN)
+                .salaryMax(DEFAULT_SALARY_MAX)
+                .currency("USD")
+                .employmentType(EmploymentType.FULL_TIME)
+                .locationType(LocationType.REMOTE)
+                .location("Kyiv, Ukraine")
+                .status(VacancyStatus.OPEN)
+                .deleted(false)
+                .publishedAt(DEFAULT_NOW)
+                .expiresAt(null)
+                .createdAt(DEFAULT_NOW)
+                .updatedAt(DEFAULT_NOW);
+    }
+
+    public static VacancyResponse aVacancyResponse() {
+        return aVacancyResponse(VacancyStatus.OPEN, DEFAULT_NOW);
+    }
+
+    public static VacancyResponse aVacancyResponse(VacancyStatus status) {
+        return aVacancyResponse(status, DEFAULT_NOW);
+    }
+
+    public static VacancyResponse aVacancyResponse(VacancyStatus status, Instant updatedAt) {
         return new VacancyResponse(
                 DEFAULT_ID,
                 DEFAULT_AUTHOR_ID,
@@ -98,19 +159,27 @@ class TestResources {
                 EmploymentType.FULL_TIME,
                 LocationType.REMOTE,
                 "Kyiv, Ukraine",
-                VacancyStatus.OPEN,
-                Instant.parse("2026-09-12T10:00:00Z"),
+                status,
+                DEFAULT_NOW,
                 null,
-                Instant.parse("2026-09-12T10:00:00Z"),
-                Instant.parse("2026-09-12T10:00:00Z")
+                DEFAULT_NOW,
+                updatedAt
         );
     }
 
-    static UpdateVacancyStatusRequest validUpdateVacancyStatusRequest() {
+    public static Page<Vacancy> aVacancyPage(List<Vacancy> content, Pageable pageable) {
+        return new PageImpl<>(content, pageable, content.size());
+    }
+
+    public static Page<VacancyResponse> aVacancyResponsePage(List<VacancyResponse> content, Pageable pageable) {
+        return new PageImpl<>(content, pageable, content.size());
+    }
+
+    public static UpdateVacancyStatusRequest validUpdateVacancyStatusRequest() {
         return new UpdateVacancyStatusRequest(VacancyStatus.CLOSED);
     }
 
-    static class CreateVacancyRequestBuilder {
+    public static class CreateVacancyRequestBuilder {
         private UUID authorId = DEFAULT_AUTHOR_ID;
         private UUID assignedRecruiterId;
         private String title = "Senior Java Engineer";
