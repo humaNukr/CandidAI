@@ -1,4 +1,4 @@
-package ua.edu.ukma.candidai.notification;
+package ua.edu.ukma.candidai.notification.model;
 
 public enum NotificationChannel {
     EMAIL,

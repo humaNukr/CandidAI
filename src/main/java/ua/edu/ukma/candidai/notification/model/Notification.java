@@ -7,9 +7,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
-import ua.edu.ukma.candidai.notification.NotificationChannel;
-import ua.edu.ukma.candidai.notification.NotificationDeliveryStatus;
-
 import java.time.Instant;
 import java.util.UUID;
 
