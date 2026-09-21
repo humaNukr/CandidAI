@@ -1,6 +1,7 @@
 package ua.edu.ukma.candidai.assessment.controller;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -13,6 +14,7 @@ import ua.edu.ukma.candidai.common.exception.ResourceNotFoundException;
 
 import java.util.UUID;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/v1/applications/{id}/screening")
 @RequiredArgsConstructor
@@ -23,6 +25,7 @@ public class AssessmentController {
 
     @GetMapping
     public AiScreeningResult getScreeningResult(@PathVariable UUID id) {
+        log.info("Received request to fetch screening report for application: {}", id);
         return screeningResultRepository.findByApplicationId(id)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Screening result not found for application: " + id
@@ -31,6 +34,8 @@ public class AssessmentController {
 
     @PostMapping
     public AiScreeningResult triggerScreening(@PathVariable UUID id) {
+        log.info("Received request to manually trigger screening for application: {}", id);
         return assessmentService.executeScreening(id);
     }
 }
+

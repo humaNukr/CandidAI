@@ -1,6 +1,7 @@
 package ua.edu.ukma.candidai.recruitment.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import ua.edu.ukma.candidai.common.exception.DuplicateResourceException;
@@ -27,6 +28,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ApplicationServiceImpl implements ApplicationService {
@@ -40,6 +42,8 @@ public class ApplicationServiceImpl implements ApplicationService {
 
     @Override
     public ApplicationResponse apply(ApplyForVacancyRequest request) {
+        log.info("Processing job application for candidate {} on vacancy: {}",
+                request.candidateName(), request.vacancyId());
         if (!vacancyApi.isVacancyOpen(request.vacancyId())) {
             throw new ResourceNotFoundException("Vacancy not found or is closed with id: " + request.vacancyId());
         }
@@ -68,10 +72,10 @@ public class ApplicationServiceImpl implements ApplicationService {
         ApplicationResponse saved = applicationRepository.save(application);
 
         eventPublisher.publishEvent(new ApplicationSubmittedEvent(
-                applicationId,
-                request.vacancyId(),
-                request.email(),
-                now
+                saved.id(),
+                saved.vacancyId(),
+                saved.email(),
+                saved.appliedAt()
         ));
 
         return saved;
@@ -98,6 +102,7 @@ public class ApplicationServiceImpl implements ApplicationService {
         if (newStatus == ApplicationStatus.OFFER) {
             EvaluationResult evaluation = evaluateCandidate(id);
             if (evaluation.recommendedDecision() == InterviewDecision.REJECT) {
+                log.warn("Blocked transition to OFFER for application {}: evaluation result was REJECT", id);
                 throw new InvalidStateTransitionException(
                         "Cannot make an offer to candidate with REJECT evaluation"
                 );
@@ -121,6 +126,8 @@ public class ApplicationServiceImpl implements ApplicationService {
         );
 
         ApplicationResponse saved = applicationRepository.save(updated);
+
+        log.info("Updated status for application {} from {} to {}", saved.id(), currentStatus, newStatus);
 
         eventPublisher.publishEvent(new ApplicationStatusChangedEvent(
                 saved.id(),
@@ -152,7 +159,10 @@ public class ApplicationServiceImpl implements ApplicationService {
                 now
         );
 
-        return feedbackRepository.save(feedback);
+        InterviewFeedbackResponse saved = feedbackRepository.save(feedback);
+        log.info("Saved interview feedback {} for application {}: decision={}, score={}",
+                saved.id(), id, saved.decision(), saved.technicalScore());
+        return saved;
     }
 
     @Override
@@ -177,7 +187,10 @@ public class ApplicationServiceImpl implements ApplicationService {
                 .findFirst()
                 .orElseThrow(() -> new IllegalStateException("No strategy found for category: " + targetCategory));
 
-        return strategy.evaluate(feedbacks);
+        EvaluationResult result = strategy.evaluate(feedbacks);
+        log.info("Evaluated candidate for application {} (category: {}): recommendation={}, score={}",
+                id, targetCategory, result.recommendedDecision(), result.averageScore());
+        return result;
     }
 
     @Override

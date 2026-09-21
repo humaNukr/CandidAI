@@ -40,7 +40,11 @@ public class GeminiAiScreeningService implements AiScreeningService {
 
         try {
             String prompt = buildScreeningPrompt(resumeText, vacancy);
+            log.debug("Screening prompt for application {}:\n{}", applicationId, prompt);
             GenerateContentRequest request = GenerateContentRequest.of(prompt);
+
+            log.info("Sending screening request to Gemini [{}] for application: {}",
+                    properties.model(), applicationId);
 
             String url = "/v1beta/models/" + properties.model() + ":generateContent?key=" + apiKey;
 
@@ -60,6 +64,9 @@ public class GeminiAiScreeningService implements AiScreeningService {
             String jsonText = sanitizeJson(response.extractText());
             GeminiScreeningPayload payload = objectMapper.readValue(jsonText, GeminiScreeningPayload.class);
             payload.validate();
+
+            log.info("Received screening response for application {}: score={}/100, passed={}",
+                    applicationId, payload.matchingScore(), payload.passed());
 
             return AiScreeningResult.completed(
                     applicationId,
