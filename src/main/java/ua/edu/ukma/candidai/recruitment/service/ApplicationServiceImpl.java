@@ -8,6 +8,7 @@ import ua.edu.ukma.candidai.common.exception.InvalidStateTransitionException;
 import ua.edu.ukma.candidai.common.exception.ResourceNotFoundException;
 import ua.edu.ukma.candidai.common.util.CommonGenerator;
 import ua.edu.ukma.candidai.recruitment.dto.model.ApplicationStatus;
+import ua.edu.ukma.candidai.recruitment.dto.model.InterviewDecision;
 import ua.edu.ukma.candidai.recruitment.dto.request.ApplyForVacancyRequest;
 import ua.edu.ukma.candidai.recruitment.dto.request.SubmitInterviewFeedbackRequest;
 import ua.edu.ukma.candidai.recruitment.dto.request.UpdateApplicationStatusRequest;
@@ -94,6 +95,15 @@ public class ApplicationServiceImpl implements ApplicationService {
             );
         }
 
+        if (newStatus == ApplicationStatus.OFFER) {
+            EvaluationResult evaluation = evaluateCandidate(id);
+            if (evaluation.recommendedDecision() == InterviewDecision.REJECT) {
+                throw new InvalidStateTransitionException(
+                        "Cannot make an offer to candidate with REJECT evaluation"
+                );
+            }
+        }
+
         Instant now = commonGenerator.now();
         String comment = request.comment() != null ? request.comment() : existing.comment();
 
@@ -168,6 +178,11 @@ public class ApplicationServiceImpl implements ApplicationService {
                 .orElseThrow(() -> new IllegalStateException("No strategy found for category: " + targetCategory));
 
         return strategy.evaluate(feedbacks);
+    }
+
+    @Override
+    public List<ApplicationResponse> getApplicationsByVacancy(UUID vacancyId) {
+        return applicationRepository.findByVacancyId(vacancyId);
     }
 
     private ApplicationResponse findApplicationOrThrow(UUID id) {

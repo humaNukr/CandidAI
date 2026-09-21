@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import ua.edu.ukma.candidai.recruitment.dto.request.ApplyForVacancyRequest;
@@ -62,6 +63,14 @@ public class ApplicationController {
                 .buildAndExpand(application.id())
                 .toUri();
         return ResponseEntity.created(location).body(application);
+    }
+
+    @GetMapping
+    public List<ApplicationResponse> getApplications(@RequestParam(required = false) UUID vacancyId) {
+        if (vacancyId != null) {
+            return applicationService.getApplicationsByVacancy(vacancyId);
+        }
+        return List.of();
     }
 
     @GetMapping("/{id}")

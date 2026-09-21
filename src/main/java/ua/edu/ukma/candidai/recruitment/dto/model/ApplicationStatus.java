@@ -11,6 +11,7 @@ public enum ApplicationStatus {
     SCREENING,
     INTERVIEW,
     OFFER,
+    HIRED,
     REJECTED;
 
     private static final Map<ApplicationStatus, Set<ApplicationStatus>> VALID_TRANSITIONS
@@ -20,7 +21,8 @@ public enum ApplicationStatus {
         VALID_TRANSITIONS.put(APPLIED, EnumSet.of(SCREENING, REJECTED));
         VALID_TRANSITIONS.put(SCREENING, EnumSet.of(INTERVIEW, REJECTED));
         VALID_TRANSITIONS.put(INTERVIEW, EnumSet.of(OFFER, REJECTED));
-        VALID_TRANSITIONS.put(OFFER, EnumSet.of(REJECTED));
+        VALID_TRANSITIONS.put(OFFER, EnumSet.of(HIRED, REJECTED));
+        VALID_TRANSITIONS.put(HIRED, Collections.emptySet());
         VALID_TRANSITIONS.put(REJECTED, Collections.emptySet());
     }
 

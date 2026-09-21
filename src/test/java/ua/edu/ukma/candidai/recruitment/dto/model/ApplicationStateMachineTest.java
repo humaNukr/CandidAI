@@ -22,13 +22,20 @@ class ApplicationStateMachineTest {
             "INTERVIEW, OFFER, true",
             "INTERVIEW, REJECTED, true",
             "INTERVIEW, SCREENING, false",
+            "OFFER, HIRED, true",
             "OFFER, REJECTED, true",
             "OFFER, INTERVIEW, false",
             "OFFER, APPLIED, false",
+            "HIRED, APPLIED, false",
+            "HIRED, SCREENING, false",
+            "HIRED, INTERVIEW, false",
+            "HIRED, OFFER, false",
+            "HIRED, REJECTED, false",
             "REJECTED, APPLIED, false",
             "REJECTED, SCREENING, false",
             "REJECTED, INTERVIEW, false",
-            "REJECTED, OFFER, false"
+            "REJECTED, OFFER, false",
+            "REJECTED, HIRED, false"
     })
     @DisplayName("canTransitionTo should strictly enforce recruitment funnel state machine")
     void shouldValidateTransitionsCorrectly(ApplicationStatus from, ApplicationStatus to, boolean expected) {

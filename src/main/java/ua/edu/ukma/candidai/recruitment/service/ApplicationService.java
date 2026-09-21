@@ -23,4 +23,6 @@ public interface ApplicationService {
     List<InterviewFeedbackResponse> getFeedbacks(UUID id);
 
     EvaluationResult evaluateCandidate(UUID id);
+
+    List<ApplicationResponse> getApplicationsByVacancy(UUID vacancyId);
 }

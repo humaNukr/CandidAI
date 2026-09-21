@@ -93,6 +93,22 @@ class ApplicationControllerTest {
     }
 
     @Test
+    @DisplayName("PATCH /api/v1/applications/{id}/status - should return 400 when REJECTED without comment")
+    void givenRejectedStatusWithoutComment_updateApplicationStatus_shouldReturn400BadRequest() throws Exception {
+        UpdateApplicationStatusRequest invalidRequest = aUpdateStatusRequest()
+                .status(ApplicationStatus.REJECTED)
+                .comment(null)
+                .build();
+
+        mockMvc.perform(patch(BASE_URL + "/" + DEFAULT_ID + "/status")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(invalidRequest)))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().json(VALIDATION_ERROR_JSON))
+                .andExpect(jsonPath("$.errors.comment").value("Comment is required when status is REJECTED"));
+    }
+
+    @Test
     @DisplayName("PATCH /api/v1/applications/{id}/status - should return 404 ProblemDetail when application not found")
     void givenNonExistentId_updateApplicationStatus_shouldReturn404NotFound() throws Exception {
         UpdateApplicationStatusRequest request = validUpdateStatusRequest();
@@ -402,5 +418,28 @@ class ApplicationControllerTest {
                 .andExpect(jsonPath("$.summaryReason").value("Engineering evaluation completed"));
 
         verify(applicationService).evaluateCandidate(DEFAULT_ID);
+    }
+
+    @Test
+    @DisplayName("GET /api/v1/applications?vacancyId={id} - should return 200 Ok with list of applications")
+    void givenVacancyId_getApplications_shouldReturn200OkWithApplications() throws Exception {
+        when(applicationService.getApplicationsByVacancy(DEFAULT_VACANCY_ID))
+                .thenReturn(List.of(anApplicationResponse()));
+
+        mockMvc.perform(get(BASE_URL).param("vacancyId", DEFAULT_VACANCY_ID.toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value(DEFAULT_ID.toString()))
+                .andExpect(jsonPath("$[0].vacancyId").value(DEFAULT_VACANCY_ID.toString()))
+                .andExpect(jsonPath("$[0].candidateName").value("John Doe"));
+
+        verify(applicationService).getApplicationsByVacancy(DEFAULT_VACANCY_ID);
+    }
+
+    @Test
+    @DisplayName("GET /api/v1/applications - should return 200 Ok with empty list when no vacancyId provided")
+    void givenNoVacancyId_getApplications_shouldReturn200OkWithEmptyList() throws Exception {
+        mockMvc.perform(get(BASE_URL))
+                .andExpect(status().isOk())
+                .andExpect(content().json("[]"));
     }
 }

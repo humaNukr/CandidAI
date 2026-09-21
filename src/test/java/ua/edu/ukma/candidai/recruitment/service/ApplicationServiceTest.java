@@ -223,6 +223,67 @@ class ApplicationServiceTest {
     }
 
     @Test
+    @DisplayName("updateStatus - should throw InvalidStateTransitionException when transitioning to OFFER with REJECT")
+    void givenRejectEvaluation_updateStatusToOffer_shouldThrowException() {
+        ApplicationResponse existing = sampleApplication(ApplicationStatus.INTERVIEW);
+        UpdateApplicationStatusRequest request = new UpdateApplicationStatusRequest(
+                ApplicationStatus.OFFER,
+                "Candidate did not pass but trying to offer"
+        );
+        InterviewFeedbackResponse rejectFeedback = new InterviewFeedbackResponse(
+                FEEDBACK_ID, APPLICATION_ID, "Lead", 2, "Poor", InterviewDecision.REJECT, NOW
+        );
+
+        when(applicationRepository.findById(APPLICATION_ID)).thenReturn(Optional.of(existing));
+        when(feedbackRepository.findByApplicationId(APPLICATION_ID)).thenReturn(List.of(rejectFeedback));
+        when(vacancyApi.getVacancyCategory(VACANCY_ID)).thenReturn(JobCategory.ENGINEERING);
+
+        assertThatThrownBy(() -> applicationService.updateStatus(APPLICATION_ID, request))
+                .isInstanceOf(InvalidStateTransitionException.class)
+                .hasMessageContaining("Cannot make an offer to candidate with REJECT evaluation");
+
+        verify(applicationRepository, never()).save(any());
+        verify(eventPublisher, never()).publishEvent(any());
+    }
+
+    @Test
+    @DisplayName("updateStatus - should succeed when transitioning to OFFER with HIRE evaluation")
+    void givenHireEvaluation_updateStatusToOffer_shouldSucceed() {
+        ApplicationResponse existing = sampleApplication(ApplicationStatus.INTERVIEW);
+        UpdateApplicationStatusRequest request = new UpdateApplicationStatusRequest(
+                ApplicationStatus.OFFER,
+                "Strong candidate"
+        );
+        InterviewFeedbackResponse hireFeedback = new InterviewFeedbackResponse(
+                FEEDBACK_ID, APPLICATION_ID, "Lead", 5, "Great", InterviewDecision.HIRE, NOW
+        );
+
+        when(applicationRepository.findById(APPLICATION_ID)).thenReturn(Optional.of(existing));
+        when(feedbackRepository.findByApplicationId(APPLICATION_ID)).thenReturn(List.of(hireFeedback));
+        when(vacancyApi.getVacancyCategory(VACANCY_ID)).thenReturn(JobCategory.ENGINEERING);
+        when(commonGenerator.now()).thenReturn(NOW);
+        when(applicationRepository.save(any(ApplicationResponse.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        ApplicationResponse result = applicationService.updateStatus(APPLICATION_ID, request);
+
+        assertThat(result.status()).isEqualTo(ApplicationStatus.OFFER);
+        verify(applicationRepository).save(any(ApplicationResponse.class));
+        verify(eventPublisher).publishEvent(any(ApplicationStatusChangedEvent.class));
+    }
+
+    @Test
+    @DisplayName("getApplicationsByVacancy - should return list of applications for vacancy")
+    void givenVacancyId_getApplicationsByVacancy_shouldReturnApplications() {
+        ApplicationResponse app = sampleApplication(ApplicationStatus.APPLIED);
+        when(applicationRepository.findByVacancyId(VACANCY_ID)).thenReturn(List.of(app));
+
+        List<ApplicationResponse> result = applicationService.getApplicationsByVacancy(VACANCY_ID);
+
+        assertThat(result).containsExactly(app);
+        verify(applicationRepository).findByVacancyId(VACANCY_ID);
+    }
+
+    @Test
     @DisplayName("submitFeedback - should save and return feedback when application exists")
     void givenExistingApplication_submitFeedback_shouldSave() {
         ApplicationResponse existing = sampleApplication(ApplicationStatus.INTERVIEW);
