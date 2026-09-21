@@ -73,17 +73,33 @@ class CandidateEvaluationStrategyTest {
     }
 
     @Test
-    @DisplayName("ManagementStrategy should recommend HIRE when score >= 3.5")
-    void managementStrategy_givenScoreAboveThreshold_shouldRecommendHire() {
+    @DisplayName("ManagementStrategy should recommend HIRE when score >= 3.5 and majority votes HIRE")
+    void managementStrategy_givenScoreAboveThresholdAndMajorityHire_shouldRecommendHire() {
         List<InterviewFeedbackResponse> feedbacks = List.of(
                 feedback(4, InterviewDecision.HIRE),
-                feedback(3, InterviewDecision.HIRE)
+                feedback(4, InterviewDecision.HIRE),
+                feedback(3, InterviewDecision.REJECT)
         );
 
         EvaluationResult result = managementStrategy.evaluate(feedbacks);
 
-        assertThat(result.averageScore()).isEqualTo(3.5);
+        assertThat(result.averageScore()).isGreaterThanOrEqualTo(3.5);
         assertThat(result.recommendedDecision()).isEqualTo(InterviewDecision.HIRE);
+    }
+
+    @Test
+    @DisplayName("ManagementStrategy should recommend REJECT when majority votes REJECT even with high score")
+    void managementStrategy_givenMajorityReject_shouldRecommendReject() {
+        List<InterviewFeedbackResponse> feedbacks = List.of(
+                feedback(5, InterviewDecision.HIRE),
+                feedback(3, InterviewDecision.REJECT),
+                feedback(3, InterviewDecision.REJECT)
+        );
+
+        EvaluationResult result = managementStrategy.evaluate(feedbacks);
+
+        assertThat(result.averageScore()).isGreaterThanOrEqualTo(3.5);
+        assertThat(result.recommendedDecision()).isEqualTo(InterviewDecision.REJECT);
     }
 
     @Test

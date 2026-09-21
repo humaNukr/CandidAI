@@ -32,11 +32,19 @@ public class ManagementEvaluationStrategy implements CandidateEvaluationStrategy
                 .average()
                 .orElse(0.0);
 
-        InterviewDecision decision = average >= MIN_MANAGEMENT_SCORE
+        long hireVotes = feedbacks.stream()
+                .filter(f -> f.decision() == InterviewDecision.HIRE)
+                .count();
+        long rejectVotes = feedbacks.size() - hireVotes;
+
+        boolean majorityHire = hireVotes > rejectVotes;
+
+        InterviewDecision decision = (average >= MIN_MANAGEMENT_SCORE && majorityHire)
                 ? InterviewDecision.HIRE
                 : InterviewDecision.REJECT;
 
-        String reason = "Management evaluation completed. Average score: " + average;
+        String reason = "Management evaluation completed. Average score: " + average
+                + ", Votes: " + hireVotes + " HIRE vs " + rejectVotes + " REJECT";
 
         return new EvaluationResult(average, decision, reason);
     }
