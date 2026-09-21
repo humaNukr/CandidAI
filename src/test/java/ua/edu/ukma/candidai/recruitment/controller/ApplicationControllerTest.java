@@ -1,24 +1,30 @@
 package ua.edu.ukma.candidai.recruitment.controller;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.ObjectMapper;
 import ua.edu.ukma.candidai.common.exception.ResourceNotFoundException;
-import ua.edu.ukma.candidai.common.util.CommonGenerator;
+import ua.edu.ukma.candidai.recruitment.dto.model.ApplicationStatus;
+import ua.edu.ukma.candidai.recruitment.dto.model.InterviewDecision;
 import ua.edu.ukma.candidai.recruitment.dto.request.ApplyForVacancyRequest;
 import ua.edu.ukma.candidai.recruitment.dto.request.SubmitInterviewFeedbackRequest;
 import ua.edu.ukma.candidai.recruitment.dto.request.UpdateApplicationStatusRequest;
+import ua.edu.ukma.candidai.recruitment.dto.response.ApplicationResponse;
+import ua.edu.ukma.candidai.recruitment.dto.response.InterviewFeedbackResponse;
 import ua.edu.ukma.candidai.recruitment.service.ApplicationService;
+import ua.edu.ukma.candidai.recruitment.service.strategy.EvaluationResult;
+
+import java.time.Instant;
+import java.util.List;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -31,7 +37,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static ua.edu.ukma.candidai.recruitment.controller.TestResources.*;
 
 @WebMvcTest(ApplicationController.class)
-@Import(CommonGenerator.class)
 class ApplicationControllerTest {
 
     @Autowired
@@ -40,21 +45,28 @@ class ApplicationControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    @Autowired
-    private ApplicationController applicationController;
-
     @MockitoBean
     private ApplicationService applicationService;
-
-    @BeforeEach
-    void setUp() {
-        applicationController.saveApplication(anApplicationResponse());
-    }
 
     @Test
     @DisplayName("PATCH /api/v1/applications/{id}/status - should update status and return 200 Ok")
     void givenValidStatusUpdate_updateApplicationStatus_shouldReturn200Ok() throws Exception {
         UpdateApplicationStatusRequest request = validUpdateStatusRequest();
+        ApplicationResponse updatedResponse = new ApplicationResponse(
+                DEFAULT_ID,
+                DEFAULT_VACANCY_ID,
+                "John Doe",
+                "john.doe@example.com",
+                "+380501234567",
+                "https://storage.candidai.ukma.edu.ua/resumes/john_doe.pdf",
+                ApplicationStatus.INTERVIEW,
+                "Candidate passed screening successfully",
+                Instant.parse("2026-09-12T10:00:00Z"),
+                Instant.parse("2026-09-12T10:00:00Z")
+        );
+
+        when(applicationService.updateStatus(eq(DEFAULT_ID), any(UpdateApplicationStatusRequest.class)))
+                .thenReturn(updatedResponse);
 
         mockMvc.perform(patch(BASE_URL + "/" + DEFAULT_ID + "/status")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -63,6 +75,8 @@ class ApplicationControllerTest {
                 .andExpect(jsonPath("$.id").value(DEFAULT_ID.toString()))
                 .andExpect(jsonPath("$.status").value("INTERVIEW"))
                 .andExpect(jsonPath("$.comment").value("Candidate passed screening successfully"));
+
+        verify(applicationService).updateStatus(eq(DEFAULT_ID), any(UpdateApplicationStatusRequest.class));
     }
 
     @Test
@@ -82,12 +96,16 @@ class ApplicationControllerTest {
     @DisplayName("PATCH /api/v1/applications/{id}/status - should return 404 ProblemDetail when application not found")
     void givenNonExistentId_updateApplicationStatus_shouldReturn404NotFound() throws Exception {
         UpdateApplicationStatusRequest request = validUpdateStatusRequest();
+        when(applicationService.updateStatus(eq(NON_EXISTENT_ID), any(UpdateApplicationStatusRequest.class)))
+                .thenThrow(new ResourceNotFoundException("Application not found with id: " + NON_EXISTENT_ID));
 
         mockMvc.perform(patch(BASE_URL + "/" + NON_EXISTENT_ID + "/status")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isNotFound())
                 .andExpect(content().json(notFoundProblemDetailJson(NON_EXISTENT_ID)));
+
+        verify(applicationService).updateStatus(eq(NON_EXISTENT_ID), any(UpdateApplicationStatusRequest.class));
     }
 
     @Test
@@ -104,17 +122,31 @@ class ApplicationControllerTest {
     @DisplayName("POST /api/v1/applications/{id}/feedbacks - should submit feedback and return 201 Created")
     void givenValidRequest_submitFeedback_shouldReturn201Created() throws Exception {
         SubmitInterviewFeedbackRequest request = validSubmitFeedbackRequest();
+        InterviewFeedbackResponse feedback = new InterviewFeedbackResponse(
+                DEFAULT_ID,
+                DEFAULT_ID,
+                "Alex Techlead",
+                4,
+                "Strong knowledge of Java and Spring Boot architecture",
+                InterviewDecision.HIRE,
+                Instant.parse("2026-09-12T10:00:00Z")
+        );
+
+        when(applicationService.submitFeedback(eq(DEFAULT_ID), any(SubmitInterviewFeedbackRequest.class)))
+                .thenReturn(feedback);
 
         mockMvc.perform(post(BASE_URL + "/" + DEFAULT_ID + "/feedbacks")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
-                .andExpect(header().string("Location", containsString(BASE_URL + "/" + DEFAULT_ID + "/feedbacks")))
+                .andExpect(header().string("Location", containsString(BASE_URL + "/" + DEFAULT_ID)))
                 .andExpect(jsonPath("$.applicationId").value(DEFAULT_ID.toString()))
                 .andExpect(jsonPath("$.interviewerName").value("Alex Techlead"))
                 .andExpect(jsonPath("$.technicalScore").value(4))
                 .andExpect(jsonPath("$.notes").value("Strong knowledge of Java and Spring Boot architecture"))
                 .andExpect(jsonPath("$.decision").value("HIRE"));
+
+        verify(applicationService).submitFeedback(eq(DEFAULT_ID), any(SubmitInterviewFeedbackRequest.class));
     }
 
     @Test
@@ -186,12 +218,16 @@ class ApplicationControllerTest {
     @DisplayName("POST /api/v1/applications/{id}/feedbacks - should return 404 when application not found")
     void givenNonExistentId_submitFeedback_shouldReturn404NotFound() throws Exception {
         SubmitInterviewFeedbackRequest request = validSubmitFeedbackRequest();
+        when(applicationService.submitFeedback(eq(NON_EXISTENT_ID), any(SubmitInterviewFeedbackRequest.class)))
+                .thenThrow(new ResourceNotFoundException("Application not found with id: " + NON_EXISTENT_ID));
 
         mockMvc.perform(post(BASE_URL + "/" + NON_EXISTENT_ID + "/feedbacks")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isNotFound())
                 .andExpect(content().json(notFoundProblemDetailJson(NON_EXISTENT_ID)));
+
+        verify(applicationService).submitFeedback(eq(NON_EXISTENT_ID), any(SubmitInterviewFeedbackRequest.class));
     }
 
     @Test
@@ -207,25 +243,37 @@ class ApplicationControllerTest {
     @Test
     @DisplayName("GET /api/v1/applications/{id}/feedbacks - should return 200 Ok with feedbacks list")
     void givenExistingId_getFeedbacks_shouldReturn200OkWithFeedbacksList() throws Exception {
-        SubmitInterviewFeedbackRequest request = validSubmitFeedbackRequest();
-
-        mockMvc.perform(post(BASE_URL + "/" + DEFAULT_ID + "/feedbacks")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)));
+        InterviewFeedbackResponse fb = new InterviewFeedbackResponse(
+                DEFAULT_ID,
+                DEFAULT_ID,
+                "Alex Techlead",
+                4,
+                "Good",
+                InterviewDecision.HIRE,
+                Instant.parse("2026-09-12T10:00:00Z")
+        );
+        when(applicationService.getFeedbacks(DEFAULT_ID)).thenReturn(List.of(fb));
 
         mockMvc.perform(get(BASE_URL + "/" + DEFAULT_ID + "/feedbacks"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].applicationId").value(DEFAULT_ID.toString()))
                 .andExpect(jsonPath("$[0].interviewerName").value("Alex Techlead"))
                 .andExpect(jsonPath("$[0].technicalScore").value(4));
+
+        verify(applicationService).getFeedbacks(DEFAULT_ID);
     }
 
     @Test
     @DisplayName("GET /api/v1/applications/{id}/feedbacks - should return 404 ProblemDetail when application not found")
     void givenNonExistentId_getFeedbacks_shouldReturn404NotFound() throws Exception {
+        when(applicationService.getFeedbacks(NON_EXISTENT_ID))
+                .thenThrow(new ResourceNotFoundException("Application not found with id: " + NON_EXISTENT_ID));
+
         mockMvc.perform(get(BASE_URL + "/" + NON_EXISTENT_ID + "/feedbacks"))
                 .andExpect(status().isNotFound())
                 .andExpect(content().json(notFoundProblemDetailJson(NON_EXISTENT_ID)));
+
+        verify(applicationService).getFeedbacks(NON_EXISTENT_ID);
     }
 
     @Test
@@ -335,5 +383,24 @@ class ApplicationControllerTest {
                 .andExpect(content().json(notFoundProblemDetailJson(NON_EXISTENT_ID)));
 
         verify(applicationService).getById(NON_EXISTENT_ID);
+    }
+
+    @Test
+    @DisplayName("GET /api/v1/applications/{id}/evaluation - should return 200 Ok with evaluation result")
+    void givenExistingId_getEvaluation_shouldReturn200Ok() throws Exception {
+        EvaluationResult evaluation = new EvaluationResult(
+                4.5,
+                InterviewDecision.HIRE,
+                "Engineering evaluation completed"
+        );
+        when(applicationService.evaluateCandidate(DEFAULT_ID)).thenReturn(evaluation);
+
+        mockMvc.perform(get(BASE_URL + "/" + DEFAULT_ID + "/evaluation"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.averageScore").value(4.5))
+                .andExpect(jsonPath("$.recommendedDecision").value("HIRE"))
+                .andExpect(jsonPath("$.summaryReason").value("Engineering evaluation completed"));
+
+        verify(applicationService).evaluateCandidate(DEFAULT_ID);
     }
 }
