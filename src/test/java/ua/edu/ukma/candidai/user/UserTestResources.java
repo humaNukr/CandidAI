@@ -15,8 +15,13 @@ public final class UserTestResources {
     public static final String DEFAULT_EMAIL = "john.doe@example.com";
     public static final String DEFAULT_PASSWORD_HASH = "hashed_password";
     public static final String DEFAULT_TELEGRAM_CHAT_ID = "123456789";
+    public static final String UPDATED_TELEGRAM_CHAT_ID = "987654321";
 
     private UserTestResources() {
+    }
+
+    public static String expectedUserNotFoundMessage(UUID userId) {
+        return "User not found with id: " + userId;
     }
 
     public static User.UserBuilder sampleUserBuilder() {
@@ -32,6 +37,12 @@ public final class UserTestResources {
 
     public static User sampleUser() {
         return sampleUserBuilder().build();
+    }
+
+    public static User sampleUserWithTelegramChatId(String telegramChatId) {
+        return sampleUserBuilder()
+                .telegramChatId(telegramChatId)
+                .build();
     }
 
     public static UserNotificationProfile sampleUserNotificationProfile() {

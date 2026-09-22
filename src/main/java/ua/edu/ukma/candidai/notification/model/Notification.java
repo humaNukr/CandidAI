@@ -1,44 +1,76 @@
 package ua.edu.ukma.candidai.notification.model;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-import lombok.ToString;
 import java.time.Instant;
 import java.util.UUID;
 
-@Getter
-@Setter
-@ToString
-@EqualsAndHashCode(onlyExplicitlyIncluded = true)
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class Notification {
+public record Notification(
+        UUID id,
+        UUID recipientId,
+        String recipientEmail,
+        String recipientTelegramChatId,
+        NotificationChannel channel,
+        String subject,
+        String content,
+        NotificationDeliveryStatus status,
+        String errorMessage,
+        Instant createdAt,
+        Instant sentAt
+) {
 
-    @EqualsAndHashCode.Include
-    private UUID id;
+    public static Notification pending(
+            UUID id,
+            UUID recipientId,
+            String recipientEmail,
+            String recipientTelegramChatId,
+            NotificationChannel channel,
+            String subject,
+            String content,
+            Instant createdAt
+    ) {
+        return new Notification(
+                id,
+                recipientId,
+                recipientEmail,
+                recipientTelegramChatId,
+                channel,
+                subject,
+                content,
+                NotificationDeliveryStatus.PENDING,
+                null,
+                createdAt,
+                null
+        );
+    }
 
-    private UUID recipientId;
+    public Notification markSent(Instant sentAt) {
+        return new Notification(
+                id,
+                recipientId,
+                recipientEmail,
+                recipientTelegramChatId,
+                channel,
+                subject,
+                content,
+                NotificationDeliveryStatus.SENT,
+                null,
+                createdAt,
+                sentAt
+        );
+    }
 
-    private String recipientEmail;
-
-    private String recipientTelegramChatId;
-
-    private NotificationChannel channel;
-
-    private String subject;
-
-    private String content;
-
-    private NotificationDeliveryStatus status;
-
-    private String errorMessage;
-
-    private Instant createdAt;
-
-    private Instant sentAt;
+    public Notification markFailed(String errorMessage) {
+        return new Notification(
+                id,
+                recipientId,
+                recipientEmail,
+                recipientTelegramChatId,
+                channel,
+                subject,
+                content,
+                NotificationDeliveryStatus.FAILED,
+                errorMessage,
+                createdAt,
+                null
+        );
+    }
 }

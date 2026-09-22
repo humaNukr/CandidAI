@@ -17,10 +17,10 @@ class InMemoryNotificationRepository implements NotificationRepository {
 
     @Override
     public Notification save(Notification notification) {
-        if (notification == null || notification.getId() == null) {
+        if (notification == null || notification.id() == null) {
             throw new IllegalArgumentException("Notification and its id must not be null");
         }
-        storage.put(notification.getId(), notification);
+        storage.put(notification.id(), notification);
         return notification;
     }
 
@@ -43,7 +43,7 @@ class InMemoryNotificationRepository implements NotificationRepository {
             return List.of();
         }
         return storage.values().stream()
-                .filter(notification -> recipientId.equals(notification.getRecipientId()))
+                .filter(notification -> recipientId.equals(notification.recipientId()))
                 .toList();
     }
 }

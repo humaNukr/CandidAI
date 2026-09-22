@@ -7,27 +7,33 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import ua.edu.ukma.candidai.common.util.CommonGenerator;
-import ua.edu.ukma.candidai.notification.NotificationChannel;
-import ua.edu.ukma.candidai.notification.NotificationDeliveryStatus;
 import ua.edu.ukma.candidai.notification.model.Notification;
-import ua.edu.ukma.candidai.notification.model.NotificationMessage;
+import ua.edu.ukma.candidai.notification.model.NotificationChannel;
+import ua.edu.ukma.candidai.notification.model.NotificationDeliveryStatus;
 import ua.edu.ukma.candidai.notification.repository.NotificationRepository;
 import ua.edu.ukma.candidai.notification.sender.NotificationSender;
+import ua.edu.ukma.candidai.user.UserApi;
+import ua.edu.ukma.candidai.user.UserNotificationProfile;
 
 import java.util.List;
+import java.util.Optional;
 
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static ua.edu.ukma.candidai.notification.NotificationTestResources.DEFAULT_BODY;
+import static ua.edu.ukma.candidai.notification.NotificationTestResources.DEFAULT_ERROR_MESSAGE;
 import static ua.edu.ukma.candidai.notification.NotificationTestResources.DEFAULT_ID;
 import static ua.edu.ukma.candidai.notification.NotificationTestResources.DEFAULT_NOW;
+import static ua.edu.ukma.candidai.notification.NotificationTestResources.DEFAULT_RECIPIENT_ID;
+import static ua.edu.ukma.candidai.notification.NotificationTestResources.DEFAULT_SUBJECT;
 import static ua.edu.ukma.candidai.notification.NotificationTestResources.SECOND_ID;
-import static ua.edu.ukma.candidai.notification.NotificationTestResources.emailOnlyNotificationMessage;
-import static ua.edu.ukma.candidai.notification.NotificationTestResources.sampleNotificationBuilder;
-import static ua.edu.ukma.candidai.notification.NotificationTestResources.sampleNotificationMessage;
-import static ua.edu.ukma.candidai.notification.NotificationTestResources.telegramOnlyNotificationMessage;
+import static ua.edu.ukma.candidai.notification.NotificationTestResources.sampleNotification;
+import static ua.edu.ukma.candidai.notification.NotificationTestResources.sampleSmtpException;
+import static ua.edu.ukma.candidai.notification.NotificationTestResources.sampleUserNotificationProfile;
 
 @ExtendWith(MockitoExtension.class)
 class NotificationDispatcherTest {
@@ -37,6 +43,9 @@ class NotificationDispatcherTest {
 
     @Mock
     private NotificationSender telegramSender;
+
+    @Mock
+    private UserApi userApi;
 
     @Mock
     private NotificationRepository notificationRepository;
@@ -49,6 +58,7 @@ class NotificationDispatcherTest {
     @BeforeEach
     void setUp() {
         dispatcher = new NotificationDispatcher(
+                userApi,
                 List.of(emailSender, telegramSender),
                 notificationRepository,
                 generator
@@ -56,100 +66,127 @@ class NotificationDispatcherTest {
     }
 
     @Test
-    @DisplayName("dispatches email when email present")
-    void givenEmailPresent_dispatch_shouldSendEmailAndPersistSentNotification() {
-        NotificationMessage message = emailOnlyNotificationMessage();
-        Notification expectedNotification = sampleNotificationBuilder()
-                .channel(NotificationChannel.EMAIL)
-                .recipientTelegramChatId(null)
-                .status(NotificationDeliveryStatus.SENT)
-                .build();
+    @DisplayName("does nothing when user notification profile not found")
+    void givenUserNotFound_dispatch_shouldDoNothing() {
+        when(userApi.getUserNotificationProfile(DEFAULT_RECIPIENT_ID)).thenReturn(Optional.empty());
 
-        when(emailSender.getChannel()).thenReturn(NotificationChannel.EMAIL);
-        doNothing().when(emailSender).send(message);
-        when(generator.now()).thenReturn(DEFAULT_NOW);
-        when(generator.uuid()).thenReturn(DEFAULT_ID);
+        dispatcher.dispatch(DEFAULT_RECIPIENT_ID, DEFAULT_SUBJECT, DEFAULT_BODY);
 
-        dispatcher.dispatch(message);
-
-        verify(emailSender).send(message);
-        verify(notificationRepository).save(expectedNotification);
-        verify(telegramSender, never()).send(message);
+        verifyNoInteractions(emailSender, telegramSender, notificationRepository, generator);
     }
 
     @Test
-    @DisplayName("dispatches telegram when telegram present")
-    void givenTelegramPresent_dispatch_shouldSendTelegramAndPersistSentNotification() {
-        NotificationMessage message = telegramOnlyNotificationMessage();
-        Notification expectedNotification = sampleNotificationBuilder()
-                .channel(NotificationChannel.TELEGRAM)
-                .recipientEmail(null)
-                .status(NotificationDeliveryStatus.SENT)
-                .build();
+    @DisplayName("does not send or record when sender does not support profile")
+    void givenSenderDoesNotSupportProfile_dispatch_shouldNotSendOrPersistNotification() {
+        UserNotificationProfile profile = sampleUserNotificationProfile();
 
-        when(emailSender.getChannel()).thenReturn(NotificationChannel.EMAIL);
-        when(telegramSender.getChannel()).thenReturn(NotificationChannel.TELEGRAM);
-        doNothing().when(telegramSender).send(message);
-        when(generator.now()).thenReturn(DEFAULT_NOW);
-        when(generator.uuid()).thenReturn(DEFAULT_ID);
+        when(userApi.getUserNotificationProfile(DEFAULT_RECIPIENT_ID)).thenReturn(Optional.of(profile));
+        when(emailSender.supports(profile)).thenReturn(false);
+        when(telegramSender.supports(profile)).thenReturn(false);
 
-        dispatcher.dispatch(message);
+        dispatcher.dispatch(DEFAULT_RECIPIENT_ID, DEFAULT_SUBJECT, DEFAULT_BODY);
 
-        verify(telegramSender).send(message);
-        verify(notificationRepository).save(expectedNotification);
-        verify(emailSender, never()).send(message);
+        verify(emailSender, never()).send(profile, DEFAULT_SUBJECT, DEFAULT_BODY);
+        verify(telegramSender, never()).send(profile, DEFAULT_SUBJECT, DEFAULT_BODY);
+        verifyNoInteractions(notificationRepository, generator);
     }
 
     @Test
-    @DisplayName("dispatches both when both present")
-    void givenBothPresent_dispatch_shouldSendBothAndPersistNotificationsWithDistinctIds() {
-        NotificationMessage message = sampleNotificationMessage();
-        Notification expectedEmail = sampleNotificationBuilder()
-                .id(DEFAULT_ID)
-                .channel(NotificationChannel.EMAIL)
-                .status(NotificationDeliveryStatus.SENT)
-                .build();
-        Notification expectedTelegram = sampleNotificationBuilder()
-                .id(SECOND_ID)
-                .channel(NotificationChannel.TELEGRAM)
-                .status(NotificationDeliveryStatus.SENT)
-                .build();
+    @DisplayName("sends and saves notification when sender supports profile")
+    void givenSenderSupportsProfile_dispatch_shouldSendAndPersistNotification() {
+        UserNotificationProfile profile = sampleUserNotificationProfile();
+        Notification expectedNotification = sampleNotification(
+                profile,
+                NotificationChannel.EMAIL,
+                NotificationDeliveryStatus.SENT
+        );
 
+        when(userApi.getUserNotificationProfile(DEFAULT_RECIPIENT_ID)).thenReturn(Optional.of(profile));
+        when(emailSender.supports(profile)).thenReturn(true);
         when(emailSender.getChannel()).thenReturn(NotificationChannel.EMAIL);
+        when(telegramSender.supports(profile)).thenReturn(false);
+        doNothing().when(emailSender).send(profile, DEFAULT_SUBJECT, DEFAULT_BODY);
+        when(generator.now()).thenReturn(DEFAULT_NOW);
+        when(generator.uuid()).thenReturn(DEFAULT_ID);
+
+        dispatcher.dispatch(DEFAULT_RECIPIENT_ID, DEFAULT_SUBJECT, DEFAULT_BODY);
+
+        verify(emailSender).send(profile, DEFAULT_SUBJECT, DEFAULT_BODY);
+        verify(notificationRepository).save(expectedNotification);
+        verify(telegramSender, never()).send(profile, DEFAULT_SUBJECT, DEFAULT_BODY);
+    }
+
+    @Test
+    @DisplayName("records FAILED when sender throws exception and continues to remaining senders")
+    void givenSenderThrowsException_dispatch_shouldRecordFailedStatusAndContinueToRemainingSenders() {
+        UserNotificationProfile profile = sampleUserNotificationProfile();
+        RuntimeException exception = sampleSmtpException();
+        Notification expectedEmail = sampleNotification(
+                DEFAULT_ID,
+                profile,
+                NotificationChannel.EMAIL,
+                NotificationDeliveryStatus.FAILED,
+                DEFAULT_ERROR_MESSAGE
+        );
+        Notification expectedTelegram = sampleNotification(
+                SECOND_ID,
+                profile,
+                NotificationChannel.TELEGRAM,
+                NotificationDeliveryStatus.SENT
+        );
+
+        when(userApi.getUserNotificationProfile(DEFAULT_RECIPIENT_ID)).thenReturn(Optional.of(profile));
+        when(emailSender.supports(profile)).thenReturn(true);
+        when(emailSender.getChannel()).thenReturn(NotificationChannel.EMAIL);
+        doThrow(exception).when(emailSender).send(profile, DEFAULT_SUBJECT, DEFAULT_BODY);
+
+        when(telegramSender.supports(profile)).thenReturn(true);
         when(telegramSender.getChannel()).thenReturn(NotificationChannel.TELEGRAM);
-        doNothing().when(emailSender).send(message);
-        doNothing().when(telegramSender).send(message);
+        doNothing().when(telegramSender).send(profile, DEFAULT_SUBJECT, DEFAULT_BODY);
+
         when(generator.now()).thenReturn(DEFAULT_NOW);
         when(generator.uuid()).thenReturn(DEFAULT_ID, SECOND_ID);
 
-        dispatcher.dispatch(message);
+        dispatcher.dispatch(DEFAULT_RECIPIENT_ID, DEFAULT_SUBJECT, DEFAULT_BODY);
 
-        verify(emailSender).send(message);
-        verify(telegramSender).send(message);
+        verify(emailSender).send(profile, DEFAULT_SUBJECT, DEFAULT_BODY);
+        verify(telegramSender).send(profile, DEFAULT_SUBJECT, DEFAULT_BODY);
         verify(notificationRepository).save(expectedEmail);
         verify(notificationRepository).save(expectedTelegram);
     }
 
     @Test
-    @DisplayName("records FAILED when sender throws exception")
-    void givenSenderThrowsException_dispatch_shouldRecordFailedStatus() {
-        NotificationMessage message = emailOnlyNotificationMessage();
-        Notification expectedNotification = sampleNotificationBuilder()
-                .channel(NotificationChannel.EMAIL)
-                .recipientTelegramChatId(null)
-                .status(NotificationDeliveryStatus.FAILED)
-                .errorMessage("SMTP connection timeout")
-                .build();
+    @DisplayName("dispatches to all supporting senders with distinct notification ids")
+    void givenMultipleSendersSupportProfile_dispatch_shouldUseDistinctIdsAndPersistBoth() {
+        UserNotificationProfile profile = sampleUserNotificationProfile();
+        Notification expectedEmail = sampleNotification(
+                DEFAULT_ID,
+                profile,
+                NotificationChannel.EMAIL,
+                NotificationDeliveryStatus.SENT
+        );
+        Notification expectedTelegram = sampleNotification(
+                SECOND_ID,
+                profile,
+                NotificationChannel.TELEGRAM,
+                NotificationDeliveryStatus.SENT
+        );
 
+        when(userApi.getUserNotificationProfile(DEFAULT_RECIPIENT_ID)).thenReturn(Optional.of(profile));
+        when(emailSender.supports(profile)).thenReturn(true);
         when(emailSender.getChannel()).thenReturn(NotificationChannel.EMAIL);
-        doThrow(new RuntimeException("SMTP connection timeout")).when(emailSender).send(message);
+        when(telegramSender.supports(profile)).thenReturn(true);
+        when(telegramSender.getChannel()).thenReturn(NotificationChannel.TELEGRAM);
+        doNothing().when(emailSender).send(profile, DEFAULT_SUBJECT, DEFAULT_BODY);
+        doNothing().when(telegramSender).send(profile, DEFAULT_SUBJECT, DEFAULT_BODY);
         when(generator.now()).thenReturn(DEFAULT_NOW);
-        when(generator.uuid()).thenReturn(DEFAULT_ID);
+        when(generator.uuid()).thenReturn(DEFAULT_ID, SECOND_ID);
 
-        dispatcher.dispatch(message);
+        dispatcher.dispatch(DEFAULT_RECIPIENT_ID, DEFAULT_SUBJECT, DEFAULT_BODY);
 
-        verify(emailSender).send(message);
-        verify(notificationRepository).save(expectedNotification);
-        verify(telegramSender, never()).send(message);
+        verify(emailSender).send(profile, DEFAULT_SUBJECT, DEFAULT_BODY);
+        verify(telegramSender).send(profile, DEFAULT_SUBJECT, DEFAULT_BODY);
+        verify(notificationRepository).save(expectedEmail);
+        verify(notificationRepository).save(expectedTelegram);
     }
 }

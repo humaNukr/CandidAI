@@ -7,5 +7,7 @@ public interface NotificationSender {
 
     NotificationChannel getChannel();
 
+    boolean supports(UserNotificationProfile recipient);
+
     void send(UserNotificationProfile recipient, String subject, String body);
 }
