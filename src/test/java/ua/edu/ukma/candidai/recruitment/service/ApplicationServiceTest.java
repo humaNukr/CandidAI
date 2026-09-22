@@ -13,6 +13,7 @@ import ua.edu.ukma.candidai.common.exception.ResourceNotFoundException;
 import ua.edu.ukma.candidai.common.util.CommonGenerator;
 import ua.edu.ukma.candidai.recruitment.dto.model.ApplicationStatus;
 import ua.edu.ukma.candidai.recruitment.dto.request.ApplyForVacancyRequest;
+import ua.edu.ukma.candidai.recruitment.dto.request.UpdateApplicationStatusRequest;
 import ua.edu.ukma.candidai.recruitment.dto.response.ApplicationResponse;
 import ua.edu.ukma.candidai.recruitment.event.ApplicationSubmittedEvent;
 import ua.edu.ukma.candidai.recruitment.repository.ApplicationRepository;
@@ -80,7 +81,10 @@ class ApplicationServiceTest {
         ApplicationSubmittedEvent publishedEvent = captor.getValue();
         assertThat(publishedEvent.applicationId()).isEqualTo(APPLICATION_ID);
         assertThat(publishedEvent.vacancyId()).isEqualTo(VACANCY_ID);
+        assertThat(publishedEvent.candidateName()).isEqualTo("John Doe");
         assertThat(publishedEvent.email()).isEqualTo("john.doe@example.com");
+        assertThat(publishedEvent.resumeUrl())
+                .isEqualTo("https://storage.candidai.ukma.edu.ua/resumes/john_doe.pdf");
     }
 
     @Test
@@ -155,6 +159,51 @@ class ApplicationServiceTest {
         when(applicationRepository.findById(APPLICATION_ID)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> applicationService.getById(APPLICATION_ID))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("Application not found");
+    }
+
+    @Test
+    @DisplayName("updateStatus - should update status and save application")
+    void givenValidUpdate_updateStatus_shouldUpdateAndSave() {
+        ApplicationResponse existing = new ApplicationResponse(
+                APPLICATION_ID,
+                VACANCY_ID,
+                "John Doe",
+                "john.doe@example.com",
+                "+380501234567",
+                "https://storage.candidai.ukma.edu.ua/resumes/john_doe.pdf",
+                ApplicationStatus.APPLIED,
+                null,
+                NOW,
+                NOW
+        );
+
+        UpdateApplicationStatusRequest request = new UpdateApplicationStatusRequest(
+                ApplicationStatus.INTERVIEW, "Promising candidate"
+        );
+
+        when(applicationRepository.findById(APPLICATION_ID)).thenReturn(Optional.of(existing));
+        when(commonGenerator.now()).thenReturn(NOW);
+        when(applicationRepository.save(any(ApplicationResponse.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        ApplicationResponse result = applicationService.updateStatus(APPLICATION_ID, request);
+
+        assertThat(result.status()).isEqualTo(ApplicationStatus.INTERVIEW);
+        assertThat(result.comment()).isEqualTo("Promising candidate");
+        verify(applicationRepository).save(any(ApplicationResponse.class));
+    }
+
+    @Test
+    @DisplayName("updateStatus - should throw ResourceNotFoundException when application not found")
+    void givenNonExistentId_updateStatus_shouldThrowResourceNotFoundException() {
+        UpdateApplicationStatusRequest request = new UpdateApplicationStatusRequest(
+                ApplicationStatus.INTERVIEW, "Comment"
+        );
+
+        when(applicationRepository.findById(APPLICATION_ID)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> applicationService.updateStatus(APPLICATION_ID, request))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("Application not found");
     }

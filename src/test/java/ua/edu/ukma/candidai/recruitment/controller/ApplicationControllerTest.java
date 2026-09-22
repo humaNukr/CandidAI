@@ -12,13 +12,18 @@ import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.ObjectMapper;
 import ua.edu.ukma.candidai.common.exception.ResourceNotFoundException;
 import ua.edu.ukma.candidai.common.util.CommonGenerator;
+import ua.edu.ukma.candidai.recruitment.dto.model.ApplicationStatus;
 import ua.edu.ukma.candidai.recruitment.dto.request.ApplyForVacancyRequest;
 import ua.edu.ukma.candidai.recruitment.dto.request.SubmitInterviewFeedbackRequest;
 import ua.edu.ukma.candidai.recruitment.dto.request.UpdateApplicationStatusRequest;
+import ua.edu.ukma.candidai.recruitment.dto.response.ApplicationResponse;
 import ua.edu.ukma.candidai.recruitment.service.ApplicationService;
+
+import java.time.Instant;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -40,21 +45,32 @@ class ApplicationControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    @Autowired
-    private ApplicationController applicationController;
-
     @MockitoBean
     private ApplicationService applicationService;
 
     @BeforeEach
     void setUp() {
-        applicationController.saveApplication(anApplicationResponse());
+        when(applicationService.getById(DEFAULT_ID)).thenReturn(anApplicationResponse());
     }
 
     @Test
     @DisplayName("PATCH /api/v1/applications/{id}/status - should update status and return 200 Ok")
     void givenValidStatusUpdate_updateApplicationStatus_shouldReturn200Ok() throws Exception {
         UpdateApplicationStatusRequest request = validUpdateStatusRequest();
+        ApplicationResponse expected = new ApplicationResponse(
+                DEFAULT_ID,
+                DEFAULT_VACANCY_ID,
+                "John Doe",
+                "john.doe@example.com",
+                "+380501234567",
+                "https://storage.candidai.ukma.edu.ua/resumes/john_doe.pdf",
+                ApplicationStatus.INTERVIEW,
+                "Candidate passed screening successfully",
+                Instant.parse("2026-09-12T10:00:00Z"),
+                Instant.parse("2026-09-12T10:00:00Z")
+        );
+        when(applicationService.updateStatus(eq(DEFAULT_ID), any(UpdateApplicationStatusRequest.class)))
+                .thenReturn(expected);
 
         mockMvc.perform(patch(BASE_URL + "/" + DEFAULT_ID + "/status")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -63,6 +79,8 @@ class ApplicationControllerTest {
                 .andExpect(jsonPath("$.id").value(DEFAULT_ID.toString()))
                 .andExpect(jsonPath("$.status").value("INTERVIEW"))
                 .andExpect(jsonPath("$.comment").value("Candidate passed screening successfully"));
+
+        verify(applicationService).updateStatus(eq(DEFAULT_ID), any(UpdateApplicationStatusRequest.class));
     }
 
     @Test
@@ -82,12 +100,16 @@ class ApplicationControllerTest {
     @DisplayName("PATCH /api/v1/applications/{id}/status - should return 404 ProblemDetail when application not found")
     void givenNonExistentId_updateApplicationStatus_shouldReturn404NotFound() throws Exception {
         UpdateApplicationStatusRequest request = validUpdateStatusRequest();
+        when(applicationService.updateStatus(eq(NON_EXISTENT_ID), any(UpdateApplicationStatusRequest.class)))
+                .thenThrow(new ResourceNotFoundException("Application not found with id: " + NON_EXISTENT_ID));
 
         mockMvc.perform(patch(BASE_URL + "/" + NON_EXISTENT_ID + "/status")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isNotFound())
                 .andExpect(content().json(notFoundProblemDetailJson(NON_EXISTENT_ID)));
+
+        verify(applicationService).updateStatus(eq(NON_EXISTENT_ID), any(UpdateApplicationStatusRequest.class));
     }
 
     @Test
@@ -186,12 +208,16 @@ class ApplicationControllerTest {
     @DisplayName("POST /api/v1/applications/{id}/feedbacks - should return 404 when application not found")
     void givenNonExistentId_submitFeedback_shouldReturn404NotFound() throws Exception {
         SubmitInterviewFeedbackRequest request = validSubmitFeedbackRequest();
+        when(applicationService.getById(NON_EXISTENT_ID))
+                .thenThrow(new ResourceNotFoundException("Application not found with id: " + NON_EXISTENT_ID));
 
         mockMvc.perform(post(BASE_URL + "/" + NON_EXISTENT_ID + "/feedbacks")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isNotFound())
                 .andExpect(content().json(notFoundProblemDetailJson(NON_EXISTENT_ID)));
+
+        verify(applicationService).getById(NON_EXISTENT_ID);
     }
 
     @Test
@@ -223,9 +249,14 @@ class ApplicationControllerTest {
     @Test
     @DisplayName("GET /api/v1/applications/{id}/feedbacks - should return 404 ProblemDetail when application not found")
     void givenNonExistentId_getFeedbacks_shouldReturn404NotFound() throws Exception {
+        when(applicationService.getById(NON_EXISTENT_ID))
+                .thenThrow(new ResourceNotFoundException("Application not found with id: " + NON_EXISTENT_ID));
+
         mockMvc.perform(get(BASE_URL + "/" + NON_EXISTENT_ID + "/feedbacks"))
                 .andExpect(status().isNotFound())
                 .andExpect(content().json(notFoundProblemDetailJson(NON_EXISTENT_ID)));
+
+        verify(applicationService).getById(NON_EXISTENT_ID);
     }
 
     @Test
