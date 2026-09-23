@@ -8,6 +8,7 @@ import org.springframework.mail.MailSendException;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Component;
+import ua.edu.ukma.candidai.notification.config.NotificationProperties;
 
 import java.nio.charset.StandardCharsets;
 
@@ -17,9 +18,16 @@ import java.nio.charset.StandardCharsets;
 public class SmtpEmailTransport implements EmailTransport {
 
     private final JavaMailSender mailSender;
+    private final NotificationProperties properties;
 
     @Override
     public void sendEmail(String to, String subject, String htmlContent) {
+        if (!properties.mail().enabled()) {
+            log.info("[EMAIL-DEV] Mail is disabled (notification.mail.enabled=false). "
+                    + "Simulated email to: {} | Subject: {}", to, subject);
+            return;
+        }
+
         try {
             MimeMessage mimeMessage = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(

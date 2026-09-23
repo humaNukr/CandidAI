@@ -84,4 +84,37 @@ class TelegramBotClientTest {
         assertThat(actualResponse).isEqualTo(TELEGRAM_EMPTY_UPDATES_JSON);
         customServer.verify();
     }
+
+    @Test
+    @DisplayName("sendMessage should not perform HTTP request when telegram is disabled")
+    void givenTelegramDisabled_sendMessage_shouldNotPerformHttpRequest() {
+        NotificationProperties properties = new NotificationProperties(
+                ua.edu.ukma.candidai.notification.NotificationTestResources.sampleMailProperties(),
+                ua.edu.ukma.candidai.notification.NotificationTestResources.sampleDisabledTelegramProperties()
+        );
+        RestClient.Builder builder = RestClient.builder();
+        MockRestServiceServer customServer = MockRestServiceServer.bindTo(builder).build();
+        TelegramBotClient customClient = new TelegramBotClient(builder.build(), properties);
+
+        customClient.sendMessage(DEFAULT_TELEGRAM_CHAT_ID, DEFAULT_MESSAGE_TEXT, PARSE_MODE_HTML);
+
+        customServer.verify();
+    }
+
+    @Test
+    @DisplayName("getUpdates should return null and not perform HTTP request when telegram is disabled")
+    void givenTelegramDisabled_getUpdates_shouldReturnNullAndNotPerformHttpRequest() {
+        NotificationProperties properties = new NotificationProperties(
+                ua.edu.ukma.candidai.notification.NotificationTestResources.sampleMailProperties(),
+                ua.edu.ukma.candidai.notification.NotificationTestResources.sampleDisabledTelegramProperties()
+        );
+        RestClient.Builder builder = RestClient.builder();
+        MockRestServiceServer customServer = MockRestServiceServer.bindTo(builder).build();
+        TelegramBotClient customClient = new TelegramBotClient(builder.build(), properties);
+
+        String result = customClient.getUpdates(DEFAULT_UPDATE_OFFSET);
+
+        assertThat(result).isNull();
+        customServer.verify();
+    }
 }

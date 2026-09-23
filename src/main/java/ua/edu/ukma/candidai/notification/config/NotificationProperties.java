@@ -13,6 +13,7 @@ public record NotificationProperties(
         @Valid @NotNull TelegramProperties telegram
 ) {
     public record MailProperties(
+            boolean enabled,
             @NotBlank String templateName,
             @NotBlank String defaultActionUrl,
             @NotBlank String defaultRecipientName

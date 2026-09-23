@@ -127,6 +127,16 @@ public final class NotificationTestResources {
 
     public static NotificationProperties.MailProperties sampleMailProperties() {
         return new NotificationProperties.MailProperties(
+                true,
+                DEFAULT_TEMPLATE_NAME,
+                DEFAULT_ACTION_URL,
+                DEFAULT_RECIPIENT_NAME
+        );
+    }
+
+    public static NotificationProperties.MailProperties sampleDisabledMailProperties() {
+        return new NotificationProperties.MailProperties(
+                false,
                 DEFAULT_TEMPLATE_NAME,
                 DEFAULT_ACTION_URL,
                 DEFAULT_RECIPIENT_NAME
@@ -136,6 +146,17 @@ public final class NotificationTestResources {
     public static NotificationProperties.TelegramProperties sampleTelegramProperties() {
         return new NotificationProperties.TelegramProperties(
                 true,
+                DEFAULT_BOT_TOKEN,
+                DEFAULT_API_URL,
+                DEFAULT_POLLING_INTERVAL_MS,
+                DEFAULT_CONNECT_TIMEOUT_MS,
+                DEFAULT_READ_TIMEOUT_MS
+        );
+    }
+
+    public static NotificationProperties.TelegramProperties sampleDisabledTelegramProperties() {
+        return new NotificationProperties.TelegramProperties(
+                false,
                 DEFAULT_BOT_TOKEN,
                 DEFAULT_API_URL,
                 DEFAULT_POLLING_INTERVAL_MS,
@@ -408,6 +429,7 @@ public final class NotificationTestResources {
         return new ApplicationContextRunner()
                 .withUserConfiguration(NotificationConfig.class)
                 .withPropertyValues(
+                        "notification.mail.enabled=true",
                         "notification.mail.template-name=mail/notification-email",
                         "notification.mail.default-action-url=https://candidai.ukma.edu.ua",
                         "notification.mail.default-recipient-name=there",

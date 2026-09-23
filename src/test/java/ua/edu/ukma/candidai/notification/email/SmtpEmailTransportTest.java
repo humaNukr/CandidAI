@@ -10,6 +10,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mail.MailSendException;
 import org.springframework.mail.javamail.JavaMailSender;
+import ua.edu.ukma.candidai.notification.config.NotificationProperties;
 
 import java.nio.charset.StandardCharsets;
 
@@ -17,13 +18,17 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static ua.edu.ukma.candidai.notification.NotificationTestResources.DEFAULT_EMAIL;
 import static ua.edu.ukma.candidai.notification.NotificationTestResources.DEFAULT_HTML_CONTENT;
 import static ua.edu.ukma.candidai.notification.NotificationTestResources.DEFAULT_SUBJECT;
 import static ua.edu.ukma.candidai.notification.NotificationTestResources.expectedEmailSendErrorMessage;
+import static ua.edu.ukma.candidai.notification.NotificationTestResources.sampleDisabledMailProperties;
 import static ua.edu.ukma.candidai.notification.NotificationTestResources.sampleMessagingException;
 import static ua.edu.ukma.candidai.notification.NotificationTestResources.sampleMimeMessage;
+import static ua.edu.ukma.candidai.notification.NotificationTestResources.sampleNotificationProperties;
+import static ua.edu.ukma.candidai.notification.NotificationTestResources.sampleTelegramProperties;
 
 @ExtendWith(MockitoExtension.class)
 class SmtpEmailTransportTest {
@@ -35,7 +40,7 @@ class SmtpEmailTransportTest {
 
     @BeforeEach
     void setUp() {
-        transport = new SmtpEmailTransport(mailSender);
+        transport = new SmtpEmailTransport(mailSender, sampleNotificationProperties());
     }
 
     @Test
@@ -61,5 +66,19 @@ class SmtpEmailTransportTest {
                 .isInstanceOf(MailSendException.class)
                 .hasMessageContaining(expectedEmailSendErrorMessage(DEFAULT_EMAIL))
                 .hasCauseInstanceOf(MessagingException.class);
+    }
+
+    @Test
+    @DisplayName("sendEmail should simulate sending and not call mailSender when mail is disabled")
+    void givenMailDisabled_sendEmail_shouldSimulateAndNotCallMailSender() {
+        NotificationProperties disabledProperties = new NotificationProperties(
+                sampleDisabledMailProperties(),
+                sampleTelegramProperties()
+        );
+        SmtpEmailTransport disabledTransport = new SmtpEmailTransport(mailSender, disabledProperties);
+
+        disabledTransport.sendEmail(DEFAULT_EMAIL, DEFAULT_SUBJECT, DEFAULT_HTML_CONTENT);
+
+        verifyNoInteractions(mailSender);
     }
 }

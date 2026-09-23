@@ -13,6 +13,7 @@ spring:
 
 notification:
   mail:
+    enabled: ${MAIL_ENABLED:false}
     template-name: mail/notification-email
     default-action-url: https://candidai.ukma.edu.ua
     default-recipient-name: there
