@@ -3,6 +3,7 @@ package ua.edu.ukma.candidai.recruitment.repository;
 import org.springframework.stereotype.Repository;
 import ua.edu.ukma.candidai.recruitment.dto.response.ApplicationResponse;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -29,5 +30,12 @@ public class InMemoryApplicationRepository implements ApplicationRepository {
         return storage.values().stream()
                 .anyMatch(app -> app.vacancyId().equals(vacancyId)
                         && app.email().equalsIgnoreCase(email));
+    }
+
+    @Override
+    public List<ApplicationResponse> findByVacancyId(UUID vacancyId) {
+        return storage.values().stream()
+                .filter(app -> app.vacancyId().equals(vacancyId))
+                .toList();
     }
 }

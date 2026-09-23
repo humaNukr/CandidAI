@@ -9,4 +9,6 @@ public interface VacancyApi {
     boolean isVacancyOpen(UUID vacancyId);
 
     JobCategory getVacancyCategory(UUID vacancyId);
+
+    VacancyDetails getVacancyDetails(UUID vacancyId);
 }

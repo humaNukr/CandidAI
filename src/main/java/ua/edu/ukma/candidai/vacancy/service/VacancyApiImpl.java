@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import ua.edu.ukma.candidai.common.exception.ResourceNotFoundException;
 import ua.edu.ukma.candidai.vacancy.VacancyApi;
+import ua.edu.ukma.candidai.vacancy.VacancyDetails;
 import ua.edu.ukma.candidai.vacancy.dto.response.VacancyResponse;
 import ua.edu.ukma.candidai.vacancy.model.JobCategory;
 import ua.edu.ukma.candidai.vacancy.model.VacancyStatus;
@@ -29,5 +30,18 @@ class VacancyApiImpl implements VacancyApi {
     @Override
     public JobCategory getVacancyCategory(UUID vacancyId) {
         return vacancyService.getVacancyById(vacancyId).category();
+    }
+
+    @Override
+    public VacancyDetails getVacancyDetails(UUID vacancyId) {
+        VacancyResponse vacancy = vacancyService.getVacancyById(vacancyId);
+        return new VacancyDetails(
+                vacancy.id(),
+                vacancy.title(),
+                vacancy.description(),
+                vacancy.requiredSkills(),
+                vacancy.preferredSkills(),
+                vacancy.seniorityLevel()
+        );
     }
 }
