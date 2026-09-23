@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
+import ua.edu.ukma.candidai.common.exception.InvalidStateTransitionException;
 import ua.edu.ukma.candidai.vacancy.dto.request.CreateVacancyRequest;
 
 import java.math.BigDecimal;
@@ -80,6 +81,11 @@ public class Vacancy {
     }
 
     public void updateStatus(VacancyStatus status, Instant updatedAt) {
+        if (!this.status.canTransitionTo(status)) {
+            throw new InvalidStateTransitionException(
+                    "Cannot transition vacancy status from " + this.status + " to " + status
+            );
+        }
         this.status = status;
         this.updatedAt = updatedAt;
     }

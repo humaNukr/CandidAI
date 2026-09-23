@@ -27,7 +27,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-import static ua.edu.ukma.candidai.vacancy.controller.TestResources.*;
+import static ua.edu.ukma.candidai.vacancy.TestResources.*;
 
 @WebMvcTest(VacancyController.class)
 @EnableSpringDataWebSupport
