@@ -21,6 +21,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.header;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withServerError;
@@ -105,10 +106,11 @@ class GeminiAiScreeningServiceTest {
                 """.formatted(objectMapper.writeValueAsString(payloadJson));
 
         String expectedUri = "https://generativelanguage.googleapis.com"
-                + "/v1beta/models/gemini-3.5-flash-lite:generateContent?key=test-api-key";
+                + "/v1beta/models/gemini-3.5-flash-lite:generateContent";
 
         mockServer.expect(requestTo(expectedUri))
                 .andExpect(method(HttpMethod.POST))
+                .andExpect(header("x-goog-api-key", "test-api-key"))
                 .andRespond(withSuccess(geminiResponseBody, MediaType.APPLICATION_JSON));
 
         AiScreeningResult result = service.screenCandidate(
@@ -142,10 +144,11 @@ class GeminiAiScreeningServiceTest {
         );
 
         String expectedUri = "https://generativelanguage.googleapis.com"
-                + "/v1beta/models/gemini-3.5-flash-lite:generateContent?key=test-api-key";
+                + "/v1beta/models/gemini-3.5-flash-lite:generateContent";
 
         mockServer.expect(requestTo(expectedUri))
                 .andExpect(method(HttpMethod.POST))
+                .andExpect(header("x-goog-api-key", "test-api-key"))
                 .andRespond(withServerError());
 
         AiScreeningResult result = service.screenCandidate(APP_ID, "Java engineer", vacancy);
@@ -187,10 +190,11 @@ class GeminiAiScreeningServiceTest {
                 """;
 
         String expectedUri = "https://generativelanguage.googleapis.com"
-                + "/v1beta/models/gemini-3.5-flash-lite:generateContent?key=test-api-key";
+                + "/v1beta/models/gemini-3.5-flash-lite:generateContent";
 
         mockServer.expect(requestTo(expectedUri))
                 .andExpect(method(HttpMethod.POST))
+                .andExpect(header("x-goog-api-key", "test-api-key"))
                 .andRespond(withSuccess(geminiResponseBody, MediaType.APPLICATION_JSON));
 
         AiScreeningResult result = service.screenCandidate(APP_ID, "Java engineer", vacancy);
@@ -233,10 +237,11 @@ class GeminiAiScreeningServiceTest {
                 """.formatted(objectMapper.writeValueAsString(emptyPayloadJson));
 
         String expectedUri = "https://generativelanguage.googleapis.com"
-                + "/v1beta/models/gemini-3.5-flash-lite:generateContent?key=test-api-key";
+                + "/v1beta/models/gemini-3.5-flash-lite:generateContent";
 
         mockServer.expect(requestTo(expectedUri))
                 .andExpect(method(HttpMethod.POST))
+                .andExpect(header("x-goog-api-key", "test-api-key"))
                 .andRespond(withSuccess(geminiResponseBody, MediaType.APPLICATION_JSON));
 
         AiScreeningResult result = service.screenCandidate(APP_ID, "Java engineer", vacancy);

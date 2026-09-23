@@ -47,21 +47,25 @@ public class AssessmentServiceImpl implements AssessmentService {
         }
 
         if (Boolean.TRUE.equals(result.passed())) {
-            log.info("Application {} passed AI screening with score {}. Moving to SCREENING.",
+            log.info("Application {} passed AI screening with score {}.",
                     applicationId, result.matchingScore());
-            recruitmentApi.updateStatus(
-                    applicationId,
-                    ApplicationStatus.SCREENING,
-                    "AI screening passed with score " + result.matchingScore() + "/100"
-            );
+            if (application.status() == ApplicationStatus.APPLIED) {
+                recruitmentApi.updateStatus(
+                        applicationId,
+                        ApplicationStatus.SCREENING,
+                        "AI screening passed with score " + result.matchingScore() + "/100"
+                );
+            }
         } else {
-            log.info("Application {} rejected by AI screening with score {}. Moving to REJECTED.",
+            log.info("Application {} rejected by AI screening with score {}.",
                     applicationId, result.matchingScore());
-            recruitmentApi.updateStatus(
-                    applicationId,
-                    ApplicationStatus.REJECTED,
-                    result.summary()
-            );
+            if (application.status() != ApplicationStatus.REJECTED) {
+                recruitmentApi.updateStatus(
+                        applicationId,
+                        ApplicationStatus.REJECTED,
+                        result.summary()
+                );
+            }
         }
 
         return result;

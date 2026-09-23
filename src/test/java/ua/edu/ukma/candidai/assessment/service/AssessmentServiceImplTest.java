@@ -114,6 +114,30 @@ class AssessmentServiceImplTest {
         verify(recruitmentApi, never()).updateStatus(any(), any(), any());
     }
 
+    @Test
+    @DisplayName("executeScreening - should not update status if candidate is already in SCREENING status")
+    void givenPassingScreeningWhenAlreadyScreening_executeScreening_shouldNotUpdateStatus() {
+        ApplicationDetails app = new ApplicationDetails(
+                APP_ID, VACANCY_ID, "Jane Doe", "test@example.com", "+380501112233",
+                "https://storage.candidai.ukma.edu.ua/resumes/jane.pdf", ApplicationStatus.SCREENING, null
+        );
+        VacancyDetails vacancy = sampleVacancy();
+        AiScreeningResult result = AiScreeningResult.completed(
+                APP_ID, VACANCY_ID, 85, true, "Strong fit", List.of("Java"), List.of(), List.of("Q1"), NOW
+        );
+
+        when(recruitmentApi.getApplication(APP_ID)).thenReturn(app);
+        when(vacancyApi.getVacancyDetails(VACANCY_ID)).thenReturn(vacancy);
+        when(resumeContentExtractor.extractText(any(), any())).thenReturn("Java resume text");
+        when(aiScreeningService.screenCandidate(eq(APP_ID), any(), eq(vacancy))).thenReturn(result);
+
+        AiScreeningResult actual = assessmentService.executeScreening(APP_ID);
+
+        assertThat(actual).isEqualTo(result);
+        verify(screeningResultRepository).save(result);
+        verify(recruitmentApi, never()).updateStatus(any(), any(), any());
+    }
+
     private ApplicationDetails sampleApplication() {
         return new ApplicationDetails(
                 APP_ID, VACANCY_ID, "Jane Doe", "test@example.com", "+380501112233",

@@ -46,10 +46,11 @@ public class GeminiAiScreeningService implements AiScreeningService {
             log.info("Sending screening request to Gemini [{}] for application: {}",
                     properties.model(), applicationId);
 
-            String url = "/v1beta/models/" + properties.model() + ":generateContent?key=" + apiKey;
+            String url = "/v1beta/models/" + properties.model() + ":generateContent";
 
             GenerateContentResponse response = geminiRestClient.post()
                     .uri(url)
+                    .header("x-goog-api-key", apiKey)
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(request)
                     .retrieve()
