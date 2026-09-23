@@ -1,21 +1,28 @@
 package ua.edu.ukma.candidai.notification.repository;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import ua.edu.ukma.candidai.notification.NotificationChannel;
-import ua.edu.ukma.candidai.notification.NotificationDeliveryStatus;
 import ua.edu.ukma.candidai.notification.model.Notification;
+import ua.edu.ukma.candidai.notification.model.NotificationChannel;
+import ua.edu.ukma.candidai.notification.model.NotificationDeliveryStatus;
 
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static ua.edu.ukma.candidai.notification.NotificationTestResources.DEFAULT_ERROR_MESSAGE;
 import static ua.edu.ukma.candidai.notification.NotificationTestResources.DEFAULT_ID;
 import static ua.edu.ukma.candidai.notification.NotificationTestResources.DEFAULT_RECIPIENT_ID;
+import static ua.edu.ukma.candidai.notification.NotificationTestResources.NOTIFICATION_OR_ID_NULL_MESSAGE;
 import static ua.edu.ukma.candidai.notification.NotificationTestResources.OTHER_RECIPIENT_ID;
 import static ua.edu.ukma.candidai.notification.NotificationTestResources.SECOND_ID;
+import static ua.edu.ukma.candidai.notification.NotificationTestResources.SENT_AT;
+import static ua.edu.ukma.candidai.notification.NotificationTestResources.sampleFailedNotification;
 import static ua.edu.ukma.candidai.notification.NotificationTestResources.sampleNotification;
-import static ua.edu.ukma.candidai.notification.NotificationTestResources.sampleNotificationBuilder;
+import static ua.edu.ukma.candidai.notification.NotificationTestResources.sampleNotificationWithNullId;
+import static ua.edu.ukma.candidai.notification.NotificationTestResources.samplePendingNotification;
+import static ua.edu.ukma.candidai.notification.NotificationTestResources.sampleSentNotification;
 
 class InMemoryNotificationRepositoryTest {
 
@@ -27,7 +34,8 @@ class InMemoryNotificationRepositoryTest {
     }
 
     @Test
-    void shouldSaveAndFindById() {
+    @DisplayName("save should persist and return notification")
+    void givenNotification_save_shouldPersistAndReturnNotification() {
         Notification notification = sampleNotification(
                 NotificationChannel.EMAIL,
                 NotificationDeliveryStatus.SENT
@@ -36,25 +44,29 @@ class InMemoryNotificationRepositoryTest {
         Notification saved = repository.save(notification);
 
         assertThat(saved).isEqualTo(notification);
-        assertThat(repository.findById(notification.getId())).contains(notification);
+        assertThat(repository.findById(notification.id())).contains(notification);
     }
 
     @Test
-    void shouldReturnEmptyWhenNotFoundOrIdIsNull() {
+    @DisplayName("findById should return empty when id not found or null")
+    void givenNonExistentId_findById_shouldReturnEmpty() {
         assertThat(repository.findById(DEFAULT_ID)).isEmpty();
         assertThat(repository.findById(null)).isEmpty();
     }
 
     @Test
-    void shouldFindAllNotifications() {
+    @DisplayName("findAll should return all persisted notifications")
+    void givenPersistedNotifications_findAll_shouldReturnAllPersistedNotifications() {
         Notification notification1 = sampleNotification(
                 NotificationChannel.EMAIL,
                 NotificationDeliveryStatus.SENT
         );
-        Notification notification2 = sampleNotificationBuilder()
-                .id(SECOND_ID)
-                .channel(NotificationChannel.TELEGRAM)
-                .build();
+        Notification notification2 = sampleNotification(
+                SECOND_ID,
+                DEFAULT_RECIPIENT_ID,
+                NotificationChannel.TELEGRAM,
+                NotificationDeliveryStatus.SENT
+        );
 
         repository.save(notification1);
         repository.save(notification2);
@@ -65,16 +77,18 @@ class InMemoryNotificationRepositoryTest {
     }
 
     @Test
-    void shouldFindByRecipientId() {
+    @DisplayName("findByRecipientId should filter notifications by recipient")
+    void givenPersistedNotifications_findByRecipientId_shouldFilterNotificationsByRecipient() {
         Notification notification1 = sampleNotification(
                 NotificationChannel.EMAIL,
                 NotificationDeliveryStatus.SENT
         );
-        Notification notification2 = sampleNotificationBuilder()
-                .id(SECOND_ID)
-                .recipientId(OTHER_RECIPIENT_ID)
-                .channel(NotificationChannel.TELEGRAM)
-                .build();
+        Notification notification2 = sampleNotification(
+                SECOND_ID,
+                OTHER_RECIPIENT_ID,
+                NotificationChannel.TELEGRAM,
+                NotificationDeliveryStatus.SENT
+        );
 
         repository.save(notification1);
         repository.save(notification2);
@@ -89,17 +103,46 @@ class InMemoryNotificationRepositoryTest {
     }
 
     @Test
-    void shouldThrowIllegalArgumentExceptionWhenSavingNullOrNullId() {
+    @DisplayName("save should throw IllegalArgumentException when notification or its id is null")
+    void givenNullNotificationOrNullId_save_shouldThrowIllegalArgumentException() {
         assertThatThrownBy(() -> repository.save(null))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("Notification and its id must not be null");
+                .hasMessage(NOTIFICATION_OR_ID_NULL_MESSAGE);
 
-        Notification notificationWithNullId = sampleNotificationBuilder()
-                .id(null)
-                .build();
+        Notification notificationWithNullId = sampleNotificationWithNullId();
 
         assertThatThrownBy(() -> repository.save(notificationWithNullId))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("Notification and its id must not be null");
+                .hasMessage(NOTIFICATION_OR_ID_NULL_MESSAGE);
+    }
+
+    @Test
+    @DisplayName("pending factory should create notification with PENDING status and null sentAt/errorMessage")
+    void givenNotificationData_pending_shouldCreateNotificationWithPendingStatus() {
+        Notification notification = samplePendingNotification();
+
+        assertThat(notification).isEqualTo(samplePendingNotification());
+    }
+
+    @Test
+    @DisplayName("markSent should transition status to SENT and preserve immutability")
+    void givenPendingNotification_markSent_shouldTransitionStatusToSent() {
+        Notification pending = samplePendingNotification();
+
+        Notification sent = pending.markSent(SENT_AT);
+
+        assertThat(sent).isNotSameAs(pending);
+        assertThat(sent).isEqualTo(sampleSentNotification(SENT_AT));
+    }
+
+    @Test
+    @DisplayName("markFailed should transition status to FAILED and preserve immutability")
+    void givenPendingNotification_markFailed_shouldTransitionStatusToFailed() {
+        Notification pending = samplePendingNotification();
+
+        Notification failed = pending.markFailed(DEFAULT_ERROR_MESSAGE);
+
+        assertThat(failed).isNotSameAs(pending);
+        assertThat(failed).isEqualTo(sampleFailedNotification(DEFAULT_ERROR_MESSAGE));
     }
 }

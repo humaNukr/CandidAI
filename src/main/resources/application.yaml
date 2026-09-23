@@ -10,3 +10,17 @@ spring:
   threads:
     virtual:
       enabled: true
+
+notification:
+  mail:
+    enabled: ${MAIL_ENABLED:false}
+    template-name: mail/notification-email
+    default-action-url: https://candidai.ukma.edu.ua
+    default-recipient-name: there
+  telegram:
+    enabled: ${TELEGRAM_ENABLED:false}
+    bot-token: ${TELEGRAM_BOT_TOKEN:}
+    api-url: ${TELEGRAM_API_URL:https://api.telegram.org}
+    polling-interval-ms: 5000
+    connect-timeout-ms: 5000
+    read-timeout-ms: 10000
