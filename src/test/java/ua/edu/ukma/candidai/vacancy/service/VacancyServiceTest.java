@@ -6,6 +6,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -14,6 +15,7 @@ import ua.edu.ukma.candidai.common.exception.DuplicateResourceException;
 import ua.edu.ukma.candidai.common.exception.InvalidStateTransitionException;
 import ua.edu.ukma.candidai.common.exception.ResourceNotFoundException;
 import ua.edu.ukma.candidai.common.util.CommonGenerator;
+import ua.edu.ukma.candidai.vacancy.VacancyStatusChangedEvent;
 import ua.edu.ukma.candidai.vacancy.dto.request.CreateVacancyRequest;
 import ua.edu.ukma.candidai.vacancy.dto.request.UpdateVacancyStatusRequest;
 import ua.edu.ukma.candidai.vacancy.dto.response.VacancyResponse;
@@ -53,6 +55,9 @@ class VacancyServiceTest {
 
     @Mock
     private CommonGenerator generator;
+
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private VacancyServiceImpl vacancyService;
@@ -150,6 +155,14 @@ class VacancyServiceTest {
                 .usingRecursiveComparison()
                 .isEqualTo(expectedResponse);
         verify(vacancyRepository).save(expectedSavedVacancy);
+        verify(eventPublisher).publishEvent(new VacancyStatusChangedEvent(
+                DEFAULT_ID,
+                expectedSavedVacancy.getTitle(),
+                expectedSavedVacancy.getAuthorId(),
+                VacancyStatus.OPEN,
+                VacancyStatus.PAUSED,
+                updatedAt
+        ));
     }
 
     @Test
