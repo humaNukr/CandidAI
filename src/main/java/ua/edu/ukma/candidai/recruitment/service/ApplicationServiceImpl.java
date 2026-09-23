@@ -42,13 +42,17 @@ public class ApplicationServiceImpl implements ApplicationService {
 
     @Override
     public ApplicationResponse apply(ApplyForVacancyRequest request) {
-        log.info("Processing job application for candidate {} on vacancy: {}",
+        log.info("Processing job application for candidate '{}' on vacancy: {}",
                 request.candidateName(), request.vacancyId());
+
         if (!vacancyApi.isVacancyOpen(request.vacancyId())) {
+            log.warn("Application rejected: vacancy {} is not open or not found", request.vacancyId());
             throw new ResourceNotFoundException("Vacancy not found or is closed with id: " + request.vacancyId());
         }
 
         if (applicationRepository.existsByVacancyIdAndEmail(request.vacancyId(), request.email())) {
+            log.warn("Application rejected: candidate with email {} already applied to vacancy {}",
+                    request.email(), request.vacancyId());
             throw new DuplicateResourceException(
                     "Candidate with email " + request.email() + " has already applied to vacancy " + request.vacancyId()
             );
@@ -74,15 +78,19 @@ public class ApplicationServiceImpl implements ApplicationService {
         eventPublisher.publishEvent(new ApplicationSubmittedEvent(
                 saved.id(),
                 saved.vacancyId(),
+                saved.candidateName(),
                 saved.email(),
+                saved.resumeUrl(),
                 saved.appliedAt()
         ));
+        log.info("Successfully created application {} for vacancy {}", saved.id(), saved.vacancyId());
 
         return saved;
     }
 
     @Override
     public ApplicationResponse getById(UUID id) {
+        log.debug("Fetching application with id: {}", id);
         return findApplicationOrThrow(id);
     }
 
@@ -94,6 +102,8 @@ public class ApplicationServiceImpl implements ApplicationService {
         ApplicationStatus newStatus = request.status();
 
         if (!currentStatus.canTransitionTo(newStatus)) {
+            log.warn("Invalid status transition attempt from {} to {} for application {}",
+                    currentStatus, newStatus, id);
             throw new InvalidStateTransitionException(
                     "Invalid status transition from " + currentStatus + " to " + newStatus
             );
@@ -200,6 +210,9 @@ public class ApplicationServiceImpl implements ApplicationService {
 
     private ApplicationResponse findApplicationOrThrow(UUID id) {
         return applicationRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Application not found with id: " + id));
+                .orElseThrow(() -> {
+                    log.warn("Application not found with id: {}", id);
+                    return new ResourceNotFoundException("Application not found with id: " + id);
+                });
     }
 }

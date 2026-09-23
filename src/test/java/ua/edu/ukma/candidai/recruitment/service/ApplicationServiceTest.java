@@ -108,7 +108,10 @@ class ApplicationServiceTest {
         ApplicationSubmittedEvent publishedEvent = captor.getValue();
         assertThat(publishedEvent.applicationId()).isEqualTo(APPLICATION_ID);
         assertThat(publishedEvent.vacancyId()).isEqualTo(VACANCY_ID);
+        assertThat(publishedEvent.candidateName()).isEqualTo("John Doe");
         assertThat(publishedEvent.email()).isEqualTo("john.doe@example.com");
+        assertThat(publishedEvent.resumeUrl())
+                .isEqualTo("https://storage.candidai.ukma.edu.ua/resumes/john_doe.pdf");
     }
 
     @Test
@@ -269,6 +272,20 @@ class ApplicationServiceTest {
         assertThat(result.status()).isEqualTo(ApplicationStatus.OFFER);
         verify(applicationRepository).save(any(ApplicationResponse.class));
         verify(eventPublisher).publishEvent(any(ApplicationStatusChangedEvent.class));
+    }
+
+    @Test
+    @DisplayName("updateStatus - should throw ResourceNotFoundException when application not found")
+    void givenNonExistentId_updateStatus_shouldThrowResourceNotFoundException() {
+        UpdateApplicationStatusRequest request = new UpdateApplicationStatusRequest(
+                ApplicationStatus.SCREENING, "Comment"
+        );
+
+        when(applicationRepository.findById(APPLICATION_ID)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> applicationService.updateStatus(APPLICATION_ID, request))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("Application not found");
     }
 
     @Test

@@ -6,7 +6,9 @@ import java.util.UUID;
 public record ApplicationSubmittedEvent(
         UUID applicationId,
         UUID vacancyId,
+        String candidateName,
         String email,
+        String resumeUrl,
         Instant submittedAt
 ) {
 }

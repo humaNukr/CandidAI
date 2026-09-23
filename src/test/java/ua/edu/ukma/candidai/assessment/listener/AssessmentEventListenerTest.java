@@ -31,7 +31,7 @@ class AssessmentEventListenerTest {
     @DisplayName("onApplicationSubmitted - should delegate screening to AssessmentService")
     void givenApplicationSubmittedEvent_onApplicationSubmitted_shouldDelegateToAssessmentService() {
         ApplicationSubmittedEvent event = new ApplicationSubmittedEvent(
-                APP_ID, VACANCY_ID, "test@example.com", NOW
+                APP_ID, VACANCY_ID, "John Doe", "test@example.com", "https://example.com/resume.pdf", NOW
         );
 
         listener.onApplicationSubmitted(event);
