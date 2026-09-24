@@ -17,6 +17,7 @@ import ua.edu.ukma.candidai.recruitment.dto.response.ApplicationResponse;
 import ua.edu.ukma.candidai.recruitment.dto.response.InterviewFeedbackResponse;
 import ua.edu.ukma.candidai.recruitment.event.ApplicationStatusChangedEvent;
 import ua.edu.ukma.candidai.recruitment.event.ApplicationSubmittedEvent;
+import ua.edu.ukma.candidai.recruitment.model.Application;
 import ua.edu.ukma.candidai.recruitment.repository.ApplicationRepository;
 import ua.edu.ukma.candidai.recruitment.repository.InterviewFeedbackRepository;
 import ua.edu.ukma.candidai.recruitment.service.strategy.CandidateEvaluationStrategy;
@@ -38,6 +39,7 @@ public class ApplicationServiceImpl implements ApplicationService {
     private final VacancyApi vacancyApi;
     private final ApplicationEventPublisher eventPublisher;
     private final CommonGenerator commonGenerator;
+    private final ApplicationMapper applicationMapper;
     private final List<CandidateEvaluationStrategy> evaluationStrategies;
 
     @Override
@@ -60,56 +62,42 @@ public class ApplicationServiceImpl implements ApplicationService {
         UUID applicationId = commonGenerator.uuid();
         Instant now = commonGenerator.now();
 
-        ApplicationResponse application = new ApplicationResponse(
-                applicationId,
-                request.vacancyId(),
-                request.candidateName(),
-                request.email(),
-                request.phone(),
-                request.resumeUrl(),
-                ApplicationStatus.APPLIED,
-                null,
-                now,
-                now
-        );
-
-        ApplicationResponse saved = applicationRepository.save(application);
+        Application application = Application.create(request, applicationId, now);
+        Application saved = applicationRepository.save(application);
 
         eventPublisher.publishEvent(new ApplicationSubmittedEvent(
-                saved.id(),
-                saved.vacancyId(),
-                saved.candidateName(),
-                saved.email(),
-                saved.resumeUrl(),
-                saved.appliedAt()
+                saved.getId(),
+                saved.getVacancyId(),
+                saved.getCandidateName(),
+                saved.getEmail(),
+                saved.getResumeUrl(),
+                saved.getAppliedAt()
         ));
-        log.info("Successfully created application {} for vacancy {}", saved.id(), saved.vacancyId());
+        log.info("Successfully created application {} for vacancy {}", saved.getId(), saved.getVacancyId());
 
-        return saved;
+        return applicationMapper.toResponse(saved);
     }
 
     @Override
     public ApplicationResponse getById(UUID id) {
         log.debug("Fetching application with id: {}", id);
-        return findApplicationOrThrow(id);
+        return applicationMapper.toResponse(findApplicationOrThrow(id));
     }
 
     @Override
     public ApplicationResponse updateStatus(UUID id, UpdateApplicationStatusRequest request) {
-        ApplicationResponse existing = findApplicationOrThrow(id);
-
-        ApplicationStatus currentStatus = existing.status();
+        Application existing = findApplicationOrThrow(id);
+        ApplicationStatus currentStatus = existing.getStatus();
         ApplicationStatus newStatus = request.status();
 
-        if (!currentStatus.canTransitionTo(newStatus)) {
-            log.warn("Invalid status transition attempt from {} to {} for application {}",
-                    currentStatus, newStatus, id);
-            throw new InvalidStateTransitionException(
-                    "Invalid status transition from " + currentStatus + " to " + newStatus
-            );
-        }
-
         if (newStatus == ApplicationStatus.OFFER) {
+            if (!currentStatus.canTransitionTo(newStatus)) {
+                log.warn("Invalid status transition attempt from {} to {} for application {}",
+                        currentStatus, newStatus, id);
+                throw new InvalidStateTransitionException(
+                        "Invalid status transition from " + currentStatus + " to " + newStatus
+                );
+            }
             EvaluationResult evaluation = evaluateCandidate(id);
             if (evaluation.recommendedDecision() == InterviewDecision.REJECT) {
                 log.warn("Blocked transition to OFFER for application {}: evaluation result was REJECT", id);
@@ -120,41 +108,34 @@ public class ApplicationServiceImpl implements ApplicationService {
         }
 
         Instant now = commonGenerator.now();
-        String comment = request.comment() != null ? request.comment() : existing.comment();
+        existing.updateStatus(newStatus, request.comment(), now);
 
-        ApplicationResponse updated = new ApplicationResponse(
-                existing.id(),
-                existing.vacancyId(),
-                existing.candidateName(),
-                existing.email(),
-                existing.phone(),
-                existing.resumeUrl(),
-                newStatus,
-                comment,
-                existing.appliedAt(),
-                now
-        );
-
-        ApplicationResponse saved = applicationRepository.save(updated);
-
-        log.info("Updated status for application {} from {} to {}", saved.id(), currentStatus, newStatus);
+        Application saved = applicationRepository.save(existing);
+        log.info("Updated status for application {} from {} to {}", saved.getId(), currentStatus, newStatus);
 
         eventPublisher.publishEvent(new ApplicationStatusChangedEvent(
-                saved.id(),
-                saved.vacancyId(),
-                saved.email(),
+                saved.getId(),
+                saved.getVacancyId(),
+                saved.getEmail(),
                 currentStatus,
                 newStatus,
-                comment,
+                saved.getComment(),
                 now
         ));
 
-        return saved;
+        return applicationMapper.toResponse(saved);
     }
 
     @Override
     public InterviewFeedbackResponse submitFeedback(UUID id, SubmitInterviewFeedbackRequest request) {
-        findApplicationOrThrow(id);
+        Application application = findApplicationOrThrow(id);
+
+        if (application.getStatus() != ApplicationStatus.INTERVIEW) {
+            log.warn("Cannot submit interview feedback for application {} in status {}", id, application.getStatus());
+            throw new InvalidStateTransitionException(
+                    "Cannot submit interview feedback for application " + id + " in status " + application.getStatus()
+            );
+        }
 
         UUID feedbackId = commonGenerator.uuid();
         Instant now = commonGenerator.now();
@@ -183,10 +164,10 @@ public class ApplicationServiceImpl implements ApplicationService {
 
     @Override
     public EvaluationResult evaluateCandidate(UUID id) {
-        ApplicationResponse application = findApplicationOrThrow(id);
+        Application application = findApplicationOrThrow(id);
         List<InterviewFeedbackResponse> feedbacks = feedbackRepository.findByApplicationId(id);
 
-        JobCategory category = vacancyApi.getVacancyCategory(application.vacancyId());
+        JobCategory category = vacancyApi.getVacancyCategory(application.getVacancyId());
         if (category == null) {
             category = JobCategory.ENGINEERING;
         }
@@ -205,10 +186,12 @@ public class ApplicationServiceImpl implements ApplicationService {
 
     @Override
     public List<ApplicationResponse> getApplicationsByVacancy(UUID vacancyId) {
-        return applicationRepository.findByVacancyId(vacancyId);
+        return applicationRepository.findByVacancyId(vacancyId).stream()
+                .map(applicationMapper::toResponse)
+                .toList();
     }
 
-    private ApplicationResponse findApplicationOrThrow(UUID id) {
+    private Application findApplicationOrThrow(UUID id) {
         return applicationRepository.findById(id)
                 .orElseThrow(() -> {
                     log.warn("Application not found with id: {}", id);

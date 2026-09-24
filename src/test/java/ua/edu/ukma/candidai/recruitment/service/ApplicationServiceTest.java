@@ -21,6 +21,7 @@ import ua.edu.ukma.candidai.recruitment.dto.response.ApplicationResponse;
 import ua.edu.ukma.candidai.recruitment.dto.response.InterviewFeedbackResponse;
 import ua.edu.ukma.candidai.recruitment.event.ApplicationStatusChangedEvent;
 import ua.edu.ukma.candidai.recruitment.event.ApplicationSubmittedEvent;
+import ua.edu.ukma.candidai.recruitment.model.Application;
 import ua.edu.ukma.candidai.recruitment.repository.ApplicationRepository;
 import ua.edu.ukma.candidai.recruitment.repository.InterviewFeedbackRepository;
 import ua.edu.ukma.candidai.recruitment.service.strategy.CandidateEvaluationStrategy;
@@ -75,6 +76,7 @@ class ApplicationServiceTest {
                 vacancyApi,
                 eventPublisher,
                 commonGenerator,
+                new ApplicationMapper(),
                 strategies
         );
     }
@@ -94,13 +96,13 @@ class ApplicationServiceTest {
         when(applicationRepository.existsByVacancyIdAndEmail(VACANCY_ID, "john.doe@example.com")).thenReturn(false);
         when(commonGenerator.uuid()).thenReturn(APPLICATION_ID);
         when(commonGenerator.now()).thenReturn(NOW);
-        when(applicationRepository.save(any(ApplicationResponse.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(applicationRepository.save(any(Application.class))).thenAnswer(inv -> inv.getArgument(0));
 
         ApplicationResponse result = applicationService.apply(request);
 
         assertThat(result.id()).isEqualTo(APPLICATION_ID);
         assertThat(result.status()).isEqualTo(ApplicationStatus.APPLIED);
-        verify(applicationRepository).save(any(ApplicationResponse.class));
+        verify(applicationRepository).save(any(Application.class));
 
         ArgumentCaptor<ApplicationSubmittedEvent> captor
                 = ArgumentCaptor.forClass(ApplicationSubmittedEvent.class);
@@ -160,13 +162,15 @@ class ApplicationServiceTest {
     @Test
     @DisplayName("getById - should return ApplicationResponse when found")
     void givenExistingId_getById_shouldReturnApplication() {
-        ApplicationResponse app = sampleApplication(ApplicationStatus.APPLIED);
+        Application app = sampleApplication(ApplicationStatus.APPLIED);
 
         when(applicationRepository.findById(APPLICATION_ID)).thenReturn(Optional.of(app));
 
         ApplicationResponse result = applicationService.getById(APPLICATION_ID);
 
-        assertThat(result).isEqualTo(app);
+        assertThat(result.id()).isEqualTo(APPLICATION_ID);
+        assertThat(result.candidateName()).isEqualTo("John Doe");
+        assertThat(result.status()).isEqualTo(ApplicationStatus.APPLIED);
     }
 
     @Test
@@ -182,7 +186,7 @@ class ApplicationServiceTest {
     @Test
     @DisplayName("updateStatus - should update status and publish ApplicationStatusChangedEvent on valid transition")
     void givenValidTransition_updateStatus_shouldUpdateAndPublishEvent() {
-        ApplicationResponse existing = sampleApplication(ApplicationStatus.APPLIED);
+        Application existing = sampleApplication(ApplicationStatus.APPLIED);
         UpdateApplicationStatusRequest request = new UpdateApplicationStatusRequest(
                 ApplicationStatus.SCREENING,
                 "Passed"
@@ -190,7 +194,7 @@ class ApplicationServiceTest {
 
         when(applicationRepository.findById(APPLICATION_ID)).thenReturn(Optional.of(existing));
         when(commonGenerator.now()).thenReturn(NOW);
-        when(applicationRepository.save(any(ApplicationResponse.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(applicationRepository.save(any(Application.class))).thenAnswer(inv -> inv.getArgument(0));
 
         ApplicationResponse result = applicationService.updateStatus(APPLICATION_ID, request);
 
@@ -209,7 +213,7 @@ class ApplicationServiceTest {
     @Test
     @DisplayName("updateStatus - should throw InvalidStateTransitionException on invalid transition")
     void givenInvalidTransition_updateStatus_shouldThrowException() {
-        ApplicationResponse existing = sampleApplication(ApplicationStatus.APPLIED);
+        Application existing = sampleApplication(ApplicationStatus.APPLIED);
         UpdateApplicationStatusRequest request = new UpdateApplicationStatusRequest(
                 ApplicationStatus.OFFER,
                 "Jump to offer"
@@ -228,7 +232,7 @@ class ApplicationServiceTest {
     @Test
     @DisplayName("updateStatus - should throw InvalidStateTransitionException when transitioning to OFFER with REJECT")
     void givenRejectEvaluation_updateStatusToOffer_shouldThrowException() {
-        ApplicationResponse existing = sampleApplication(ApplicationStatus.INTERVIEW);
+        Application existing = sampleApplication(ApplicationStatus.INTERVIEW);
         UpdateApplicationStatusRequest request = new UpdateApplicationStatusRequest(
                 ApplicationStatus.OFFER,
                 "Candidate did not pass but trying to offer"
@@ -252,7 +256,7 @@ class ApplicationServiceTest {
     @Test
     @DisplayName("updateStatus - should succeed when transitioning to OFFER with HIRE evaluation")
     void givenHireEvaluation_updateStatusToOffer_shouldSucceed() {
-        ApplicationResponse existing = sampleApplication(ApplicationStatus.INTERVIEW);
+        Application existing = sampleApplication(ApplicationStatus.INTERVIEW);
         UpdateApplicationStatusRequest request = new UpdateApplicationStatusRequest(
                 ApplicationStatus.OFFER,
                 "Strong candidate"
@@ -265,12 +269,12 @@ class ApplicationServiceTest {
         when(feedbackRepository.findByApplicationId(APPLICATION_ID)).thenReturn(List.of(hireFeedback));
         when(vacancyApi.getVacancyCategory(VACANCY_ID)).thenReturn(JobCategory.ENGINEERING);
         when(commonGenerator.now()).thenReturn(NOW);
-        when(applicationRepository.save(any(ApplicationResponse.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(applicationRepository.save(any(Application.class))).thenAnswer(inv -> inv.getArgument(0));
 
         ApplicationResponse result = applicationService.updateStatus(APPLICATION_ID, request);
 
         assertThat(result.status()).isEqualTo(ApplicationStatus.OFFER);
-        verify(applicationRepository).save(any(ApplicationResponse.class));
+        verify(applicationRepository).save(any(Application.class));
         verify(eventPublisher).publishEvent(any(ApplicationStatusChangedEvent.class));
     }
 
@@ -291,19 +295,21 @@ class ApplicationServiceTest {
     @Test
     @DisplayName("getApplicationsByVacancy - should return list of applications for vacancy")
     void givenVacancyId_getApplicationsByVacancy_shouldReturnApplications() {
-        ApplicationResponse app = sampleApplication(ApplicationStatus.APPLIED);
+        Application app = sampleApplication(ApplicationStatus.APPLIED);
+
         when(applicationRepository.findByVacancyId(VACANCY_ID)).thenReturn(List.of(app));
 
         List<ApplicationResponse> result = applicationService.getApplicationsByVacancy(VACANCY_ID);
 
-        assertThat(result).containsExactly(app);
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).id()).isEqualTo(APPLICATION_ID);
         verify(applicationRepository).findByVacancyId(VACANCY_ID);
     }
 
     @Test
-    @DisplayName("submitFeedback - should save and return feedback when application exists")
-    void givenExistingApplication_submitFeedback_shouldSave() {
-        ApplicationResponse existing = sampleApplication(ApplicationStatus.INTERVIEW);
+    @DisplayName("submitFeedback - should save and return feedback when application exists and in INTERVIEW status")
+    void givenExistingApplicationInInterview_submitFeedback_shouldSave() {
+        Application existing = sampleApplication(ApplicationStatus.INTERVIEW);
         SubmitInterviewFeedbackRequest request = new SubmitInterviewFeedbackRequest(
                 "Alex Lead", 4, "Strong skills", InterviewDecision.HIRE
         );
@@ -321,9 +327,26 @@ class ApplicationServiceTest {
     }
 
     @Test
+    @DisplayName("submitFeedback - should throw InvalidStateTransitionException when application is not in INTERVIEW status")
+    void givenNonInterviewStatus_submitFeedback_shouldThrowInvalidStateTransitionException() {
+        Application existing = sampleApplication(ApplicationStatus.APPLIED);
+        SubmitInterviewFeedbackRequest request = new SubmitInterviewFeedbackRequest(
+                "Alex Lead", 4, "Strong skills", InterviewDecision.HIRE
+        );
+
+        when(applicationRepository.findById(APPLICATION_ID)).thenReturn(Optional.of(existing));
+
+        assertThatThrownBy(() -> applicationService.submitFeedback(APPLICATION_ID, request))
+                .isInstanceOf(InvalidStateTransitionException.class)
+                .hasMessageContaining("Cannot submit interview feedback for application " + APPLICATION_ID + " in status APPLIED");
+
+        verify(feedbackRepository, never()).save(any());
+    }
+
+    @Test
     @DisplayName("getFeedbacks - should return list of feedbacks")
     void givenExistingApplication_getFeedbacks_shouldReturnList() {
-        ApplicationResponse existing = sampleApplication(ApplicationStatus.INTERVIEW);
+        Application existing = sampleApplication(ApplicationStatus.INTERVIEW);
         InterviewFeedbackResponse fb = new InterviewFeedbackResponse(
                 FEEDBACK_ID, APPLICATION_ID, "Alex Lead", 5, "Great", InterviewDecision.HIRE, NOW
         );
@@ -339,7 +362,7 @@ class ApplicationServiceTest {
     @Test
     @DisplayName("evaluateCandidate - should evaluate candidate using supported strategy")
     void givenCandidate_evaluateCandidate_shouldExecuteStrategy() {
-        ApplicationResponse existing = sampleApplication(ApplicationStatus.INTERVIEW);
+        Application existing = sampleApplication(ApplicationStatus.INTERVIEW);
         InterviewFeedbackResponse fb1 = new InterviewFeedbackResponse(
                 FEEDBACK_ID, APPLICATION_ID, "Lead 1", 5, "Great", InterviewDecision.HIRE, NOW
         );
@@ -357,18 +380,18 @@ class ApplicationServiceTest {
         assertThat(result.recommendedDecision()).isEqualTo(InterviewDecision.HIRE);
     }
 
-    private ApplicationResponse sampleApplication(ApplicationStatus status) {
-        return new ApplicationResponse(
-                APPLICATION_ID,
-                VACANCY_ID,
-                "John Doe",
-                "john.doe@example.com",
-                "+380501234567",
-                "https://storage.candidai.ukma.edu.ua/resumes/john_doe.pdf",
-                status,
-                null,
-                NOW,
-                NOW
-        );
+    private Application sampleApplication(ApplicationStatus status) {
+        return Application.builder()
+                .id(APPLICATION_ID)
+                .vacancyId(VACANCY_ID)
+                .candidateName("John Doe")
+                .email("john.doe@example.com")
+                .phone("+380501234567")
+                .resumeUrl("https://storage.candidai.ukma.edu.ua/resumes/john_doe.pdf")
+                .status(status)
+                .comment(null)
+                .appliedAt(NOW)
+                .updatedAt(NOW)
+                .build();
     }
 }
