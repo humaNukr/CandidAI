@@ -211,6 +211,52 @@ class ApplicationServiceTest {
     }
 
     @Test
+    @DisplayName("updateStatus - should update matchingScore and return in ApplicationResponse when provided")
+    void givenMatchingScore_updateStatus_shouldUpdateMatchingScoreAndReturnInResponse() {
+        Application existing = sampleApplication(ApplicationStatus.APPLIED);
+        UpdateApplicationStatusRequest request = new UpdateApplicationStatusRequest(
+                ApplicationStatus.SCREENING,
+                "Passed screening with high score",
+                85
+        );
+
+        when(applicationRepository.findById(APPLICATION_ID)).thenReturn(Optional.of(existing));
+        when(commonGenerator.now()).thenReturn(NOW);
+        when(applicationRepository.save(any(Application.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        ApplicationResponse result = applicationService.updateStatus(APPLICATION_ID, request);
+
+        assertThat(result.status()).isEqualTo(ApplicationStatus.SCREENING);
+        assertThat(result.matchingScore()).isEqualTo(85);
+        assertThat(result.comment()).isEqualTo("Passed screening with high score");
+        assertThat(existing.getMatchingScore()).isEqualTo(85);
+        verify(applicationRepository).save(existing);
+    }
+
+    @Test
+    @DisplayName("updateStatus - should support updating status with matchingScore directly")
+    void givenDirectStatusAndMatchingScore_updateStatus_shouldUpdateApplication() {
+        Application existing = sampleApplication(ApplicationStatus.APPLIED);
+
+        when(applicationRepository.findById(APPLICATION_ID)).thenReturn(Optional.of(existing));
+        when(commonGenerator.now()).thenReturn(NOW);
+        when(applicationRepository.save(any(Application.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        ApplicationResponse result = applicationService.updateStatus(
+                APPLICATION_ID,
+                ApplicationStatus.SCREENING,
+                92,
+                "Direct screening update"
+        );
+
+        assertThat(result.status()).isEqualTo(ApplicationStatus.SCREENING);
+        assertThat(result.matchingScore()).isEqualTo(92);
+        assertThat(result.comment()).isEqualTo("Direct screening update");
+        assertThat(existing.getMatchingScore()).isEqualTo(92);
+        verify(applicationRepository).save(existing);
+    }
+
+    @Test
     @DisplayName("updateStatus - should throw InvalidStateTransitionException on invalid transition")
     void givenInvalidTransition_updateStatus_shouldThrowException() {
         Application existing = sampleApplication(ApplicationStatus.APPLIED);

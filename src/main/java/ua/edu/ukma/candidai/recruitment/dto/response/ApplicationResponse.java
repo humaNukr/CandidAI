@@ -14,6 +14,22 @@ public record ApplicationResponse(
         String resumeUrl,
         ApplicationStatus status,
         String comment,
+        Integer matchingScore,
         Instant appliedAt,
         Instant updatedAt
-) {}
+) {
+    public ApplicationResponse(
+            UUID id,
+            UUID vacancyId,
+            String candidateName,
+            String email,
+            String phone,
+            String resumeUrl,
+            ApplicationStatus status,
+            String comment,
+            Instant appliedAt,
+            Instant updatedAt
+    ) {
+        this(id, vacancyId, candidateName, email, phone, resumeUrl, status, comment, null, appliedAt, updatedAt);
+    }
+}

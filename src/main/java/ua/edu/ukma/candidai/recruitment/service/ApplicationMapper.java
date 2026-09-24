@@ -21,6 +21,7 @@ public class ApplicationMapper {
                 application.getResumeUrl(),
                 application.getStatus(),
                 application.getComment(),
+                application.getMatchingScore(),
                 application.getAppliedAt(),
                 application.getUpdatedAt()
         );

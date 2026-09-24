@@ -108,7 +108,7 @@ public class ApplicationServiceImpl implements ApplicationService {
         }
 
         Instant now = commonGenerator.now();
-        existing.updateStatus(newStatus, request.comment(), now);
+        existing.updateStatus(newStatus, request.matchingScore(), request.comment(), now);
 
         Application saved = applicationRepository.save(existing);
         log.info("Updated status for application {} from {} to {}", saved.getId(), currentStatus, newStatus);
@@ -124,6 +124,11 @@ public class ApplicationServiceImpl implements ApplicationService {
         ));
 
         return applicationMapper.toResponse(saved);
+    }
+
+    @Override
+    public ApplicationResponse updateStatus(UUID id, ApplicationStatus status, Integer matchingScore, String comment) {
+        return updateStatus(id, new UpdateApplicationStatusRequest(status, comment, matchingScore));
     }
 
     @Override

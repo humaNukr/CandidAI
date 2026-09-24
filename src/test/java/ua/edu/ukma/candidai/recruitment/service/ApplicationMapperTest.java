@@ -31,6 +31,7 @@ class ApplicationMapperTest {
                 .resumeUrl("https://storage.candidai.ukma.edu.ua/resumes/alice.pdf")
                 .status(ApplicationStatus.SCREENING)
                 .comment("Passed initial screening")
+                .matchingScore(88)
                 .appliedAt(NOW)
                 .updatedAt(NOW)
                 .build();
@@ -45,6 +46,7 @@ class ApplicationMapperTest {
         assertThat(response.resumeUrl()).isEqualTo("https://storage.candidai.ukma.edu.ua/resumes/alice.pdf");
         assertThat(response.status()).isEqualTo(ApplicationStatus.SCREENING);
         assertThat(response.comment()).isEqualTo("Passed initial screening");
+        assertThat(response.matchingScore()).isEqualTo(88);
         assertThat(response.appliedAt()).isEqualTo(NOW);
         assertThat(response.updatedAt()).isEqualTo(NOW);
     }

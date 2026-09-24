@@ -53,6 +53,7 @@ public class AssessmentServiceImpl implements AssessmentService {
                 recruitmentApi.updateStatus(
                         applicationId,
                         ApplicationStatus.SCREENING,
+                        result.matchingScore(),
                         "AI screening passed with score " + result.matchingScore() + "/100"
                 );
             }
@@ -63,6 +64,7 @@ public class AssessmentServiceImpl implements AssessmentService {
                 recruitmentApi.updateStatus(
                         applicationId,
                         ApplicationStatus.REJECTED,
+                        result.matchingScore(),
                         result.summary()
                 );
             }
