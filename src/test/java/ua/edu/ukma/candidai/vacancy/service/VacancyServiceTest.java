@@ -37,11 +37,15 @@ import static ua.edu.ukma.candidai.vacancy.TestResources.DEFAULT_AUTHOR_ID;
 import static ua.edu.ukma.candidai.vacancy.TestResources.DEFAULT_ID;
 import static ua.edu.ukma.candidai.vacancy.TestResources.DEFAULT_NOW;
 import static ua.edu.ukma.candidai.vacancy.TestResources.NON_EXISTENT_ID;
+import static ua.edu.ukma.candidai.vacancy.TestResources.aCreateVacancyRequest;
 import static ua.edu.ukma.candidai.vacancy.TestResources.aDeletedVacancy;
+import static ua.edu.ukma.candidai.vacancy.TestResources.aDraftVacancy;
+import static ua.edu.ukma.candidai.vacancy.TestResources.aDraftVacancyResponse;
 import static ua.edu.ukma.candidai.vacancy.TestResources.aVacancy;
 import static ua.edu.ukma.candidai.vacancy.TestResources.aVacancyPage;
 import static ua.edu.ukma.candidai.vacancy.TestResources.aVacancyResponse;
 import static ua.edu.ukma.candidai.vacancy.TestResources.aVacancyResponsePage;
+import static ua.edu.ukma.candidai.vacancy.TestResources.validCreateDraftVacancyRequest;
 import static ua.edu.ukma.candidai.vacancy.TestResources.validCreateVacancyRequest;
 
 @ExtendWith(MockitoExtension.class)
@@ -81,6 +85,46 @@ class VacancyServiceTest {
                 .usingRecursiveComparison()
                 .isEqualTo(expectedResponse);
         verify(vacancyRepository).save(vacancy);
+    }
+
+    @Test
+    @DisplayName("createVacancy with DRAFT status should save draft vacancy without publishedAt")
+    void givenDraftStatus_createVacancy_shouldCreateDraftVacancyWithoutPublishedAt() {
+        CreateVacancyRequest request = validCreateDraftVacancyRequest();
+        Vacancy draftVacancy = aDraftVacancy();
+        VacancyResponse expectedResponse = aDraftVacancyResponse();
+
+        when(vacancyRepository.existsActiveByAuthorIdAndTitle(DEFAULT_AUTHOR_ID, request.title())).thenReturn(false);
+        when(generator.uuid()).thenReturn(DEFAULT_ID);
+        when(generator.now()).thenReturn(DEFAULT_NOW);
+        when(vacancyRepository.save(draftVacancy)).thenReturn(draftVacancy);
+        when(vacancyMapper.toResponse(draftVacancy)).thenReturn(expectedResponse);
+
+        VacancyResponse actual = vacancyService.createVacancy(request);
+
+        assertThat(actual)
+                .usingRecursiveComparison()
+                .isEqualTo(expectedResponse);
+        assertThat(actual.publishedAt()).isNull();
+        assertThat(actual.status()).isEqualTo(VacancyStatus.DRAFT);
+        verify(vacancyRepository).save(draftVacancy);
+    }
+
+    @Test
+    @DisplayName("createVacancy with invalid initial status should throw InvalidStateTransitionException")
+    void givenInvalidInitialStatus_createVacancy_shouldThrowInvalidStateTransitionException() {
+        CreateVacancyRequest request = aCreateVacancyRequest()
+                .status(VacancyStatus.CLOSED)
+                .build();
+
+        when(vacancyRepository.existsActiveByAuthorIdAndTitle(DEFAULT_AUTHOR_ID, request.title())).thenReturn(false);
+        when(generator.uuid()).thenReturn(DEFAULT_ID);
+        when(generator.now()).thenReturn(DEFAULT_NOW);
+
+        assertThatThrownBy(() -> vacancyService.createVacancy(request))
+                .isInstanceOf(InvalidStateTransitionException.class)
+                .hasMessageContaining("Initial vacancy status must be DRAFT or OPEN, got: CLOSED");
+        verifyNoMoreInteractions(vacancyRepository);
     }
 
     @Test

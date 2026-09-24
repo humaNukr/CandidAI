@@ -61,12 +61,12 @@ Enable creating vacancies in `DRAFT` status:
 3. If status is `DRAFT`, set `publishedAt` to null.
 4. Add unit test verifying vacancy creation in `DRAFT` status and subsequent transition to `OPEN`.
 
-- [ ] **Step 1: Add `status` field to `CreateVacancyRequest`**
-- [ ] **Step 2: Update `Vacancy.create()` to honor `request.status()`**
-- [ ] **Step 3: Add unit tests in `VacancyServiceTest` for creating DRAFT vacancy**
-- [ ] **Step 4: Run tests to verify all pass**
+- [x] **Step 1: Add `status` field to `CreateVacancyRequest`**
+- [x] **Step 2: Update `Vacancy.create()` to honor `request.status()`**
+- [x] **Step 3: Add unit tests in `VacancyServiceTest` for creating DRAFT vacancy**
+- [x] **Step 4: Run tests to verify all pass**
   Run: `./gradlew test --tests ua.edu.ukma.candidai.vacancy.*`
-- [ ] **Step 5: Commit changes**
+- [x] **Step 5: Commit changes**
 
 ---
 
@@ -85,12 +85,12 @@ In `proposal.md` Entity 2: `Company` (id, name, description, logoUrl, contactEma
 2. Add optional `UUID companyId` to `Vacancy`, `CreateVacancyRequest`, and `VacancyResponse`.
 3. Update `VacancyMapper` to map `companyId`.
 
-- [ ] **Step 1: Create `Company` record in `ua.edu.ukma.candidai.vacancy.model`**
-- [ ] **Step 2: Add `companyId` to `Vacancy`, `CreateVacancyRequest`, `VacancyResponse`, and update `VacancyMapper`**
-- [ ] **Step 3: Update `TestResources` and verify `VacancyServiceTest` and `VacancyControllerTest`**
-- [ ] **Step 4: Run tests to verify all pass**
+- [x] **Step 1: Create `Company` record in `ua.edu.ukma.candidai.vacancy.model`**
+- [x] **Step 2: Add `companyId` to `Vacancy`, `CreateVacancyRequest`, `VacancyResponse`, and update `VacancyMapper`**
+- [x] **Step 3: Update `TestResources` and verify `VacancyServiceTest` and `VacancyControllerTest`**
+- [x] **Step 4: Run tests to verify all pass**
   Run: `./gradlew test --tests ua.edu.ukma.candidai.vacancy.*`
-- [ ] **Step 5: Commit changes**
+- [x] **Step 5: Commit changes**
 
 ---
 

@@ -12,6 +12,7 @@ import ua.edu.ukma.candidai.vacancy.model.EmploymentType;
 import ua.edu.ukma.candidai.vacancy.model.EnglishLevel;
 import ua.edu.ukma.candidai.vacancy.model.JobCategory;
 import ua.edu.ukma.candidai.vacancy.model.LocationType;
+import ua.edu.ukma.candidai.vacancy.model.VacancyStatus;
 import ua.edu.ukma.candidai.vacancy.validation.ValidSalaryRange;
 
 import java.math.BigDecimal;
@@ -25,6 +26,10 @@ public record CreateVacancyRequest(
         UUID authorId,
 
         UUID assignedRecruiterId,
+
+        UUID companyId,
+
+        VacancyStatus status,
 
         @NotBlank(message = "Title is required")
         @Size(min = 3, max = 150, message = "Title must be between 3 and 150 characters")

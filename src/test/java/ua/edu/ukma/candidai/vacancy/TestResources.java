@@ -23,6 +23,7 @@ public class TestResources {
     public static final String BASE_URL = "/api/v1/vacancies";
     public static final UUID DEFAULT_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
     public static final UUID DEFAULT_AUTHOR_ID = UUID.fromString("00000000-0000-0000-0000-000000000002");
+    public static final UUID DEFAULT_COMPANY_ID = UUID.fromString("00000000-0000-0000-0000-000000000003");
     public static final UUID NON_EXISTENT_ID = UUID.fromString("00000000-0000-0000-0000-000000000099");
     public static final BigDecimal DEFAULT_SALARY_MIN = BigDecimal.valueOf(3000);
     public static final BigDecimal DEFAULT_SALARY_MAX = BigDecimal.valueOf(5000);
@@ -83,16 +84,31 @@ public class TestResources {
         return aCreateVacancyRequest().build();
     }
 
+    public static CreateVacancyRequest validCreateDraftVacancyRequest() {
+        return aCreateVacancyRequest().status(VacancyStatus.DRAFT).build();
+    }
+
     public static Vacancy aVacancy() {
         return aVacancyBuilder().build();
     }
 
+    public static Vacancy aDraftVacancy() {
+        return aVacancy(VacancyStatus.DRAFT);
+    }
+
     public static Vacancy aVacancy(VacancyStatus status) {
-        return aVacancyBuilder().status(status).build();
+        return aVacancyBuilder()
+                .status(status)
+                .publishedAt(status == VacancyStatus.DRAFT ? null : DEFAULT_NOW)
+                .build();
     }
 
     public static Vacancy aVacancy(VacancyStatus status, Instant updatedAt) {
-        return aVacancyBuilder().status(status).updatedAt(updatedAt).build();
+        return aVacancyBuilder()
+                .status(status)
+                .publishedAt(status == VacancyStatus.DRAFT ? null : DEFAULT_NOW)
+                .updatedAt(updatedAt)
+                .build();
     }
 
     public static Vacancy aDeletedVacancy() {
@@ -108,6 +124,7 @@ public class TestResources {
                 .id(DEFAULT_ID)
                 .authorId(DEFAULT_AUTHOR_ID)
                 .assignedRecruiterId(null)
+                .companyId(DEFAULT_COMPANY_ID)
                 .title("Senior Java Engineer")
                 .category(JobCategory.ENGINEERING)
                 .specialization("Backend")
@@ -139,6 +156,10 @@ public class TestResources {
         return aVacancyResponse(status, DEFAULT_NOW);
     }
 
+    public static VacancyResponse aDraftVacancyResponse() {
+        return aVacancyResponse(VacancyStatus.DRAFT);
+    }
+
     public static VacancyResponse aVacancyResponse(JobCategory category) {
         return aVacancyResponse(VacancyStatus.OPEN, category, DEFAULT_NOW);
     }
@@ -152,6 +173,7 @@ public class TestResources {
                 DEFAULT_ID,
                 DEFAULT_AUTHOR_ID,
                 null,
+                DEFAULT_COMPANY_ID,
                 "Senior Java Engineer",
                 category,
                 "Backend",
@@ -168,7 +190,7 @@ public class TestResources {
                 LocationType.REMOTE,
                 "Kyiv, Ukraine",
                 status,
-                DEFAULT_NOW,
+                status == VacancyStatus.DRAFT ? null : DEFAULT_NOW,
                 null,
                 DEFAULT_NOW,
                 updatedAt
@@ -190,6 +212,8 @@ public class TestResources {
     public static class CreateVacancyRequestBuilder {
         private UUID authorId = DEFAULT_AUTHOR_ID;
         private UUID assignedRecruiterId;
+        private UUID companyId = DEFAULT_COMPANY_ID;
+        private VacancyStatus status = VacancyStatus.OPEN;
         private String title = "Senior Java Engineer";
         private JobCategory category = JobCategory.ENGINEERING;
         private String specialization = "Backend";
@@ -207,6 +231,26 @@ public class TestResources {
         private String location = "Kyiv, Ukraine";
         private Instant expiresAt;
 
+        public CreateVacancyRequestBuilder authorId(UUID authorId) {
+            this.authorId = authorId;
+            return this;
+        }
+
+        public CreateVacancyRequestBuilder assignedRecruiterId(UUID assignedRecruiterId) {
+            this.assignedRecruiterId = assignedRecruiterId;
+            return this;
+        }
+
+        public CreateVacancyRequestBuilder companyId(UUID companyId) {
+            this.companyId = companyId;
+            return this;
+        }
+
+        public CreateVacancyRequestBuilder status(VacancyStatus status) {
+            this.status = status;
+            return this;
+        }
+
         public CreateVacancyRequestBuilder title(String title) {
             this.title = title;
             return this;
@@ -222,10 +266,17 @@ public class TestResources {
             return this;
         }
 
+        public CreateVacancyRequestBuilder expiresAt(Instant expiresAt) {
+            this.expiresAt = expiresAt;
+            return this;
+        }
+
         public CreateVacancyRequest build() {
             return new CreateVacancyRequest(
                     authorId,
                     assignedRecruiterId,
+                    companyId,
+                    status,
                     title,
                     category,
                     specialization,
