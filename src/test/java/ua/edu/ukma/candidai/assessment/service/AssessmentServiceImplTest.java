@@ -8,6 +8,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import ua.edu.ukma.candidai.assessment.dto.AiScreeningResult;
 import ua.edu.ukma.candidai.assessment.repository.ScreeningResultRepository;
+import ua.edu.ukma.candidai.common.exception.ResourceNotFoundException;
 import ua.edu.ukma.candidai.recruitment.ApplicationDetails;
 import ua.edu.ukma.candidai.recruitment.RecruitmentApi;
 import ua.edu.ukma.candidai.recruitment.dto.model.ApplicationStatus;
@@ -16,9 +17,11 @@ import ua.edu.ukma.candidai.vacancy.VacancyDetails;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
@@ -140,6 +143,32 @@ class AssessmentServiceImplTest {
         verify(screeningResultRepository).save(result);
         verify(recruitmentApi, never()).updateStatus(any(), any(), any());
         verify(recruitmentApi, never()).updateStatus(any(), any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("getScreeningResult - should return screening result when found")
+    void givenExistingId_getScreeningResult_shouldReturnResult() {
+        AiScreeningResult result = AiScreeningResult.completed(
+                APP_ID, VACANCY_ID, 85, true, "Strong fit", List.of("Java"), List.of(), List.of("Q1"), NOW
+        );
+        when(screeningResultRepository.findByApplicationId(APP_ID)).thenReturn(Optional.of(result));
+
+        AiScreeningResult actual = assessmentService.getScreeningResult(APP_ID);
+
+        assertThat(actual).isEqualTo(result);
+        verify(screeningResultRepository).findByApplicationId(APP_ID);
+    }
+
+    @Test
+    @DisplayName("getScreeningResult - should throw ResourceNotFoundException when not found")
+    void givenNonExistentId_getScreeningResult_shouldThrowException() {
+        when(screeningResultRepository.findByApplicationId(APP_ID)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> assessmentService.getScreeningResult(APP_ID))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("Screening result not found");
+
+        verify(screeningResultRepository).findByApplicationId(APP_ID);
     }
 
     private ApplicationDetails sampleApplication() {

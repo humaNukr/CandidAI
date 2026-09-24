@@ -322,6 +322,23 @@ class ApplicationServiceTest {
     }
 
     @Test
+    @DisplayName("submitFeedback - should throw InvalidStateTransitionException when status is not INTERVIEW")
+    void givenApplicationNotInInterviewStatus_submitFeedback_shouldThrowInvalidStateTransitionException() {
+        ApplicationResponse existing = sampleApplication(ApplicationStatus.APPLIED);
+        SubmitInterviewFeedbackRequest request = new SubmitInterviewFeedbackRequest(
+                "Alex Lead", 4, "Strong skills", InterviewDecision.HIRE
+        );
+
+        when(applicationRepository.findById(APPLICATION_ID)).thenReturn(Optional.of(existing));
+
+        assertThatThrownBy(() -> applicationService.submitFeedback(APPLICATION_ID, request))
+                .isInstanceOf(InvalidStateTransitionException.class)
+                .hasMessageContaining("Expected: INTERVIEW");
+
+        verify(feedbackRepository, never()).save(any());
+    }
+
+    @Test
     @DisplayName("getFeedbacks - should return list of feedbacks")
     void givenExistingApplication_getFeedbacks_shouldReturnList() {
         ApplicationResponse existing = sampleApplication(ApplicationStatus.INTERVIEW);

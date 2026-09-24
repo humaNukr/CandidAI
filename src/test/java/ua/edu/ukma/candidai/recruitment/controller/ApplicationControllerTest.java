@@ -8,6 +8,8 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.ObjectMapper;
+import ua.edu.ukma.candidai.common.exception.DuplicateResourceException;
+import ua.edu.ukma.candidai.common.exception.InvalidStateTransitionException;
 import ua.edu.ukma.candidai.common.exception.ResourceNotFoundException;
 import ua.edu.ukma.candidai.recruitment.dto.model.ApplicationStatus;
 import ua.edu.ukma.candidai.recruitment.dto.model.InterviewDecision;
@@ -456,5 +458,60 @@ class ApplicationControllerTest {
         mockMvc.perform(get(BASE_URL))
                 .andExpect(status().isOk())
                 .andExpect(content().json("[]"));
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/applications - duplicate candidate should return 409 Conflict with ProblemDetail")
+    void givenDuplicateCandidate_applyForVacancy_shouldReturn409ConflictWithProblemDetail() throws Exception {
+        ApplyForVacancyRequest request = validApplyRequest();
+        when(applicationService.apply(any(ApplyForVacancyRequest.class)))
+                .thenThrow(new DuplicateResourceException("Candidate already applied with email " + request.email()));
+
+        mockMvc.perform(post(BASE_URL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status").value(409))
+                .andExpect(jsonPath("$.title").value("Resource Conflict"))
+                .andExpect(jsonPath("$.detail").value("Candidate already applied with email " + request.email()))
+                .andExpect(jsonPath("$.type").value("https://candidai.ukma.edu.ua/errors/conflict"))
+                .andExpect(jsonPath("$.timestamp").isNotEmpty());
+    }
+
+    @Test
+    @DisplayName("PATCH /api/v1/applications/{id}/status - invalid transition should return 422 with ProblemDetail")
+    void givenInvalidTransition_updateStatus_shouldReturn422UnprocessableWithProblemDetail() throws Exception {
+        UpdateApplicationStatusRequest request = validUpdateStatusRequest();
+        when(applicationService.updateStatus(eq(DEFAULT_ID), any()))
+                .thenThrow(new InvalidStateTransitionException("Cannot transition from APPLIED to OFFER"));
+
+        mockMvc.perform(patch(BASE_URL + "/" + DEFAULT_ID + "/status")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.status").value(422))
+                .andExpect(jsonPath("$.title").value("Invalid State Transition"))
+                .andExpect(jsonPath("$.detail").value("Cannot transition from APPLIED to OFFER"))
+                .andExpect(jsonPath("$.type").value("https://candidai.ukma.edu.ua/errors/invalid-state-transition"))
+                .andExpect(jsonPath("$.timestamp").isNotEmpty());
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/applications/{id}/feedbacks - non-interview status should return 422 with ProblemDetail")
+    void givenNonInterviewStatus_submitFeedback_shouldReturn422UnprocessableWithProblemDetail() throws Exception {
+        SubmitInterviewFeedbackRequest request = validSubmitFeedbackRequest();
+        when(applicationService.submitFeedback(eq(DEFAULT_ID), any()))
+                .thenThrow(new InvalidStateTransitionException(
+                        "Cannot submit feedback for application in status: APPLIED. Expected: INTERVIEW"
+                ));
+
+        mockMvc.perform(post(BASE_URL + "/" + DEFAULT_ID + "/feedbacks")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.status").value(422))
+                .andExpect(jsonPath("$.title").value("Invalid State Transition"))
+                .andExpect(jsonPath("$.type").value("https://candidai.ukma.edu.ua/errors/invalid-state-transition"))
+                .andExpect(jsonPath("$.timestamp").isNotEmpty());
     }
 }

@@ -158,7 +158,14 @@ public class ApplicationServiceImpl implements ApplicationService {
 
     @Override
     public InterviewFeedbackResponse submitFeedback(UUID id, SubmitInterviewFeedbackRequest request) {
-        findApplicationOrThrow(id);
+        ApplicationResponse application = findApplicationOrThrow(id);
+
+        if (application.status() != ApplicationStatus.INTERVIEW) {
+            throw new InvalidStateTransitionException(
+                    "Cannot submit feedback for application in status: " + application.status()
+                            + ". Expected: INTERVIEW"
+            );
+        }
 
         UUID feedbackId = commonGenerator.uuid();
         Instant now = commonGenerator.now();

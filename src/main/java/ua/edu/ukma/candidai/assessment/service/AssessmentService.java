@@ -7,4 +7,6 @@ import java.util.UUID;
 public interface AssessmentService {
 
     AiScreeningResult executeScreening(UUID applicationId);
+
+    AiScreeningResult getScreeningResult(UUID applicationId);
 }

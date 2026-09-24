@@ -7,12 +7,11 @@ import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import ua.edu.ukma.candidai.assessment.dto.AiScreeningResult;
-import ua.edu.ukma.candidai.assessment.repository.ScreeningResultRepository;
 import ua.edu.ukma.candidai.assessment.service.AssessmentService;
+import ua.edu.ukma.candidai.common.exception.ResourceNotFoundException;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 import static org.mockito.Mockito.verify;
@@ -33,9 +32,6 @@ class AssessmentControllerTest {
     private MockMvc mockMvc;
 
     @MockitoBean
-    private ScreeningResultRepository screeningResultRepository;
-
-    @MockitoBean
     private AssessmentService assessmentService;
 
     @Test
@@ -46,7 +42,7 @@ class AssessmentControllerTest {
                 List.of("Java"), List.of(), List.of("Q1"), Instant.parse("2026-09-21T10:00:00Z")
         );
 
-        when(screeningResultRepository.findByApplicationId(APP_ID)).thenReturn(Optional.of(result));
+        when(assessmentService.getScreeningResult(APP_ID)).thenReturn(result);
 
         mockMvc.perform(get(BASE_URL))
                 .andExpect(status().isOk())
@@ -56,19 +52,20 @@ class AssessmentControllerTest {
                 .andExpect(jsonPath("$.summary").value("Strong fit"))
                 .andExpect(jsonPath("$.suggestedQuestions[0]").value("Q1"));
 
-        verify(screeningResultRepository).findByApplicationId(APP_ID);
+        verify(assessmentService).getScreeningResult(APP_ID);
     }
 
     @Test
     @DisplayName("GET /api/v1/applications/{id}/screening - should return 404 ProblemDetail when result not found")
     void givenNonExistentId_getScreeningResult_shouldReturn404NotFound() throws Exception {
-        when(screeningResultRepository.findByApplicationId(APP_ID)).thenReturn(Optional.empty());
+        when(assessmentService.getScreeningResult(APP_ID))
+                .thenThrow(new ResourceNotFoundException("Screening result not found for application: " + APP_ID));
 
         mockMvc.perform(get(BASE_URL))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404));
 
-        verify(screeningResultRepository).findByApplicationId(APP_ID);
+        verify(assessmentService).getScreeningResult(APP_ID);
     }
 
     @Test

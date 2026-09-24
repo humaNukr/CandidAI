@@ -8,9 +8,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import ua.edu.ukma.candidai.assessment.dto.AiScreeningResult;
-import ua.edu.ukma.candidai.assessment.repository.ScreeningResultRepository;
 import ua.edu.ukma.candidai.assessment.service.AssessmentService;
-import ua.edu.ukma.candidai.common.exception.ResourceNotFoundException;
 
 import java.util.UUID;
 
@@ -20,16 +18,12 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class AssessmentController {
 
-    private final ScreeningResultRepository screeningResultRepository;
     private final AssessmentService assessmentService;
 
     @GetMapping
     public AiScreeningResult getScreeningResult(@PathVariable UUID id) {
         log.info("Received request to fetch screening report for application: {}", id);
-        return screeningResultRepository.findByApplicationId(id)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Screening result not found for application: " + id
-                ));
+        return assessmentService.getScreeningResult(id);
     }
 
     @PostMapping
@@ -38,4 +32,3 @@ public class AssessmentController {
         return assessmentService.executeScreening(id);
     }
 }
-
