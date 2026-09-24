@@ -69,7 +69,7 @@ class AssessmentServiceImplTest {
 
         assertThat(actual).isEqualTo(result);
         verify(screeningResultRepository).save(result);
-        verify(recruitmentApi).updateStatus(eq(APP_ID), eq(ApplicationStatus.SCREENING), contains("85"));
+        verify(recruitmentApi).updateStatus(eq(APP_ID), eq(ApplicationStatus.SCREENING), eq(85), contains("85"));
     }
 
     @Test
@@ -90,7 +90,9 @@ class AssessmentServiceImplTest {
 
         assertThat(actual).isEqualTo(result);
         verify(screeningResultRepository).save(result);
-        verify(recruitmentApi).updateStatus(eq(APP_ID), eq(ApplicationStatus.REJECTED), eq("Lacks Java knowledge"));
+        verify(recruitmentApi).updateStatus(
+                eq(APP_ID), eq(ApplicationStatus.REJECTED), eq(30), eq("Lacks Java knowledge")
+        );
     }
 
     @Test
@@ -112,6 +114,7 @@ class AssessmentServiceImplTest {
         assertThat(actual).isEqualTo(result);
         verify(screeningResultRepository).save(result);
         verify(recruitmentApi, never()).updateStatus(any(), any(), any());
+        verify(recruitmentApi, never()).updateStatus(any(), any(), any(), any());
     }
 
     @Test
@@ -136,6 +139,7 @@ class AssessmentServiceImplTest {
         assertThat(actual).isEqualTo(result);
         verify(screeningResultRepository).save(result);
         verify(recruitmentApi, never()).updateStatus(any(), any(), any());
+        verify(recruitmentApi, never()).updateStatus(any(), any(), any(), any());
     }
 
     private ApplicationDetails sampleApplication() {

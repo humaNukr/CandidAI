@@ -423,7 +423,7 @@ class ApplicationControllerTest {
     @Test
     @DisplayName("GET /api/v1/applications?vacancyId={id} - should return 200 Ok with list of applications")
     void givenVacancyId_getApplications_shouldReturn200OkWithApplications() throws Exception {
-        when(applicationService.getApplicationsByVacancy(DEFAULT_VACANCY_ID))
+        when(applicationService.getApplicationsByVacancy(DEFAULT_VACANCY_ID, false))
                 .thenReturn(List.of(anApplicationResponse()));
 
         mockMvc.perform(get(BASE_URL).param("vacancyId", DEFAULT_VACANCY_ID.toString()))
@@ -432,7 +432,22 @@ class ApplicationControllerTest {
                 .andExpect(jsonPath("$[0].vacancyId").value(DEFAULT_VACANCY_ID.toString()))
                 .andExpect(jsonPath("$[0].candidateName").value("John Doe"));
 
-        verify(applicationService).getApplicationsByVacancy(DEFAULT_VACANCY_ID);
+        verify(applicationService).getApplicationsByVacancy(DEFAULT_VACANCY_ID, false);
+    }
+
+    @Test
+    @DisplayName("GET /api/v1/applications?vacancyId={id}&sortByScore=true - should pass sortByScore to service")
+    void givenSortByScore_getApplications_shouldCallServiceWithSortFlag() throws Exception {
+        when(applicationService.getApplicationsByVacancy(DEFAULT_VACANCY_ID, true))
+                .thenReturn(List.of(anApplicationResponse()));
+
+        mockMvc.perform(get(BASE_URL)
+                        .param("vacancyId", DEFAULT_VACANCY_ID.toString())
+                        .param("sortByScore", "true"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value(DEFAULT_ID.toString()));
+
+        verify(applicationService).getApplicationsByVacancy(DEFAULT_VACANCY_ID, true);
     }
 
     @Test
