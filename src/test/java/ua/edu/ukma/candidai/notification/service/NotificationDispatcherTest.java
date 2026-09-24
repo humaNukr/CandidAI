@@ -25,12 +25,15 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static ua.edu.ukma.candidai.notification.NotificationTestResources.DEFAULT_BODY;
+import static ua.edu.ukma.candidai.notification.NotificationTestResources.DEFAULT_EMAIL;
 import static ua.edu.ukma.candidai.notification.NotificationTestResources.DEFAULT_ERROR_MESSAGE;
+import static ua.edu.ukma.candidai.notification.NotificationTestResources.DEFAULT_FULL_NAME;
 import static ua.edu.ukma.candidai.notification.NotificationTestResources.DEFAULT_ID;
 import static ua.edu.ukma.candidai.notification.NotificationTestResources.DEFAULT_NOW;
 import static ua.edu.ukma.candidai.notification.NotificationTestResources.DEFAULT_RECIPIENT_ID;
 import static ua.edu.ukma.candidai.notification.NotificationTestResources.DEFAULT_SUBJECT;
 import static ua.edu.ukma.candidai.notification.NotificationTestResources.SECOND_ID;
+import static ua.edu.ukma.candidai.notification.NotificationTestResources.sampleDirectUserNotificationProfile;
 import static ua.edu.ukma.candidai.notification.NotificationTestResources.sampleNotification;
 import static ua.edu.ukma.candidai.notification.NotificationTestResources.sampleSmtpException;
 import static ua.edu.ukma.candidai.notification.NotificationTestResources.sampleUserNotificationProfile;
@@ -188,5 +191,30 @@ class NotificationDispatcherTest {
         verify(telegramSender).send(profile, DEFAULT_SUBJECT, DEFAULT_BODY);
         verify(notificationRepository).save(expectedEmail);
         verify(notificationRepository).save(expectedTelegram);
+    }
+
+    @Test
+    @DisplayName("sends and saves notification for direct contact details")
+    void givenDirectContact_dispatchDirect_shouldSendAndRecordNotification() {
+        UserNotificationProfile profile = sampleDirectUserNotificationProfile();
+        Notification expectedNotification = sampleNotification(
+                profile,
+                NotificationChannel.EMAIL,
+                NotificationDeliveryStatus.SENT
+        );
+
+        when(emailSender.supports(profile)).thenReturn(true);
+        when(emailSender.getChannel()).thenReturn(NotificationChannel.EMAIL);
+        when(telegramSender.supports(profile)).thenReturn(false);
+        doNothing().when(emailSender).send(profile, DEFAULT_SUBJECT, DEFAULT_BODY);
+        when(generator.now()).thenReturn(DEFAULT_NOW);
+        when(generator.uuid()).thenReturn(DEFAULT_ID);
+
+        dispatcher.dispatchDirect(DEFAULT_EMAIL, null, DEFAULT_FULL_NAME, DEFAULT_SUBJECT, DEFAULT_BODY);
+
+        verify(emailSender).send(profile, DEFAULT_SUBJECT, DEFAULT_BODY);
+        verify(notificationRepository).save(expectedNotification);
+        verify(telegramSender, never()).send(profile, DEFAULT_SUBJECT, DEFAULT_BODY);
+        verifyNoInteractions(userApi);
     }
 }

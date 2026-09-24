@@ -31,6 +31,11 @@ public class NotificationDispatcher {
         );
     }
 
+    public void dispatchDirect(String email, String telegramChatId, String fullName, String subject, String body) {
+        UserNotificationProfile profile = new UserNotificationProfile(null, fullName, email, telegramChatId);
+        dispatchToProfile(profile, subject, body);
+    }
+
     private void dispatchToProfile(UserNotificationProfile profile, String subject, String body) {
         for (NotificationSender sender : senders) {
             if (sender.supports(profile)) {

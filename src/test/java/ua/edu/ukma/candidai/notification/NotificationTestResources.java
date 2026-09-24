@@ -14,6 +14,9 @@ import ua.edu.ukma.candidai.notification.config.NotificationProperties;
 import ua.edu.ukma.candidai.notification.model.Notification;
 import ua.edu.ukma.candidai.notification.model.NotificationChannel;
 import ua.edu.ukma.candidai.notification.model.NotificationDeliveryStatus;
+import ua.edu.ukma.candidai.recruitment.dto.model.ApplicationStatus;
+import ua.edu.ukma.candidai.recruitment.event.ApplicationStatusChangedEvent;
+import ua.edu.ukma.candidai.recruitment.event.ApplicationSubmittedEvent;
 import ua.edu.ukma.candidai.user.UserNotificationProfile;
 import ua.edu.ukma.candidai.vacancy.VacancyStatusChangedEvent;
 import ua.edu.ukma.candidai.vacancy.model.VacancyStatus;
@@ -197,12 +200,56 @@ public final class NotificationTestResources {
         );
     }
 
+    public static ApplicationSubmittedEvent sampleApplicationSubmittedEvent() {
+        return new ApplicationSubmittedEvent(
+                DEFAULT_ID,
+                DEFAULT_VACANCY_ID,
+                DEFAULT_FULL_NAME,
+                DEFAULT_EMAIL,
+                "https://candidai.ukma.edu.ua/resumes/cv.pdf",
+                DEFAULT_NOW
+        );
+    }
+
+    public static ApplicationStatusChangedEvent sampleApplicationStatusChangedEvent() {
+        return new ApplicationStatusChangedEvent(
+                DEFAULT_ID,
+                DEFAULT_VACANCY_ID,
+                DEFAULT_EMAIL,
+                ApplicationStatus.APPLIED,
+                ApplicationStatus.SCREENING,
+                "Candidate meets initial requirements",
+                DEFAULT_NOW
+        );
+    }
+
+    public static ApplicationStatusChangedEvent sampleApplicationStatusChangedEventWithoutComment() {
+        return new ApplicationStatusChangedEvent(
+                DEFAULT_ID,
+                DEFAULT_VACANCY_ID,
+                DEFAULT_EMAIL,
+                ApplicationStatus.APPLIED,
+                ApplicationStatus.SCREENING,
+                null,
+                DEFAULT_NOW
+        );
+    }
+
     public static UserNotificationProfile sampleUserNotificationProfile() {
         return new UserNotificationProfile(
                 DEFAULT_RECIPIENT_ID,
                 DEFAULT_FULL_NAME,
                 DEFAULT_EMAIL,
                 DEFAULT_TELEGRAM_CHAT_ID
+        );
+    }
+
+    public static UserNotificationProfile sampleDirectUserNotificationProfile() {
+        return new UserNotificationProfile(
+                null,
+                DEFAULT_FULL_NAME,
+                DEFAULT_EMAIL,
+                null
         );
     }
 
@@ -470,6 +517,32 @@ public final class NotificationTestResources {
         return String.format(
                 "Your vacancy '%s' status was changed from %s to %s.",
                 event.vacancyTitle(), event.oldStatus(), event.newStatus()
+        );
+    }
+
+    public static String expectedApplicationSubmittedSubject() {
+        return "CandidAI: Вашу заявку успішно зареєстровано";
+    }
+
+    public static String expectedApplicationSubmittedBody(ApplicationSubmittedEvent event) {
+        return String.format(
+                "Шановний(-а) %s! Дякуємо за ваш відгук на вакансію. "
+                        + "Ваша заявка успішно передана на первинний скринінг.",
+                event.candidateName()
+        );
+    }
+
+    public static String expectedApplicationStatusChangedSubject() {
+        return "CandidAI: Оновлення статусу вашої заявки";
+    }
+
+    public static String expectedApplicationStatusChangedBody(ApplicationStatusChangedEvent event) {
+        String commentPart = (event.comment() != null && !event.comment().isBlank())
+                ? "\nКоментар: " + event.comment()
+                : "";
+        return String.format(
+                "Статус вашої заявки змінено з %s на %s.%s",
+                event.previousStatus(), event.newStatus(), commentPart
         );
     }
 
