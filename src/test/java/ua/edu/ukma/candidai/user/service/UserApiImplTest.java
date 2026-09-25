@@ -18,6 +18,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
+import static ua.edu.ukma.candidai.user.UserTestResources.DEFAULT_EMAIL;
 import static ua.edu.ukma.candidai.user.UserTestResources.DEFAULT_USER_ID;
 import static ua.edu.ukma.candidai.user.UserTestResources.NON_EXISTENT_USER_ID;
 import static ua.edu.ukma.candidai.user.UserTestResources.UPDATED_TELEGRAM_CHAT_ID;
@@ -27,13 +28,16 @@ import static ua.edu.ukma.candidai.user.UserTestResources.sampleUserNotification
 import static ua.edu.ukma.candidai.user.UserTestResources.sampleUserWithTelegramChatId;
 
 @ExtendWith(MockitoExtension.class)
-class UserServiceTest {
+class UserApiImplTest {
 
     @Mock
     private UserRepository userRepository;
 
+    @Mock
+    private UserMapper userMapper;
+
     @InjectMocks
-    private UserApiImpl userService;
+    private UserApiImpl userApi;
 
     @Test
     @DisplayName("getUserNotificationProfile should return profile when user exists")
@@ -42,8 +46,9 @@ class UserServiceTest {
         UserNotificationProfile expectedProfile = sampleUserNotificationProfile();
 
         when(userRepository.findById(DEFAULT_USER_ID)).thenReturn(Optional.of(user));
+        when(userMapper.toNotificationProfile(user)).thenReturn(expectedProfile);
 
-        Optional<UserNotificationProfile> result = userService.getUserNotificationProfile(DEFAULT_USER_ID);
+        Optional<UserNotificationProfile> result = userApi.getUserNotificationProfile(DEFAULT_USER_ID);
 
         assertThat(result).contains(expectedProfile);
     }
@@ -53,7 +58,33 @@ class UserServiceTest {
     void givenNonExistentUserId_getUserNotificationProfile_shouldReturnEmpty() {
         when(userRepository.findById(NON_EXISTENT_USER_ID)).thenReturn(Optional.empty());
 
-        Optional<UserNotificationProfile> result = userService.getUserNotificationProfile(NON_EXISTENT_USER_ID);
+        Optional<UserNotificationProfile> result = userApi.getUserNotificationProfile(NON_EXISTENT_USER_ID);
+
+        assertThat(result).isEmpty();
+    }
+
+    @Test
+    @DisplayName("getUserNotificationProfileByEmail should return profile when user exists")
+    void givenExistingEmail_getUserNotificationProfileByEmail_shouldReturnProfile() {
+        User user = sampleUser();
+        UserNotificationProfile expectedProfile = sampleUserNotificationProfile();
+
+        when(userRepository.findByEmail(DEFAULT_EMAIL)).thenReturn(Optional.of(user));
+        when(userMapper.toNotificationProfile(user)).thenReturn(expectedProfile);
+
+        Optional<UserNotificationProfile> result = userApi.getUserNotificationProfileByEmail(DEFAULT_EMAIL);
+
+        assertThat(result).contains(expectedProfile);
+    }
+
+    @Test
+    @DisplayName("getUserNotificationProfileByEmail should return empty when user does not exist")
+    void givenNonExistentEmail_getUserNotificationProfileByEmail_shouldReturnEmpty() {
+        String nonExistentEmail = "nonexistent@example.com";
+
+        when(userRepository.findByEmail(nonExistentEmail)).thenReturn(Optional.empty());
+
+        Optional<UserNotificationProfile> result = userApi.getUserNotificationProfileByEmail(nonExistentEmail);
 
         assertThat(result).isEmpty();
     }
@@ -65,7 +96,7 @@ class UserServiceTest {
         User expectedUser = sampleUserWithTelegramChatId(UPDATED_TELEGRAM_CHAT_ID);
         when(userRepository.findById(DEFAULT_USER_ID)).thenReturn(Optional.of(user));
 
-        userService.linkTelegramChatId(DEFAULT_USER_ID, UPDATED_TELEGRAM_CHAT_ID);
+        userApi.linkTelegramChatId(DEFAULT_USER_ID, UPDATED_TELEGRAM_CHAT_ID);
 
         assertThat(user).isEqualTo(expectedUser);
         verify(userRepository).save(expectedUser);
@@ -76,11 +107,10 @@ class UserServiceTest {
     void givenNonExistentUserId_linkTelegramChatId_shouldThrowResourceNotFoundException() {
         when(userRepository.findById(NON_EXISTENT_USER_ID)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> userService.linkTelegramChatId(NON_EXISTENT_USER_ID, UPDATED_TELEGRAM_CHAT_ID))
+        assertThatThrownBy(() -> userApi.linkTelegramChatId(NON_EXISTENT_USER_ID, UPDATED_TELEGRAM_CHAT_ID))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessage(expectedUserNotFoundMessage(NON_EXISTENT_USER_ID));
 
         verifyNoMoreInteractions(userRepository);
     }
 }
-

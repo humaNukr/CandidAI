@@ -16,19 +16,18 @@ import java.util.UUID;
 class UserApiImpl implements UserApi {
 
     private final UserRepository userRepository;
+    private final UserMapper userMapper;
 
     @Override
     public Optional<UserNotificationProfile> getUserNotificationProfile(UUID userId) {
-        if (userId == null) {
-            return Optional.empty();
-        }
         return userRepository.findById(userId)
-                .map(user -> new UserNotificationProfile(
-                        user.getId(),
-                        user.getFullName(),
-                        user.getEmail(),
-                        user.getTelegramChatId()
-                ));
+                .map(userMapper::toNotificationProfile);
+    }
+
+    @Override
+    public Optional<UserNotificationProfile> getUserNotificationProfileByEmail(String email) {
+        return userRepository.findByEmail(email)
+                .map(userMapper::toNotificationProfile);
     }
 
     @Override
