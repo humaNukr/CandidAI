@@ -26,6 +26,7 @@ import ua.edu.ukma.candidai.vacancy.VacancyApi;
 import ua.edu.ukma.candidai.vacancy.model.JobCategory;
 
 import java.time.Instant;
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 
@@ -121,6 +122,7 @@ public class ApplicationServiceImpl implements ApplicationService {
                 saved.getId(),
                 saved.getVacancyId(),
                 saved.getCandidateId(),
+                saved.getCandidateName(),
                 saved.getEmail(),
                 currentStatus,
                 newStatus,
@@ -199,9 +201,23 @@ public class ApplicationServiceImpl implements ApplicationService {
 
     @Override
     public List<ApplicationResponse> getApplicationsByVacancy(UUID vacancyId) {
-        return applicationRepository.findByVacancyId(vacancyId).stream()
+        return getApplicationsByVacancy(vacancyId, false);
+    }
+
+    @Override
+    public List<ApplicationResponse> getApplicationsByVacancy(UUID vacancyId, boolean sortByScore) {
+        List<ApplicationResponse> applications = applicationRepository.findByVacancyId(vacancyId).stream()
                 .map(applicationMapper::toResponse)
                 .toList();
+        if (sortByScore) {
+            return applications.stream()
+                    .sorted(Comparator.comparing(
+                            ApplicationResponse::matchingScore,
+                            Comparator.nullsLast(Comparator.reverseOrder())
+                    ))
+                    .toList();
+        }
+        return applications;
     }
 
     private Application findApplicationOrThrow(UUID id) {

@@ -135,8 +135,8 @@ public final class RecruitmentTestResources {
                 DEFAULT_PHONE,
                 DEFAULT_RESUME_URL,
                 status,
-                comment,
                 matchingScore,
+                comment,
                 DEFAULT_NOW,
                 updatedAt
         );

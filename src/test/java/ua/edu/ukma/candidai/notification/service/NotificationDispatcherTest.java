@@ -225,4 +225,41 @@ class NotificationDispatcherTest {
 
         verifyNoInteractions(emailSender, telegramSender, notificationRepository, generator);
     }
+
+    @Test
+    @DisplayName("dispatchDirect - sends and saves notification directly by email when sender supports profile")
+    void givenDirectEmailRecipient_dispatchDirect_shouldSendAndPersist() {
+        UserNotificationProfile profile = new UserNotificationProfile(null, "Jane Candidate", "jane@example.com", null);
+        Notification expectedNotification = Notification.pending(
+                DEFAULT_ID,
+                null,
+                "jane@example.com",
+                null,
+                NotificationChannel.EMAIL,
+                DEFAULT_SUBJECT,
+                DEFAULT_BODY,
+                DEFAULT_NOW
+        ).markSent(DEFAULT_NOW);
+
+        when(emailSender.supports(profile)).thenReturn(true);
+        when(emailSender.getChannel()).thenReturn(NotificationChannel.EMAIL);
+        when(telegramSender.supports(profile)).thenReturn(false);
+        doNothing().when(emailSender).send(profile, DEFAULT_SUBJECT, DEFAULT_BODY);
+        when(generator.now()).thenReturn(DEFAULT_NOW);
+        when(generator.uuid()).thenReturn(DEFAULT_ID);
+
+        dispatcher.dispatchDirect("Jane Candidate", "jane@example.com", null, DEFAULT_SUBJECT, DEFAULT_BODY);
+
+        verify(emailSender).send(profile, DEFAULT_SUBJECT, DEFAULT_BODY);
+        verify(notificationRepository).save(expectedNotification);
+        verifyNoInteractions(userApi);
+    }
+
+    @Test
+    @DisplayName("dispatchDirect - does nothing when both email and telegram are null or blank")
+    void givenNoEmailOrTelegram_dispatchDirect_shouldDoNothing() {
+        dispatcher.dispatchDirect("Jane Candidate", null, "   ", DEFAULT_SUBJECT, DEFAULT_BODY);
+
+        verifyNoInteractions(userApi, emailSender, telegramSender, notificationRepository, generator);
+    }
 }

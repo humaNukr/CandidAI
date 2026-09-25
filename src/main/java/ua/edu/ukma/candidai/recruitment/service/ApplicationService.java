@@ -32,4 +32,6 @@ public interface ApplicationService {
     EvaluationResult evaluateCandidate(UUID id);
 
     List<ApplicationResponse> getApplicationsByVacancy(UUID vacancyId);
+
+    List<ApplicationResponse> getApplicationsByVacancy(UUID vacancyId, boolean sortByScore);
 }

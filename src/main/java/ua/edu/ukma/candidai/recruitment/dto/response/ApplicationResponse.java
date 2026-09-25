@@ -14,12 +14,11 @@ public record ApplicationResponse(
         String phone,
         String resumeUrl,
         ApplicationStatus status,
-        String comment,
         Integer matchingScore,
+        String comment,
         Instant appliedAt,
         Instant updatedAt
 ) {
-
     public ApplicationResponse(
             UUID id,
             UUID vacancyId,
@@ -42,8 +41,65 @@ public record ApplicationResponse(
                 phone,
                 resumeUrl,
                 status,
-                comment,
                 null,
+                comment,
+                appliedAt,
+                updatedAt
+        );
+    }
+
+    public ApplicationResponse(
+            UUID id,
+            UUID vacancyId,
+            String candidateName,
+            String email,
+            String phone,
+            String resumeUrl,
+            ApplicationStatus status,
+            Integer matchingScore,
+            String comment,
+            Instant appliedAt,
+            Instant updatedAt
+    ) {
+        this(
+                id,
+                vacancyId,
+                null,
+                candidateName,
+                email,
+                phone,
+                resumeUrl,
+                status,
+                matchingScore,
+                comment,
+                appliedAt,
+                updatedAt
+        );
+    }
+
+    public ApplicationResponse(
+            UUID id,
+            UUID vacancyId,
+            String candidateName,
+            String email,
+            String phone,
+            String resumeUrl,
+            ApplicationStatus status,
+            String comment,
+            Instant appliedAt,
+            Instant updatedAt
+    ) {
+        this(
+                id,
+                vacancyId,
+                null,
+                candidateName,
+                email,
+                phone,
+                resumeUrl,
+                status,
+                null,
+                comment,
                 appliedAt,
                 updatedAt
         );

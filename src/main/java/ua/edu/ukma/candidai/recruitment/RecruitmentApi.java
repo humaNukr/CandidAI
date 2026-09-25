@@ -8,9 +8,7 @@ public interface RecruitmentApi {
 
     ApplicationDetails getApplication(UUID applicationId);
 
-    void updateStatus(UUID applicationId, ApplicationStatus status, Integer matchingScore, String comment);
+    void updateStatus(UUID applicationId, ApplicationStatus status, String comment);
 
-    default void updateStatus(UUID applicationId, ApplicationStatus status, String comment) {
-        updateStatus(applicationId, status, null, comment);
-    }
+    void updateStatus(UUID applicationId, ApplicationStatus status, Integer matchingScore, String comment);
 }

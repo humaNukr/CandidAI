@@ -12,4 +12,14 @@ public record ApplicationSubmittedEvent(
         String resumeUrl,
         Instant submittedAt
 ) {
+    public ApplicationSubmittedEvent(
+            UUID applicationId,
+            UUID vacancyId,
+            String candidateName,
+            String email,
+            String resumeUrl,
+            Instant submittedAt
+    ) {
+        this(applicationId, vacancyId, null, candidateName, email, resumeUrl, submittedAt);
+    }
 }

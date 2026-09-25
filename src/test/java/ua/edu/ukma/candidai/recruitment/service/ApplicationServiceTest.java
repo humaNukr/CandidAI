@@ -47,6 +47,7 @@ import static ua.edu.ukma.candidai.recruitment.RecruitmentTestResources.aFeedbac
 import static ua.edu.ukma.candidai.recruitment.RecruitmentTestResources.aHireFeedbackResponse;
 import static ua.edu.ukma.candidai.recruitment.RecruitmentTestResources.aRejectFeedbackResponse;
 import static ua.edu.ukma.candidai.recruitment.RecruitmentTestResources.anApplication;
+import static ua.edu.ukma.candidai.recruitment.RecruitmentTestResources.anApplicationBuilder;
 import static ua.edu.ukma.candidai.recruitment.RecruitmentTestResources.anApplicationResponse;
 import static ua.edu.ukma.candidai.recruitment.RecruitmentTestResources.anEvaluationResult;
 import static ua.edu.ukma.candidai.recruitment.RecruitmentTestResources.validApplyForVacancyRequest;
@@ -208,6 +209,7 @@ class ApplicationServiceTest {
                 DEFAULT_APPLICATION_ID,
                 DEFAULT_VACANCY_ID,
                 DEFAULT_CANDIDATE_ID,
+                existing.getCandidateName(),
                 existing.getEmail(),
                 ApplicationStatus.APPLIED,
                 ApplicationStatus.SCREENING,
@@ -366,6 +368,7 @@ class ApplicationServiceTest {
                 DEFAULT_APPLICATION_ID,
                 DEFAULT_VACANCY_ID,
                 DEFAULT_CANDIDATE_ID,
+                existing.getCandidateName(),
                 existing.getEmail(),
                 ApplicationStatus.INTERVIEW,
                 ApplicationStatus.OFFER,
@@ -494,5 +497,35 @@ class ApplicationServiceTest {
         assertThatThrownBy(() -> applicationService.evaluateCandidate(DEFAULT_APPLICATION_ID))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("No strategy found for category: " + JobCategory.ENGINEERING);
+    }
+
+    @Test
+    @DisplayName("getApplicationsByVacancy with sortByScore true should sort by score descending with nulls last")
+    void givenSortByScore_getApplicationsByVacancy_shouldReturnSortedList() {
+        Application appLow = anApplicationBuilder()
+                .id(UUID.fromString("00000000-0000-0000-0000-000000000011"))
+                .matchingScore(50)
+                .build();
+        Application appHigh = anApplicationBuilder()
+                .id(UUID.fromString("00000000-0000-0000-0000-000000000012"))
+                .matchingScore(95)
+                .build();
+        Application appNull = anApplicationBuilder()
+                .id(UUID.fromString("00000000-0000-0000-0000-000000000013"))
+                .matchingScore(null)
+                .build();
+
+        ApplicationResponse resLow = anApplicationResponse(ApplicationStatus.APPLIED, 50, null, DEFAULT_NOW);
+        ApplicationResponse resHigh = anApplicationResponse(ApplicationStatus.APPLIED, 95, null, DEFAULT_NOW);
+        ApplicationResponse resNull = anApplicationResponse(ApplicationStatus.APPLIED, null, null, DEFAULT_NOW);
+
+        when(applicationRepository.findByVacancyId(DEFAULT_VACANCY_ID)).thenReturn(List.of(appLow, appNull, appHigh));
+        when(applicationMapper.toResponse(appLow)).thenReturn(resLow);
+        when(applicationMapper.toResponse(appHigh)).thenReturn(resHigh);
+        when(applicationMapper.toResponse(appNull)).thenReturn(resNull);
+
+        List<ApplicationResponse> actual = applicationService.getApplicationsByVacancy(DEFAULT_VACANCY_ID, true);
+
+        assertThat(actual).containsExactly(resHigh, resLow, resNull);
     }
 }

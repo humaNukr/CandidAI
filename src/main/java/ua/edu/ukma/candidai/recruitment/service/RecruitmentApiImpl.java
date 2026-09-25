@@ -27,9 +27,14 @@ class RecruitmentApiImpl implements RecruitmentApi {
                 app.phone(),
                 app.resumeUrl(),
                 app.status(),
-                app.comment(),
-                app.matchingScore()
+                app.matchingScore(),
+                app.comment()
         );
+    }
+
+    @Override
+    public void updateStatus(UUID applicationId, ApplicationStatus status, String comment) {
+        updateStatus(applicationId, status, null, comment);
     }
 
     @Override
