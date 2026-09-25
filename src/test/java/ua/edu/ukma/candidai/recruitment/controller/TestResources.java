@@ -6,6 +6,8 @@ import ua.edu.ukma.candidai.recruitment.dto.request.ApplyForVacancyRequest;
 import ua.edu.ukma.candidai.recruitment.dto.request.SubmitInterviewFeedbackRequest;
 import ua.edu.ukma.candidai.recruitment.dto.request.UpdateApplicationStatusRequest;
 import ua.edu.ukma.candidai.recruitment.dto.response.ApplicationResponse;
+import ua.edu.ukma.candidai.recruitment.dto.response.InterviewFeedbackResponse;
+import ua.edu.ukma.candidai.recruitment.service.strategy.EvaluationResult;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -15,6 +17,7 @@ class TestResources {
     static final String BASE_URL = "/api/v1/applications";
     static final UUID DEFAULT_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
     static final UUID DEFAULT_VACANCY_ID = UUID.fromString("00000000-0000-0000-0000-000000000010");
+    static final UUID DEFAULT_CANDIDATE_ID = UUID.fromString("00000000-0000-0000-0000-000000000002");
     static final UUID NON_EXISTENT_ID = UUID.fromString("00000000-0000-0000-0000-000000000099");
 
     static final String JSON_WITH_UNKNOWN_PROPERTY = """
@@ -77,17 +80,50 @@ class TestResources {
     }
 
     static ApplicationResponse anApplicationResponse() {
+        return anApplicationResponse(ApplicationStatus.APPLIED, null);
+    }
+
+    static ApplicationResponse anApplicationResponse(ApplicationStatus status, String comment) {
         return new ApplicationResponse(
                 DEFAULT_ID,
                 DEFAULT_VACANCY_ID,
+                DEFAULT_CANDIDATE_ID,
                 "John Doe",
                 "john.doe@example.com",
                 "+380501234567",
                 "https://storage.candidai.ukma.edu.ua/resumes/john_doe.pdf",
-                ApplicationStatus.APPLIED,
-                null,
+                status,
+                comment,
                 Instant.parse("2026-09-12T10:00:00Z"),
                 Instant.parse("2026-09-12T10:00:00Z")
+        );
+    }
+
+    static ApplicationResponse updatedApplicationResponse() {
+        return anApplicationResponse(ApplicationStatus.INTERVIEW, "Candidate passed screening successfully");
+    }
+
+    static InterviewFeedbackResponse anInterviewFeedbackResponse() {
+        return anInterviewFeedbackResponse("Strong knowledge of Java and Spring Boot architecture");
+    }
+
+    static InterviewFeedbackResponse anInterviewFeedbackResponse(String notes) {
+        return new InterviewFeedbackResponse(
+                DEFAULT_ID,
+                DEFAULT_ID,
+                "Alex Techlead",
+                4,
+                notes,
+                InterviewDecision.HIRE,
+                Instant.parse("2026-09-12T10:00:00Z")
+        );
+    }
+
+    static EvaluationResult anEvaluationResult() {
+        return new EvaluationResult(
+                4.5,
+                InterviewDecision.HIRE,
+                "Engineering evaluation completed"
         );
     }
 
@@ -143,6 +179,7 @@ class TestResources {
 
     static class ApplyForVacancyRequestBuilder {
         private UUID vacancyId = DEFAULT_VACANCY_ID;
+        private UUID candidateId = DEFAULT_CANDIDATE_ID;
         private String candidateName = "John Doe";
         private String email = "john.doe@example.com";
         private String phone = "+380501234567";
@@ -150,6 +187,11 @@ class TestResources {
 
         public ApplyForVacancyRequestBuilder vacancyId(UUID vacancyId) {
             this.vacancyId = vacancyId;
+            return this;
+        }
+
+        public ApplyForVacancyRequestBuilder candidateId(UUID candidateId) {
+            this.candidateId = candidateId;
             return this;
         }
 
@@ -174,7 +216,7 @@ class TestResources {
         }
 
         public ApplyForVacancyRequest build() {
-            return new ApplyForVacancyRequest(vacancyId, candidateName, email, phone, resumeUrl);
+            return new ApplyForVacancyRequest(vacancyId, candidateId, candidateName, email, phone, resumeUrl);
         }
     }
 }

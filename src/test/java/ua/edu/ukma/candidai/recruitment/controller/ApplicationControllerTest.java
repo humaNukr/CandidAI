@@ -10,7 +10,6 @@ import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.ObjectMapper;
 import ua.edu.ukma.candidai.common.exception.ResourceNotFoundException;
 import ua.edu.ukma.candidai.recruitment.dto.model.ApplicationStatus;
-import ua.edu.ukma.candidai.recruitment.dto.model.InterviewDecision;
 import ua.edu.ukma.candidai.recruitment.dto.request.ApplyForVacancyRequest;
 import ua.edu.ukma.candidai.recruitment.dto.request.SubmitInterviewFeedbackRequest;
 import ua.edu.ukma.candidai.recruitment.dto.request.UpdateApplicationStatusRequest;
@@ -19,7 +18,6 @@ import ua.edu.ukma.candidai.recruitment.dto.response.InterviewFeedbackResponse;
 import ua.edu.ukma.candidai.recruitment.service.ApplicationService;
 import ua.edu.ukma.candidai.recruitment.service.strategy.EvaluationResult;
 
-import java.time.Instant;
 import java.util.List;
 
 import static org.hamcrest.Matchers.containsString;
@@ -52,18 +50,7 @@ class ApplicationControllerTest {
     @DisplayName("PATCH /api/v1/applications/{id}/status - should update status and return 200 Ok")
     void givenValidStatusUpdate_updateApplicationStatus_shouldReturn200Ok() throws Exception {
         UpdateApplicationStatusRequest request = validUpdateStatusRequest();
-        ApplicationResponse updatedResponse = new ApplicationResponse(
-                DEFAULT_ID,
-                DEFAULT_VACANCY_ID,
-                "John Doe",
-                "john.doe@example.com",
-                "+380501234567",
-                "https://storage.candidai.ukma.edu.ua/resumes/john_doe.pdf",
-                ApplicationStatus.INTERVIEW,
-                "Candidate passed screening successfully",
-                Instant.parse("2026-09-12T10:00:00Z"),
-                Instant.parse("2026-09-12T10:00:00Z")
-        );
+        ApplicationResponse updatedResponse = updatedApplicationResponse();
 
         when(applicationService.updateStatus(eq(DEFAULT_ID), any(UpdateApplicationStatusRequest.class)))
                 .thenReturn(updatedResponse);
@@ -138,15 +125,7 @@ class ApplicationControllerTest {
     @DisplayName("POST /api/v1/applications/{id}/feedbacks - should submit feedback and return 201 Created")
     void givenValidRequest_submitFeedback_shouldReturn201Created() throws Exception {
         SubmitInterviewFeedbackRequest request = validSubmitFeedbackRequest();
-        InterviewFeedbackResponse feedback = new InterviewFeedbackResponse(
-                DEFAULT_ID,
-                DEFAULT_ID,
-                "Alex Techlead",
-                4,
-                "Strong knowledge of Java and Spring Boot architecture",
-                InterviewDecision.HIRE,
-                Instant.parse("2026-09-12T10:00:00Z")
-        );
+        InterviewFeedbackResponse feedback = anInterviewFeedbackResponse();
 
         when(applicationService.submitFeedback(eq(DEFAULT_ID), any(SubmitInterviewFeedbackRequest.class)))
                 .thenReturn(feedback);
@@ -259,15 +238,7 @@ class ApplicationControllerTest {
     @Test
     @DisplayName("GET /api/v1/applications/{id}/feedbacks - should return 200 Ok with feedbacks list")
     void givenExistingId_getFeedbacks_shouldReturn200OkWithFeedbacksList() throws Exception {
-        InterviewFeedbackResponse fb = new InterviewFeedbackResponse(
-                DEFAULT_ID,
-                DEFAULT_ID,
-                "Alex Techlead",
-                4,
-                "Good",
-                InterviewDecision.HIRE,
-                Instant.parse("2026-09-12T10:00:00Z")
-        );
+        InterviewFeedbackResponse fb = anInterviewFeedbackResponse("Good");
         when(applicationService.getFeedbacks(DEFAULT_ID)).thenReturn(List.of(fb));
 
         mockMvc.perform(get(BASE_URL + "/" + DEFAULT_ID + "/feedbacks"))
@@ -305,6 +276,7 @@ class ApplicationControllerTest {
                 .andExpect(header().string("Location", containsString(BASE_URL)))
                 .andExpect(jsonPath("$.id").isNotEmpty())
                 .andExpect(jsonPath("$.vacancyId").value(DEFAULT_VACANCY_ID.toString()))
+                .andExpect(jsonPath("$.candidateId").value(DEFAULT_CANDIDATE_ID.toString()))
                 .andExpect(jsonPath("$.candidateName").value("John Doe"))
                 .andExpect(jsonPath("$.email").value("john.doe@example.com"))
                 .andExpect(jsonPath("$.phone").value("+380501234567"))
@@ -364,6 +336,19 @@ class ApplicationControllerTest {
     }
 
     @Test
+    @DisplayName("POST /api/v1/applications - should return 400 ProblemDetail when candidateId is null")
+    void givenNullCandidateId_applyForVacancy_shouldReturn400BadRequest() throws Exception {
+        ApplyForVacancyRequest invalidRequest = anApplyRequest().candidateId(null).build();
+
+        mockMvc.perform(post(BASE_URL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(invalidRequest)))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().json(VALIDATION_ERROR_JSON))
+                .andExpect(jsonPath("$.errors.candidateId").exists());
+    }
+
+    @Test
     @DisplayName("POST /api/v1/applications - should return 400 when unknown property is provided")
     void givenUnknownProperty_applyForVacancy_shouldReturn400BadRequest() throws Exception {
         mockMvc.perform(post(BASE_URL)
@@ -404,11 +389,7 @@ class ApplicationControllerTest {
     @Test
     @DisplayName("GET /api/v1/applications/{id}/evaluation - should return 200 Ok with evaluation result")
     void givenExistingId_getEvaluation_shouldReturn200Ok() throws Exception {
-        EvaluationResult evaluation = new EvaluationResult(
-                4.5,
-                InterviewDecision.HIRE,
-                "Engineering evaluation completed"
-        );
+        EvaluationResult evaluation = anEvaluationResult();
         when(applicationService.evaluateCandidate(DEFAULT_ID)).thenReturn(evaluation);
 
         mockMvc.perform(get(BASE_URL + "/" + DEFAULT_ID + "/evaluation"))

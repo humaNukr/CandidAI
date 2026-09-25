@@ -4,7 +4,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
@@ -12,6 +11,8 @@ import ua.edu.ukma.candidai.common.exception.DuplicateResourceException;
 import ua.edu.ukma.candidai.common.exception.InvalidStateTransitionException;
 import ua.edu.ukma.candidai.common.exception.ResourceNotFoundException;
 import ua.edu.ukma.candidai.common.util.CommonGenerator;
+import ua.edu.ukma.candidai.recruitment.ApplicationStatusChangedEvent;
+import ua.edu.ukma.candidai.recruitment.ApplicationSubmittedEvent;
 import ua.edu.ukma.candidai.recruitment.dto.model.ApplicationStatus;
 import ua.edu.ukma.candidai.recruitment.dto.model.InterviewDecision;
 import ua.edu.ukma.candidai.recruitment.dto.request.ApplyForVacancyRequest;
@@ -19,13 +20,10 @@ import ua.edu.ukma.candidai.recruitment.dto.request.SubmitInterviewFeedbackReque
 import ua.edu.ukma.candidai.recruitment.dto.request.UpdateApplicationStatusRequest;
 import ua.edu.ukma.candidai.recruitment.dto.response.ApplicationResponse;
 import ua.edu.ukma.candidai.recruitment.dto.response.InterviewFeedbackResponse;
-import ua.edu.ukma.candidai.recruitment.ApplicationStatusChangedEvent;
-import ua.edu.ukma.candidai.recruitment.ApplicationSubmittedEvent;
 import ua.edu.ukma.candidai.recruitment.model.Application;
 import ua.edu.ukma.candidai.recruitment.repository.ApplicationRepository;
 import ua.edu.ukma.candidai.recruitment.repository.InterviewFeedbackRepository;
 import ua.edu.ukma.candidai.recruitment.service.strategy.CandidateEvaluationStrategy;
-import ua.edu.ukma.candidai.recruitment.service.strategy.EngineeringEvaluationStrategy;
 import ua.edu.ukma.candidai.recruitment.service.strategy.EvaluationResult;
 import ua.edu.ukma.candidai.vacancy.VacancyApi;
 import ua.edu.ukma.candidai.vacancy.model.JobCategory;
@@ -37,18 +35,25 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static ua.edu.ukma.candidai.recruitment.RecruitmentTestResources.DEFAULT_APPLICATION_ID;
+import static ua.edu.ukma.candidai.recruitment.RecruitmentTestResources.DEFAULT_CANDIDATE_ID;
+import static ua.edu.ukma.candidai.recruitment.RecruitmentTestResources.DEFAULT_FEEDBACK_ID;
+import static ua.edu.ukma.candidai.recruitment.RecruitmentTestResources.DEFAULT_NOW;
+import static ua.edu.ukma.candidai.recruitment.RecruitmentTestResources.DEFAULT_VACANCY_ID;
+import static ua.edu.ukma.candidai.recruitment.RecruitmentTestResources.NON_EXISTENT_ID;
+import static ua.edu.ukma.candidai.recruitment.RecruitmentTestResources.aFeedbackResponse;
+import static ua.edu.ukma.candidai.recruitment.RecruitmentTestResources.aHireFeedbackResponse;
+import static ua.edu.ukma.candidai.recruitment.RecruitmentTestResources.aRejectFeedbackResponse;
+import static ua.edu.ukma.candidai.recruitment.RecruitmentTestResources.anApplication;
+import static ua.edu.ukma.candidai.recruitment.RecruitmentTestResources.anApplicationResponse;
+import static ua.edu.ukma.candidai.recruitment.RecruitmentTestResources.anEvaluationResult;
+import static ua.edu.ukma.candidai.recruitment.RecruitmentTestResources.validApplyForVacancyRequest;
+import static ua.edu.ukma.candidai.recruitment.RecruitmentTestResources.validSubmitFeedbackRequest;
 
 @ExtendWith(MockitoExtension.class)
 class ApplicationServiceTest {
-
-    private static final UUID VACANCY_ID = UUID.fromString("00000000-0000-0000-0000-000000000010");
-    private static final UUID APPLICATION_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
-    private static final UUID FEEDBACK_ID = UUID.fromString("00000000-0000-0000-0000-000000000002");
-    private static final Instant NOW = Instant.parse("2026-09-20T10:00:00Z");
 
     @Mock
     private ApplicationRepository applicationRepository;
@@ -65,379 +70,429 @@ class ApplicationServiceTest {
     @Mock
     private CommonGenerator commonGenerator;
 
+    @Mock
+    private ApplicationMapper applicationMapper;
+
+    @Mock
+    private CandidateEvaluationStrategy evaluationStrategy;
+
     private ApplicationServiceImpl applicationService;
 
     @BeforeEach
     void setUp() {
-        List<CandidateEvaluationStrategy> strategies = List.of(new EngineeringEvaluationStrategy());
         applicationService = new ApplicationServiceImpl(
                 applicationRepository,
                 feedbackRepository,
                 vacancyApi,
                 eventPublisher,
                 commonGenerator,
-                new ApplicationMapper(),
-                strategies
+                applicationMapper,
+                List.of(evaluationStrategy)
         );
     }
 
     @Test
-    @DisplayName("apply - should save application and publish ApplicationSubmittedEvent when valid")
+    @DisplayName("apply with valid request should save application, publish event, and return response")
     void givenValidRequest_apply_shouldSaveAndPublishEvent() {
-        ApplyForVacancyRequest request = new ApplyForVacancyRequest(
-                VACANCY_ID,
-                "John Doe",
-                "john.doe@example.com",
-                "+380501234567",
-                "https://storage.candidai.ukma.edu.ua/resumes/john_doe.pdf"
-        );
+        ApplyForVacancyRequest request = validApplyForVacancyRequest();
+        Application application = anApplication();
+        ApplicationResponse expectedResponse = anApplicationResponse();
 
-        when(vacancyApi.isVacancyOpen(VACANCY_ID)).thenReturn(true);
-        when(applicationRepository.existsByVacancyIdAndEmail(VACANCY_ID, "john.doe@example.com")).thenReturn(false);
-        when(commonGenerator.uuid()).thenReturn(APPLICATION_ID);
-        when(commonGenerator.now()).thenReturn(NOW);
-        when(applicationRepository.save(any(Application.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(vacancyApi.isVacancyOpen(DEFAULT_VACANCY_ID)).thenReturn(true);
+        when(applicationRepository.existsByVacancyIdAndEmail(DEFAULT_VACANCY_ID, request.email())).thenReturn(false);
+        when(commonGenerator.uuid()).thenReturn(DEFAULT_APPLICATION_ID);
+        when(commonGenerator.now()).thenReturn(DEFAULT_NOW);
+        when(applicationRepository.save(application)).thenReturn(application);
+        when(applicationMapper.toResponse(application)).thenReturn(expectedResponse);
 
-        ApplicationResponse result = applicationService.apply(request);
+        ApplicationResponse actual = applicationService.apply(request);
 
-        assertThat(result.id()).isEqualTo(APPLICATION_ID);
-        assertThat(result.status()).isEqualTo(ApplicationStatus.APPLIED);
-        verify(applicationRepository).save(any(Application.class));
-
-        ArgumentCaptor<ApplicationSubmittedEvent> captor
-                = ArgumentCaptor.forClass(ApplicationSubmittedEvent.class);
-        verify(eventPublisher).publishEvent(captor.capture());
-        ApplicationSubmittedEvent publishedEvent = captor.getValue();
-        assertThat(publishedEvent.applicationId()).isEqualTo(APPLICATION_ID);
-        assertThat(publishedEvent.vacancyId()).isEqualTo(VACANCY_ID);
-        assertThat(publishedEvent.candidateName()).isEqualTo("John Doe");
-        assertThat(publishedEvent.email()).isEqualTo("john.doe@example.com");
-        assertThat(publishedEvent.resumeUrl())
-                .isEqualTo("https://storage.candidai.ukma.edu.ua/resumes/john_doe.pdf");
+        assertThat(actual)
+                .usingRecursiveComparison()
+                .isEqualTo(expectedResponse);
+        verify(eventPublisher).publishEvent(new ApplicationSubmittedEvent(
+                DEFAULT_APPLICATION_ID,
+                DEFAULT_VACANCY_ID,
+                DEFAULT_CANDIDATE_ID,
+                request.candidateName(),
+                request.email(),
+                request.resumeUrl(),
+                DEFAULT_NOW
+        ));
     }
 
     @Test
-    @DisplayName("apply - should throw DuplicateResourceException when email already applied to vacancy")
+    @DisplayName("apply with duplicate email for vacancy should throw DuplicateResourceException")
     void givenDuplicateEmail_apply_shouldThrowDuplicateResourceException() {
-        ApplyForVacancyRequest request = new ApplyForVacancyRequest(
-                VACANCY_ID,
-                "John Doe",
-                "john.doe@example.com",
-                "+380501234567",
-                "https://storage.candidai.ukma.edu.ua/resumes/john_doe.pdf"
-        );
+        ApplyForVacancyRequest request = validApplyForVacancyRequest();
 
-        when(vacancyApi.isVacancyOpen(VACANCY_ID)).thenReturn(true);
-        when(applicationRepository.existsByVacancyIdAndEmail(VACANCY_ID, "john.doe@example.com")).thenReturn(true);
+        when(vacancyApi.isVacancyOpen(DEFAULT_VACANCY_ID)).thenReturn(true);
+        when(applicationRepository.existsByVacancyIdAndEmail(DEFAULT_VACANCY_ID, request.email())).thenReturn(true);
 
         assertThatThrownBy(() -> applicationService.apply(request))
                 .isInstanceOf(DuplicateResourceException.class)
                 .hasMessageContaining("already applied");
-
-        verify(applicationRepository, never()).save(any());
-        verify(eventPublisher, never()).publishEvent(any());
     }
 
     @Test
-    @DisplayName("apply - should throw ResourceNotFoundException when vacancy is closed or not found")
+    @DisplayName("apply with closed vacancy should throw ResourceNotFoundException")
     void givenClosedVacancy_apply_shouldThrowResourceNotFoundException() {
-        ApplyForVacancyRequest request = new ApplyForVacancyRequest(
-                VACANCY_ID,
-                "John Doe",
-                "john.doe@example.com",
-                "+380501234567",
-                "https://storage.candidai.ukma.edu.ua/resumes/john_doe.pdf"
-        );
+        ApplyForVacancyRequest request = validApplyForVacancyRequest();
 
-        when(vacancyApi.isVacancyOpen(VACANCY_ID)).thenReturn(false);
+        when(vacancyApi.isVacancyOpen(DEFAULT_VACANCY_ID)).thenReturn(false);
 
         assertThatThrownBy(() -> applicationService.apply(request))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("Vacancy not found or is closed");
-
-        verify(applicationRepository, never()).save(any());
-        verify(eventPublisher, never()).publishEvent(any());
     }
 
     @Test
-    @DisplayName("getById - should return ApplicationResponse when found")
-    void givenExistingId_getById_shouldReturnApplication() {
-        Application app = sampleApplication(ApplicationStatus.APPLIED);
+    @DisplayName("getById with existing id should return response")
+    void givenExistingId_getById_shouldReturnResponse() {
+        Application application = anApplication();
+        ApplicationResponse expectedResponse = anApplicationResponse();
 
-        when(applicationRepository.findById(APPLICATION_ID)).thenReturn(Optional.of(app));
+        when(applicationRepository.findById(DEFAULT_APPLICATION_ID)).thenReturn(Optional.of(application));
+        when(applicationMapper.toResponse(application)).thenReturn(expectedResponse);
 
-        ApplicationResponse result = applicationService.getById(APPLICATION_ID);
+        ApplicationResponse actual = applicationService.getById(DEFAULT_APPLICATION_ID);
 
-        assertThat(result.id()).isEqualTo(APPLICATION_ID);
-        assertThat(result.candidateName()).isEqualTo("John Doe");
-        assertThat(result.status()).isEqualTo(ApplicationStatus.APPLIED);
+        assertThat(actual)
+                .usingRecursiveComparison()
+                .isEqualTo(expectedResponse);
     }
 
     @Test
-    @DisplayName("getById - should throw ResourceNotFoundException when not found")
+    @DisplayName("getById with non-existent id should throw ResourceNotFoundException")
     void givenNonExistentId_getById_shouldThrowResourceNotFoundException() {
-        when(applicationRepository.findById(APPLICATION_ID)).thenReturn(Optional.empty());
+        when(applicationRepository.findById(NON_EXISTENT_ID)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> applicationService.getById(APPLICATION_ID))
+        assertThatThrownBy(() -> applicationService.getById(NON_EXISTENT_ID))
                 .isInstanceOf(ResourceNotFoundException.class)
-                .hasMessageContaining("Application not found");
+                .hasMessageContaining("Application not found with id: " + NON_EXISTENT_ID);
     }
 
     @Test
-    @DisplayName("updateStatus - should update status and publish ApplicationStatusChangedEvent on valid transition")
-    void givenValidTransition_updateStatus_shouldUpdateAndPublishEvent() {
-        Application existing = sampleApplication(ApplicationStatus.APPLIED);
+    @DisplayName("updateStatus with valid transition should update status, publish event, and return response")
+    void givenValidTransition_updateStatus_shouldUpdateAndReturnResponse() {
+        Application existing = anApplication(ApplicationStatus.APPLIED);
         UpdateApplicationStatusRequest request = new UpdateApplicationStatusRequest(
                 ApplicationStatus.SCREENING,
-                "Passed"
+                "Passed screening"
+        );
+        Instant updatedAt = DEFAULT_NOW.plusSeconds(3600);
+        Application updatedApplication = anApplication(
+                ApplicationStatus.SCREENING,
+                null,
+                "Passed screening",
+                updatedAt
+        );
+        ApplicationResponse expectedResponse = anApplicationResponse(
+                ApplicationStatus.SCREENING,
+                null,
+                "Passed screening",
+                updatedAt
         );
 
-        when(applicationRepository.findById(APPLICATION_ID)).thenReturn(Optional.of(existing));
-        when(commonGenerator.now()).thenReturn(NOW);
-        when(applicationRepository.save(any(Application.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(applicationRepository.findById(DEFAULT_APPLICATION_ID)).thenReturn(Optional.of(existing));
+        when(commonGenerator.now()).thenReturn(updatedAt);
+        when(applicationRepository.save(existing)).thenReturn(updatedApplication);
+        when(applicationMapper.toResponse(updatedApplication)).thenReturn(expectedResponse);
 
-        ApplicationResponse result = applicationService.updateStatus(APPLICATION_ID, request);
+        ApplicationResponse actual = applicationService.updateStatus(DEFAULT_APPLICATION_ID, request);
 
-        assertThat(result.status()).isEqualTo(ApplicationStatus.SCREENING);
-        assertThat(result.comment()).isEqualTo("Passed");
-
-        ArgumentCaptor<ApplicationStatusChangedEvent> captor
-                = ArgumentCaptor.forClass(ApplicationStatusChangedEvent.class);
-        verify(eventPublisher).publishEvent(captor.capture());
-        ApplicationStatusChangedEvent event = captor.getValue();
-        assertThat(event.previousStatus()).isEqualTo(ApplicationStatus.APPLIED);
-        assertThat(event.newStatus()).isEqualTo(ApplicationStatus.SCREENING);
-        assertThat(event.comment()).isEqualTo("Passed");
+        assertThat(actual)
+                .usingRecursiveComparison()
+                .isEqualTo(expectedResponse);
+        verify(eventPublisher).publishEvent(new ApplicationStatusChangedEvent(
+                DEFAULT_APPLICATION_ID,
+                DEFAULT_VACANCY_ID,
+                DEFAULT_CANDIDATE_ID,
+                existing.getEmail(),
+                ApplicationStatus.APPLIED,
+                ApplicationStatus.SCREENING,
+                "Passed screening",
+                updatedAt
+        ));
     }
 
     @Test
-    @DisplayName("updateStatus - should update matchingScore and return in ApplicationResponse when provided")
-    void givenMatchingScore_updateStatus_shouldUpdateMatchingScoreAndReturnInResponse() {
-        Application existing = sampleApplication(ApplicationStatus.APPLIED);
+    @DisplayName("updateStatus with matchingScore should update score and return response")
+    void givenMatchingScore_updateStatus_shouldUpdateMatchingScoreAndReturnResponse() {
+        Application existing = anApplication(ApplicationStatus.APPLIED);
         UpdateApplicationStatusRequest request = new UpdateApplicationStatusRequest(
                 ApplicationStatus.SCREENING,
                 "Passed screening with high score",
                 85
         );
+        Instant updatedAt = DEFAULT_NOW.plusSeconds(3600);
+        Application updatedApplication = anApplication(
+                ApplicationStatus.SCREENING,
+                85,
+                "Passed screening with high score",
+                updatedAt
+        );
+        ApplicationResponse expectedResponse = anApplicationResponse(
+                ApplicationStatus.SCREENING,
+                85,
+                "Passed screening with high score",
+                updatedAt
+        );
 
-        when(applicationRepository.findById(APPLICATION_ID)).thenReturn(Optional.of(existing));
-        when(commonGenerator.now()).thenReturn(NOW);
-        when(applicationRepository.save(any(Application.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(applicationRepository.findById(DEFAULT_APPLICATION_ID)).thenReturn(Optional.of(existing));
+        when(commonGenerator.now()).thenReturn(updatedAt);
+        when(applicationRepository.save(existing)).thenReturn(updatedApplication);
+        when(applicationMapper.toResponse(updatedApplication)).thenReturn(expectedResponse);
 
-        ApplicationResponse result = applicationService.updateStatus(APPLICATION_ID, request);
+        ApplicationResponse actual = applicationService.updateStatus(DEFAULT_APPLICATION_ID, request);
 
-        assertThat(result.status()).isEqualTo(ApplicationStatus.SCREENING);
-        assertThat(result.matchingScore()).isEqualTo(85);
-        assertThat(result.comment()).isEqualTo("Passed screening with high score");
-        assertThat(existing.getMatchingScore()).isEqualTo(85);
-        verify(applicationRepository).save(existing);
+        assertThat(actual)
+                .usingRecursiveComparison()
+                .isEqualTo(expectedResponse);
     }
 
     @Test
-    @DisplayName("updateStatus - should support updating status with matchingScore directly")
+    @DisplayName("updateStatus overloaded method should update status with score and return response")
     void givenDirectStatusAndMatchingScore_updateStatus_shouldUpdateApplication() {
-        Application existing = sampleApplication(ApplicationStatus.APPLIED);
+        Application existing = anApplication(ApplicationStatus.APPLIED);
+        Instant updatedAt = DEFAULT_NOW.plusSeconds(3600);
+        Application updatedApplication = anApplication(
+                ApplicationStatus.SCREENING,
+                92,
+                "Direct screening update",
+                updatedAt
+        );
+        ApplicationResponse expectedResponse = anApplicationResponse(
+                ApplicationStatus.SCREENING,
+                92,
+                "Direct screening update",
+                updatedAt
+        );
 
-        when(applicationRepository.findById(APPLICATION_ID)).thenReturn(Optional.of(existing));
-        when(commonGenerator.now()).thenReturn(NOW);
-        when(applicationRepository.save(any(Application.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(applicationRepository.findById(DEFAULT_APPLICATION_ID)).thenReturn(Optional.of(existing));
+        when(commonGenerator.now()).thenReturn(updatedAt);
+        when(applicationRepository.save(existing)).thenReturn(updatedApplication);
+        when(applicationMapper.toResponse(updatedApplication)).thenReturn(expectedResponse);
 
-        ApplicationResponse result = applicationService.updateStatus(
-                APPLICATION_ID,
+        ApplicationResponse actual = applicationService.updateStatus(
+                DEFAULT_APPLICATION_ID,
                 ApplicationStatus.SCREENING,
                 92,
                 "Direct screening update"
         );
 
-        assertThat(result.status()).isEqualTo(ApplicationStatus.SCREENING);
-        assertThat(result.matchingScore()).isEqualTo(92);
-        assertThat(result.comment()).isEqualTo("Direct screening update");
-        assertThat(existing.getMatchingScore()).isEqualTo(92);
-        verify(applicationRepository).save(existing);
+        assertThat(actual)
+                .usingRecursiveComparison()
+                .isEqualTo(expectedResponse);
     }
 
     @Test
-    @DisplayName("updateStatus - should throw InvalidStateTransitionException on invalid transition")
-    void givenInvalidTransition_updateStatus_shouldThrowException() {
-        Application existing = sampleApplication(ApplicationStatus.APPLIED);
+    @DisplayName("updateStatus with invalid transition should throw InvalidStateTransitionException")
+    void givenInvalidTransition_updateStatus_shouldThrowInvalidStateTransitionException() {
+        Application existing = anApplication(ApplicationStatus.APPLIED);
         UpdateApplicationStatusRequest request = new UpdateApplicationStatusRequest(
                 ApplicationStatus.OFFER,
                 "Jump to offer"
         );
 
-        when(applicationRepository.findById(APPLICATION_ID)).thenReturn(Optional.of(existing));
+        when(applicationRepository.findById(DEFAULT_APPLICATION_ID)).thenReturn(Optional.of(existing));
 
-        assertThatThrownBy(() -> applicationService.updateStatus(APPLICATION_ID, request))
+        assertThatThrownBy(() -> applicationService.updateStatus(DEFAULT_APPLICATION_ID, request))
                 .isInstanceOf(InvalidStateTransitionException.class)
                 .hasMessageContaining("Invalid status transition from APPLIED to OFFER");
-
-        verify(applicationRepository, never()).save(any());
-        verify(eventPublisher, never()).publishEvent(any());
     }
 
     @Test
-    @DisplayName("updateStatus - should throw InvalidStateTransitionException when transitioning to OFFER with REJECT")
-    void givenRejectEvaluation_updateStatusToOffer_shouldThrowException() {
-        Application existing = sampleApplication(ApplicationStatus.INTERVIEW);
+    @DisplayName("updateStatus to OFFER with REJECT evaluation should throw InvalidStateTransitionException")
+    void givenRejectEvaluation_updateStatus_shouldThrowInvalidStateTransitionException() {
+        Application existing = anApplication(ApplicationStatus.INTERVIEW);
         UpdateApplicationStatusRequest request = new UpdateApplicationStatusRequest(
                 ApplicationStatus.OFFER,
                 "Candidate did not pass but trying to offer"
         );
-        InterviewFeedbackResponse rejectFeedback = new InterviewFeedbackResponse(
-                FEEDBACK_ID, APPLICATION_ID, "Lead", 2, "Poor", InterviewDecision.REJECT, NOW
-        );
+        InterviewFeedbackResponse rejectFeedback = aRejectFeedbackResponse();
 
-        when(applicationRepository.findById(APPLICATION_ID)).thenReturn(Optional.of(existing));
-        when(feedbackRepository.findByApplicationId(APPLICATION_ID)).thenReturn(List.of(rejectFeedback));
-        when(vacancyApi.getVacancyCategory(VACANCY_ID)).thenReturn(JobCategory.ENGINEERING);
+        when(applicationRepository.findById(DEFAULT_APPLICATION_ID)).thenReturn(Optional.of(existing));
+        when(feedbackRepository.findByApplicationId(DEFAULT_APPLICATION_ID)).thenReturn(List.of(rejectFeedback));
+        when(vacancyApi.getVacancyCategory(DEFAULT_VACANCY_ID)).thenReturn(JobCategory.ENGINEERING);
+        when(evaluationStrategy.supports(JobCategory.ENGINEERING)).thenReturn(true);
+        when(evaluationStrategy.evaluate(List.of(rejectFeedback)))
+                .thenReturn(anEvaluationResult(InterviewDecision.REJECT));
 
-        assertThatThrownBy(() -> applicationService.updateStatus(APPLICATION_ID, request))
+        assertThatThrownBy(() -> applicationService.updateStatus(DEFAULT_APPLICATION_ID, request))
                 .isInstanceOf(InvalidStateTransitionException.class)
                 .hasMessageContaining("Cannot make an offer to candidate with REJECT evaluation");
-
-        verify(applicationRepository, never()).save(any());
-        verify(eventPublisher, never()).publishEvent(any());
     }
 
     @Test
-    @DisplayName("updateStatus - should succeed when transitioning to OFFER with HIRE evaluation")
-    void givenHireEvaluation_updateStatusToOffer_shouldSucceed() {
-        Application existing = sampleApplication(ApplicationStatus.INTERVIEW);
+    @DisplayName("updateStatus to OFFER with HIRE evaluation should update status, publish event, and return response")
+    void givenHireEvaluation_updateStatus_shouldUpdateStatusToOfferAndReturnResponse() {
+        Application existing = anApplication(ApplicationStatus.INTERVIEW);
         UpdateApplicationStatusRequest request = new UpdateApplicationStatusRequest(
                 ApplicationStatus.OFFER,
                 "Strong candidate"
         );
-        InterviewFeedbackResponse hireFeedback = new InterviewFeedbackResponse(
-                FEEDBACK_ID, APPLICATION_ID, "Lead", 5, "Great", InterviewDecision.HIRE, NOW
+        InterviewFeedbackResponse hireFeedback = aHireFeedbackResponse();
+        Instant updatedAt = DEFAULT_NOW.plusSeconds(3600);
+        Application updatedApplication = anApplication(
+                ApplicationStatus.OFFER,
+                null,
+                "Strong candidate",
+                updatedAt
+        );
+        ApplicationResponse expectedResponse = anApplicationResponse(
+                ApplicationStatus.OFFER,
+                null,
+                "Strong candidate",
+                updatedAt
         );
 
-        when(applicationRepository.findById(APPLICATION_ID)).thenReturn(Optional.of(existing));
-        when(feedbackRepository.findByApplicationId(APPLICATION_ID)).thenReturn(List.of(hireFeedback));
-        when(vacancyApi.getVacancyCategory(VACANCY_ID)).thenReturn(JobCategory.ENGINEERING);
-        when(commonGenerator.now()).thenReturn(NOW);
-        when(applicationRepository.save(any(Application.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(applicationRepository.findById(DEFAULT_APPLICATION_ID)).thenReturn(Optional.of(existing));
+        when(feedbackRepository.findByApplicationId(DEFAULT_APPLICATION_ID)).thenReturn(List.of(hireFeedback));
+        when(vacancyApi.getVacancyCategory(DEFAULT_VACANCY_ID)).thenReturn(JobCategory.ENGINEERING);
+        when(evaluationStrategy.supports(JobCategory.ENGINEERING)).thenReturn(true);
+        when(evaluationStrategy.evaluate(List.of(hireFeedback)))
+                .thenReturn(anEvaluationResult(InterviewDecision.HIRE));
+        when(commonGenerator.now()).thenReturn(updatedAt);
+        when(applicationRepository.save(existing)).thenReturn(updatedApplication);
+        when(applicationMapper.toResponse(updatedApplication)).thenReturn(expectedResponse);
 
-        ApplicationResponse result = applicationService.updateStatus(APPLICATION_ID, request);
+        ApplicationResponse actual = applicationService.updateStatus(DEFAULT_APPLICATION_ID, request);
 
-        assertThat(result.status()).isEqualTo(ApplicationStatus.OFFER);
-        verify(applicationRepository).save(any(Application.class));
-        verify(eventPublisher).publishEvent(any(ApplicationStatusChangedEvent.class));
+        assertThat(actual)
+                .usingRecursiveComparison()
+                .isEqualTo(expectedResponse);
+        verify(eventPublisher).publishEvent(new ApplicationStatusChangedEvent(
+                DEFAULT_APPLICATION_ID,
+                DEFAULT_VACANCY_ID,
+                DEFAULT_CANDIDATE_ID,
+                existing.getEmail(),
+                ApplicationStatus.INTERVIEW,
+                ApplicationStatus.OFFER,
+                "Strong candidate",
+                updatedAt
+        ));
     }
 
     @Test
-    @DisplayName("updateStatus - should throw ResourceNotFoundException when application not found")
+    @DisplayName("updateStatus with non-existent id should throw ResourceNotFoundException")
     void givenNonExistentId_updateStatus_shouldThrowResourceNotFoundException() {
         UpdateApplicationStatusRequest request = new UpdateApplicationStatusRequest(
-                ApplicationStatus.SCREENING, "Comment"
+                ApplicationStatus.SCREENING,
+                "Comment"
         );
 
-        when(applicationRepository.findById(APPLICATION_ID)).thenReturn(Optional.empty());
+        when(applicationRepository.findById(NON_EXISTENT_ID)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> applicationService.updateStatus(APPLICATION_ID, request))
+        assertThatThrownBy(() -> applicationService.updateStatus(NON_EXISTENT_ID, request))
                 .isInstanceOf(ResourceNotFoundException.class)
-                .hasMessageContaining("Application not found");
+                .hasMessageContaining("Application not found with id: " + NON_EXISTENT_ID);
     }
 
     @Test
-    @DisplayName("getApplicationsByVacancy - should return list of applications for vacancy")
+    @DisplayName("getApplicationsByVacancy with vacancyId should return mapped applications")
     void givenVacancyId_getApplicationsByVacancy_shouldReturnApplications() {
-        Application app = sampleApplication(ApplicationStatus.APPLIED);
+        Application application = anApplication();
+        ApplicationResponse expectedResponse = anApplicationResponse();
 
-        when(applicationRepository.findByVacancyId(VACANCY_ID)).thenReturn(List.of(app));
+        when(applicationRepository.findByVacancyId(DEFAULT_VACANCY_ID)).thenReturn(List.of(application));
+        when(applicationMapper.toResponse(application)).thenReturn(expectedResponse);
 
-        List<ApplicationResponse> result = applicationService.getApplicationsByVacancy(VACANCY_ID);
+        List<ApplicationResponse> actual = applicationService.getApplicationsByVacancy(DEFAULT_VACANCY_ID);
 
-        assertThat(result).hasSize(1);
-        assertThat(result.get(0).id()).isEqualTo(APPLICATION_ID);
-        verify(applicationRepository).findByVacancyId(VACANCY_ID);
+        assertThat(actual)
+                .usingRecursiveComparison()
+                .isEqualTo(List.of(expectedResponse));
     }
 
     @Test
-    @DisplayName("submitFeedback - should save and return feedback when application exists and in INTERVIEW status")
-    void givenExistingApplicationInInterview_submitFeedback_shouldSave() {
-        Application existing = sampleApplication(ApplicationStatus.INTERVIEW);
-        SubmitInterviewFeedbackRequest request = new SubmitInterviewFeedbackRequest(
-                "Alex Lead", 4, "Strong skills", InterviewDecision.HIRE
-        );
+    @DisplayName("submitFeedback with existing application in INTERVIEW status should save and return feedback")
+    void givenExistingApplicationInInterview_submitFeedback_shouldSaveAndReturnResponse() {
+        Application existing = anApplication(ApplicationStatus.INTERVIEW);
+        SubmitInterviewFeedbackRequest request = validSubmitFeedbackRequest();
+        InterviewFeedbackResponse expected = aFeedbackResponse();
 
-        when(applicationRepository.findById(APPLICATION_ID)).thenReturn(Optional.of(existing));
-        when(commonGenerator.uuid()).thenReturn(FEEDBACK_ID);
-        when(commonGenerator.now()).thenReturn(NOW);
-        when(feedbackRepository.save(any(InterviewFeedbackResponse.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(applicationRepository.findById(DEFAULT_APPLICATION_ID)).thenReturn(Optional.of(existing));
+        when(commonGenerator.uuid()).thenReturn(DEFAULT_FEEDBACK_ID);
+        when(commonGenerator.now()).thenReturn(DEFAULT_NOW);
+        when(feedbackRepository.save(expected)).thenReturn(expected);
 
-        InterviewFeedbackResponse response = applicationService.submitFeedback(APPLICATION_ID, request);
+        InterviewFeedbackResponse actual = applicationService.submitFeedback(DEFAULT_APPLICATION_ID, request);
 
-        assertThat(response.id()).isEqualTo(FEEDBACK_ID);
-        assertThat(response.interviewerName()).isEqualTo("Alex Lead");
-        assertThat(response.technicalScore()).isEqualTo(4);
+        assertThat(actual)
+                .usingRecursiveComparison()
+                .isEqualTo(expected);
     }
 
     @Test
-    @DisplayName("submitFeedback - should throw InvalidStateTransitionException when application is not in INTERVIEW status")
+    @DisplayName("submitFeedback when application not in INTERVIEW should throw InvalidStateTransitionException")
     void givenNonInterviewStatus_submitFeedback_shouldThrowInvalidStateTransitionException() {
-        Application existing = sampleApplication(ApplicationStatus.APPLIED);
-        SubmitInterviewFeedbackRequest request = new SubmitInterviewFeedbackRequest(
-                "Alex Lead", 4, "Strong skills", InterviewDecision.HIRE
-        );
+        Application existing = anApplication(ApplicationStatus.APPLIED);
+        SubmitInterviewFeedbackRequest request = validSubmitFeedbackRequest();
 
-        when(applicationRepository.findById(APPLICATION_ID)).thenReturn(Optional.of(existing));
+        when(applicationRepository.findById(DEFAULT_APPLICATION_ID)).thenReturn(Optional.of(existing));
 
-        assertThatThrownBy(() -> applicationService.submitFeedback(APPLICATION_ID, request))
+        assertThatThrownBy(() -> applicationService.submitFeedback(DEFAULT_APPLICATION_ID, request))
                 .isInstanceOf(InvalidStateTransitionException.class)
-                .hasMessageContaining("Cannot submit interview feedback for application " + APPLICATION_ID + " in status APPLIED");
-
-        verify(feedbackRepository, never()).save(any());
+                .hasMessageContaining("Cannot submit interview feedback for application "
+                        + DEFAULT_APPLICATION_ID + " in status APPLIED");
     }
 
     @Test
-    @DisplayName("getFeedbacks - should return list of feedbacks")
+    @DisplayName("getFeedbacks with existing application should return feedback list")
     void givenExistingApplication_getFeedbacks_shouldReturnList() {
-        Application existing = sampleApplication(ApplicationStatus.INTERVIEW);
-        InterviewFeedbackResponse fb = new InterviewFeedbackResponse(
-                FEEDBACK_ID, APPLICATION_ID, "Alex Lead", 5, "Great", InterviewDecision.HIRE, NOW
-        );
+        Application existing = anApplication(ApplicationStatus.INTERVIEW);
+        InterviewFeedbackResponse feedback = aFeedbackResponse();
 
-        when(applicationRepository.findById(APPLICATION_ID)).thenReturn(Optional.of(existing));
-        when(feedbackRepository.findByApplicationId(APPLICATION_ID)).thenReturn(List.of(fb));
+        when(applicationRepository.findById(DEFAULT_APPLICATION_ID)).thenReturn(Optional.of(existing));
+        when(feedbackRepository.findByApplicationId(DEFAULT_APPLICATION_ID)).thenReturn(List.of(feedback));
 
-        List<InterviewFeedbackResponse> feedbacks = applicationService.getFeedbacks(APPLICATION_ID);
+        List<InterviewFeedbackResponse> actual = applicationService.getFeedbacks(DEFAULT_APPLICATION_ID);
 
-        assertThat(feedbacks).containsExactly(fb);
+        assertThat(actual)
+                .usingRecursiveComparison()
+                .isEqualTo(List.of(feedback));
     }
 
     @Test
-    @DisplayName("evaluateCandidate - should evaluate candidate using supported strategy")
-    void givenCandidate_evaluateCandidate_shouldExecuteStrategy() {
-        Application existing = sampleApplication(ApplicationStatus.INTERVIEW);
-        InterviewFeedbackResponse fb1 = new InterviewFeedbackResponse(
-                FEEDBACK_ID, APPLICATION_ID, "Lead 1", 5, "Great", InterviewDecision.HIRE, NOW
+    @DisplayName("evaluateCandidate with interview feedbacks should calculate score and return recommendation")
+    void givenCandidateFeedbacks_evaluateCandidate_shouldExecuteStrategy() {
+        Application application = anApplication(ApplicationStatus.INTERVIEW);
+        InterviewFeedbackResponse fb1 = aFeedbackResponse(5);
+        InterviewFeedbackResponse fb2 = aFeedbackResponse(
+                UUID.fromString("00000000-0000-0000-0000-000000000004"),
+                "Bob Lead",
+                4,
+                "Good skills"
         );
-        InterviewFeedbackResponse fb2 = new InterviewFeedbackResponse(
-                UUID.randomUUID(), APPLICATION_ID, "Lead 2", 4, "Good", InterviewDecision.HIRE, NOW
-        );
+        EvaluationResult expectedResult = anEvaluationResult();
 
-        when(applicationRepository.findById(APPLICATION_ID)).thenReturn(Optional.of(existing));
-        when(feedbackRepository.findByApplicationId(APPLICATION_ID)).thenReturn(List.of(fb1, fb2));
-        when(vacancyApi.getVacancyCategory(VACANCY_ID)).thenReturn(JobCategory.ENGINEERING);
+        when(applicationRepository.findById(DEFAULT_APPLICATION_ID)).thenReturn(Optional.of(application));
+        when(feedbackRepository.findByApplicationId(DEFAULT_APPLICATION_ID)).thenReturn(List.of(fb1, fb2));
+        when(vacancyApi.getVacancyCategory(DEFAULT_VACANCY_ID)).thenReturn(JobCategory.ENGINEERING);
+        when(evaluationStrategy.supports(JobCategory.ENGINEERING)).thenReturn(true);
+        when(evaluationStrategy.evaluate(List.of(fb1, fb2))).thenReturn(expectedResult);
 
-        EvaluationResult result = applicationService.evaluateCandidate(APPLICATION_ID);
+        EvaluationResult actual = applicationService.evaluateCandidate(DEFAULT_APPLICATION_ID);
 
-        assertThat(result.averageScore()).isEqualTo(4.5);
-        assertThat(result.recommendedDecision()).isEqualTo(InterviewDecision.HIRE);
+        assertThat(actual)
+                .usingRecursiveComparison()
+                .isEqualTo(expectedResult);
     }
 
-    private Application sampleApplication(ApplicationStatus status) {
-        return Application.builder()
-                .id(APPLICATION_ID)
-                .vacancyId(VACANCY_ID)
-                .candidateName("John Doe")
-                .email("john.doe@example.com")
-                .phone("+380501234567")
-                .resumeUrl("https://storage.candidai.ukma.edu.ua/resumes/john_doe.pdf")
-                .status(status)
-                .comment(null)
-                .appliedAt(NOW)
-                .updatedAt(NOW)
-                .build();
+    @Test
+    @DisplayName("evaluateCandidate with no matching strategy should throw IllegalStateException")
+    void givenNoMatchingStrategy_evaluateCandidate_shouldThrowIllegalStateException() {
+        Application application = anApplication(ApplicationStatus.INTERVIEW);
+        InterviewFeedbackResponse fb = aFeedbackResponse();
+
+        when(applicationRepository.findById(DEFAULT_APPLICATION_ID)).thenReturn(Optional.of(application));
+        when(feedbackRepository.findByApplicationId(DEFAULT_APPLICATION_ID)).thenReturn(List.of(fb));
+        when(vacancyApi.getVacancyCategory(DEFAULT_VACANCY_ID)).thenReturn(JobCategory.ENGINEERING);
+        when(evaluationStrategy.supports(JobCategory.ENGINEERING)).thenReturn(false);
+
+        assertThatThrownBy(() -> applicationService.evaluateCandidate(DEFAULT_APPLICATION_ID))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("No strategy found for category: " + JobCategory.ENGINEERING);
     }
 }
