@@ -1,4 +1,4 @@
-package ua.edu.ukma.candidai.recruitment.event;
+package ua.edu.ukma.candidai.recruitment;
 
 import ua.edu.ukma.candidai.recruitment.dto.model.ApplicationStatus;
 

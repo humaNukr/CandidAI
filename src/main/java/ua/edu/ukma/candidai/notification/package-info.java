@@ -1,4 +1,4 @@
 @org.springframework.modulith.ApplicationModule(
-        allowedDependencies = {"common", "user", "vacancy", "recruitment", "recruitment::event"}
+        allowedDependencies = {"common", "user", "vacancy"}
 )
 package ua.edu.ukma.candidai.notification;

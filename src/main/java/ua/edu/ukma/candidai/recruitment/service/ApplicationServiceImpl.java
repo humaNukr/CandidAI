@@ -15,8 +15,8 @@ import ua.edu.ukma.candidai.recruitment.dto.request.SubmitInterviewFeedbackReque
 import ua.edu.ukma.candidai.recruitment.dto.request.UpdateApplicationStatusRequest;
 import ua.edu.ukma.candidai.recruitment.dto.response.ApplicationResponse;
 import ua.edu.ukma.candidai.recruitment.dto.response.InterviewFeedbackResponse;
-import ua.edu.ukma.candidai.recruitment.event.ApplicationStatusChangedEvent;
-import ua.edu.ukma.candidai.recruitment.event.ApplicationSubmittedEvent;
+import ua.edu.ukma.candidai.recruitment.ApplicationStatusChangedEvent;
+import ua.edu.ukma.candidai.recruitment.ApplicationSubmittedEvent;
 import ua.edu.ukma.candidai.recruitment.model.Application;
 import ua.edu.ukma.candidai.recruitment.repository.ApplicationRepository;
 import ua.edu.ukma.candidai.recruitment.repository.InterviewFeedbackRepository;

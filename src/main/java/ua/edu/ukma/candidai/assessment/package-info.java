@@ -3,7 +3,6 @@
                 "common",
                 "vacancy",
                 "recruitment",
-                "recruitment::event",
                 "recruitment::model"
         }
 )
