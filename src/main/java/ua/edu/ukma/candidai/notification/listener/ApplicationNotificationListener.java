@@ -17,10 +17,9 @@ public class ApplicationNotificationListener {
 
     @ApplicationModuleListener
     public void on(ApplicationSubmittedEvent event) {
-        String subject = "CandidAI: Вашу заявку успішно зареєстровано";
+        String subject = "Application submitted: " + event.candidateName();
         String body = String.format(
-                "Шановний(-а) %s! Дякуємо за ваш відгук на вакансію. "
-                        + "Ваша заявка успішно передана на первинний скринінг.",
+                "Hello %s, your application has been successfully submitted and is under review.",
                 event.candidateName()
         );
         dispatcher.dispatchDirect(event.email(), null, event.candidateName(), subject, body);
@@ -28,14 +27,14 @@ public class ApplicationNotificationListener {
 
     @ApplicationModuleListener
     public void on(ApplicationStatusChangedEvent event) {
-        String subject = "CandidAI: Оновлення статусу вашої заявки";
+        String subject = "Updated application status: " + event.newStatus();
         String commentPart = (event.comment() != null && !event.comment().isBlank())
-                ? "\nКоментар: " + event.comment()
+                ? "\nComment: " + event.comment()
                 : "";
         String body = String.format(
-                "Статус вашої заявки змінено з %s на %s.%s",
+                "Your application status was changed from %s to %s.%s",
                 event.previousStatus(), event.newStatus(), commentPart
         );
-        dispatcher.dispatchDirect(event.email(), null, "Кандидат", subject, body);
+        dispatcher.dispatchDirect(event.email(), null, "Candidate", subject, body);
     }
 }

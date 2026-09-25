@@ -41,7 +41,7 @@ class ApplicationNotificationListenerTest {
                 DEFAULT_EMAIL,
                 null,
                 DEFAULT_FULL_NAME,
-                expectedApplicationSubmittedSubject(),
+                expectedApplicationSubmittedSubject(event),
                 expectedApplicationSubmittedBody(event)
         );
     }
@@ -56,8 +56,8 @@ class ApplicationNotificationListenerTest {
         verify(dispatcher).dispatchDirect(
                 DEFAULT_EMAIL,
                 null,
-                "Кандидат",
-                expectedApplicationStatusChangedSubject(),
+                "Candidate",
+                expectedApplicationStatusChangedSubject(event),
                 expectedApplicationStatusChangedBody(event)
         );
     }
@@ -72,8 +72,8 @@ class ApplicationNotificationListenerTest {
         verify(dispatcher).dispatchDirect(
                 DEFAULT_EMAIL,
                 null,
-                "Кандидат",
-                expectedApplicationStatusChangedSubject(),
+                "Candidate",
+                expectedApplicationStatusChangedSubject(event),
                 expectedApplicationStatusChangedBody(event)
         );
     }

@@ -65,8 +65,8 @@ class ApplicationTest {
     }
 
     @Test
-    @DisplayName("updateStatus - should update matchingScore when provided")
-    void givenMatchingScore_updateStatus_shouldUpdateMatchingScore() {
+    @DisplayName("updateStatus - should set matchingScore when using overloaded method")
+    void givenMatchingScore_updateStatus_shouldSetMatchingScore() {
         Application application = Application.builder()
                 .id(APPLICATION_ID)
                 .vacancyId(VACANCY_ID)
@@ -81,47 +81,6 @@ class ApplicationTest {
         assertThat(application.getStatus()).isEqualTo(ApplicationStatus.SCREENING);
         assertThat(application.getMatchingScore()).isEqualTo(85);
         assertThat(application.getComment()).isEqualTo("Passed screening");
-        assertThat(application.getUpdatedAt()).isEqualTo(LATER);
-    }
-
-    @Test
-    @DisplayName("updateStatus - should retain existing matchingScore when new score is null")
-    void givenNullMatchingScore_updateStatus_shouldRetainExistingMatchingScore() {
-        Application application = Application.builder()
-                .id(APPLICATION_ID)
-                .vacancyId(VACANCY_ID)
-                .candidateName("Jane Doe")
-                .status(ApplicationStatus.APPLIED)
-                .matchingScore(90)
-                .appliedAt(NOW)
-                .updatedAt(NOW)
-                .build();
-
-        application.updateStatus(ApplicationStatus.SCREENING, null, "Proceeded to next step", LATER);
-
-        assertThat(application.getStatus()).isEqualTo(ApplicationStatus.SCREENING);
-        assertThat(application.getMatchingScore()).isEqualTo(90);
-        assertThat(application.getComment()).isEqualTo("Proceeded to next step");
-        assertThat(application.getUpdatedAt()).isEqualTo(LATER);
-    }
-
-    @Test
-    @DisplayName("updateStatus - should retain existing comment when new comment is null")
-    void givenNullComment_updateStatus_shouldRetainExistingComment() {
-        Application application = Application.builder()
-                .id(APPLICATION_ID)
-                .vacancyId(VACANCY_ID)
-                .candidateName("Jane Doe")
-                .status(ApplicationStatus.APPLIED)
-                .comment("Initial note")
-                .appliedAt(NOW)
-                .updatedAt(NOW)
-                .build();
-
-        application.updateStatus(ApplicationStatus.SCREENING, null, LATER);
-
-        assertThat(application.getStatus()).isEqualTo(ApplicationStatus.SCREENING);
-        assertThat(application.getComment()).isEqualTo("Initial note");
         assertThat(application.getUpdatedAt()).isEqualTo(LATER);
     }
 

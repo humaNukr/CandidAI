@@ -520,28 +520,27 @@ public final class NotificationTestResources {
         );
     }
 
-    public static String expectedApplicationSubmittedSubject() {
-        return "CandidAI: Вашу заявку успішно зареєстровано";
+    public static String expectedApplicationSubmittedSubject(ApplicationSubmittedEvent event) {
+        return "Application submitted: " + event.candidateName();
     }
 
     public static String expectedApplicationSubmittedBody(ApplicationSubmittedEvent event) {
         return String.format(
-                "Шановний(-а) %s! Дякуємо за ваш відгук на вакансію. "
-                        + "Ваша заявка успішно передана на первинний скринінг.",
+                "Hello %s, your application has been successfully submitted and is under review.",
                 event.candidateName()
         );
     }
 
-    public static String expectedApplicationStatusChangedSubject() {
-        return "CandidAI: Оновлення статусу вашої заявки";
+    public static String expectedApplicationStatusChangedSubject(ApplicationStatusChangedEvent event) {
+        return "Updated application status: " + event.newStatus();
     }
 
     public static String expectedApplicationStatusChangedBody(ApplicationStatusChangedEvent event) {
         String commentPart = (event.comment() != null && !event.comment().isBlank())
-                ? "\nКоментар: " + event.comment()
+                ? "\nComment: " + event.comment()
                 : "";
         return String.format(
-                "Статус вашої заявки змінено з %s на %s.%s",
+                "Your application status was changed from %s to %s.%s",
                 event.previousStatus(), event.newStatus(), commentPart
         );
     }

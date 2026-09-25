@@ -108,7 +108,9 @@ public class ApplicationServiceImpl implements ApplicationService {
         }
 
         Instant now = commonGenerator.now();
-        existing.updateStatus(newStatus, request.matchingScore(), request.comment(), now);
+        String comment = request.comment() != null ? request.comment() : existing.getComment();
+        Integer matchingScore = request.matchingScore() != null ? request.matchingScore() : existing.getMatchingScore();
+        existing.updateStatus(newStatus, matchingScore, comment, now);
 
         Application saved = applicationRepository.save(existing);
         log.info("Updated status for application {} from {} to {}", saved.getId(), currentStatus, newStatus);

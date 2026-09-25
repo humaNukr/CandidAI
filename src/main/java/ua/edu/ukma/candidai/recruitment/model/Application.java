@@ -51,24 +51,20 @@ public class Application {
                 .build();
     }
 
-    public void updateStatus(ApplicationStatus newStatus, Integer matchingScore, String comment, Instant now) {
+    public void updateStatus(ApplicationStatus newStatus, String comment, Instant now) {
         if (!this.status.canTransitionTo(newStatus)) {
             throw new InvalidStateTransitionException(
                     "Invalid status transition from " + this.status + " to " + newStatus
             );
         }
         this.status = newStatus;
-        if (matchingScore != null) {
-            this.matchingScore = matchingScore;
-        }
-        if (comment != null) {
-            this.comment = comment;
-        }
+        this.comment = comment;
         this.updatedAt = now;
     }
 
-    public void updateStatus(ApplicationStatus newStatus, String comment, Instant now) {
-        updateStatus(newStatus, null, comment, now);
+    public void updateStatus(ApplicationStatus newStatus, Integer matchingScore, String comment, Instant now) {
+        updateStatus(newStatus, comment, now);
+        this.matchingScore = matchingScore;
     }
 
     public boolean isInInterview() {
