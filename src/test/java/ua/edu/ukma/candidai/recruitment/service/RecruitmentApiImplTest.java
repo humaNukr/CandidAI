@@ -27,6 +27,8 @@ class RecruitmentApiImplTest {
     private static final UUID VACANCY_ID = UUID.fromString("00000000-0000-0000-0000-000000000010");
     private static final Instant NOW = Instant.parse("2026-09-24T10:00:00Z");
 
+    private static final UUID CANDIDATE_ID = UUID.fromString("00000000-0000-0000-0000-000000000002");
+
     @Mock
     private ApplicationService applicationService;
 
@@ -39,6 +41,7 @@ class RecruitmentApiImplTest {
         ApplicationResponse response = new ApplicationResponse(
                 APPLICATION_ID,
                 VACANCY_ID,
+                CANDIDATE_ID,
                 "John Doe",
                 "john@example.com",
                 "+380501234567",

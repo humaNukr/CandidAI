@@ -31,26 +31,6 @@ public class NotificationDispatcher {
         );
     }
 
-    public void dispatchByEmail(String email, String subject, String body) {
-        userApi.getUserNotificationProfileByEmail(email).ifPresentOrElse(
-                profile -> dispatchToProfile(profile, subject, body),
-                () -> log.warn("Cannot send notification: user profile not found for email: {}", email)
-        );
-    }
-
-    public void dispatchDirect(String fullName, String email, String telegramChatId, String subject, String body) {
-        if ((email == null || email.isBlank()) && (telegramChatId == null || telegramChatId.isBlank())) {
-            log.warn("Cannot send direct notification: neither email nor telegram chat ID provided for {}", fullName);
-            return;
-        }
-        UserNotificationProfile profile = new UserNotificationProfile(null, fullName, email, telegramChatId);
-        dispatchToProfile(profile, subject, body);
-    }
-
-    public void dispatchDirectEmail(String fullName, String email, String subject, String body) {
-        dispatchDirect(fullName, email, null, subject, body);
-    }
-
     private void dispatchToProfile(UserNotificationProfile profile, String subject, String body) {
         for (NotificationSender sender : senders) {
             if (sender.supports(profile)) {

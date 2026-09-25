@@ -15,6 +15,7 @@ import java.util.UUID;
 
 public final class RecruitmentTestResources {
 
+    public static final String BASE_URL = "/api/v1/applications";
     public static final UUID DEFAULT_APPLICATION_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
     public static final UUID DEFAULT_ID = DEFAULT_APPLICATION_ID;
     public static final UUID DEFAULT_VACANCY_ID = UUID.fromString("00000000-0000-0000-0000-000000000010");
@@ -27,7 +28,58 @@ public final class RecruitmentTestResources {
     public static final String DEFAULT_RESUME_URL = "https://storage.candidai.ukma.edu.ua/resumes/john_doe.pdf";
     public static final Instant DEFAULT_NOW = Instant.parse("2026-09-20T10:00:00Z");
 
+    public static final String JSON_WITH_UNKNOWN_PROPERTY = """
+            {
+                "unknownField": "bad"
+            }
+            """;
+
+    public static final String VALIDATION_ERROR_JSON = """
+            {
+                "type": "https://candidai.ukma.edu.ua/errors/validation",
+                "title": "Validation Error",
+                "status": 400,
+                "detail": "Input validation failed"
+            }
+            """;
+
+    public static final String JSON_PARSING_ERROR_JSON = """
+            {
+                "type": "https://candidai.ukma.edu.ua/errors/bad-request",
+                "title": "JSON Parsing Error",
+                "status": 400,
+                "detail": "Malformed request body or unknown properties"
+            }
+            """;
+
     private RecruitmentTestResources() {
+    }
+
+    public static String notFoundProblemDetailJson(UUID id) {
+        return """
+                {
+                    "type": "https://candidai.ukma.edu.ua/errors/not-found",
+                    "title": "Resource Not Found",
+                    "status": 404,
+                    "detail": "Application not found with id: %s"
+                }
+                """.formatted(id);
+    }
+
+    public static ApplyForVacancyRequestBuilder anApplyRequest() {
+        return new ApplyForVacancyRequestBuilder();
+    }
+
+    public static ApplyForVacancyRequest validApplyRequest() {
+        return anApplyRequest().build();
+    }
+
+    public static UpdateApplicationStatusRequestBuilder aUpdateStatusRequest() {
+        return new UpdateApplicationStatusRequestBuilder();
+    }
+
+    public static SubmitInterviewFeedbackRequestBuilder aSubmitFeedbackRequest() {
+        return new SubmitInterviewFeedbackRequestBuilder();
     }
 
     public static ApplyForVacancyRequestBuilder anApplyForVacancyRequest() {
@@ -120,6 +172,10 @@ public final class RecruitmentTestResources {
         return anApplicationResponse(status, null, null, updatedAt);
     }
 
+    public static ApplicationResponse anApplicationResponse(ApplicationStatus status, String comment) {
+        return anApplicationResponse(status, null, comment, DEFAULT_NOW);
+    }
+
     public static ApplicationResponse anApplicationResponse(
             ApplicationStatus status,
             Integer matchingScore,
@@ -140,6 +196,10 @@ public final class RecruitmentTestResources {
                 DEFAULT_NOW,
                 updatedAt
         );
+    }
+
+    public static ApplicationResponse updatedApplicationResponse() {
+        return anApplicationResponse(ApplicationStatus.INTERVIEW, "Candidate passed screening successfully");
     }
 
     public static ApplicationResponse sampleApplicationResponse() {
@@ -188,6 +248,7 @@ public final class RecruitmentTestResources {
                 DEFAULT_APPLICATION_ID,
                 DEFAULT_VACANCY_ID,
                 candidateId,
+                DEFAULT_CANDIDATE_NAME,
                 DEFAULT_EMAIL,
                 ApplicationStatus.APPLIED,
                 ApplicationStatus.SCREENING,
@@ -255,8 +316,20 @@ public final class RecruitmentTestResources {
         return aFeedbackResponse(DEFAULT_FEEDBACK_ID, "Lead", 5, "Great", InterviewDecision.HIRE);
     }
 
+    public static InterviewFeedbackResponse anInterviewFeedbackResponse() {
+        return anInterviewFeedbackResponse("Strong knowledge of Java and Spring Boot architecture");
+    }
+
+    public static InterviewFeedbackResponse anInterviewFeedbackResponse(String notes) {
+        return aFeedbackResponse(DEFAULT_FEEDBACK_ID, "Alex Techlead", 4, notes);
+    }
+
     public static EvaluationResult anEvaluationResult() {
-        return anEvaluationResult(InterviewDecision.HIRE);
+        return new EvaluationResult(
+                4.5,
+                InterviewDecision.HIRE,
+                "Engineering evaluation completed"
+        );
     }
 
     public static EvaluationResult anEvaluationResult(InterviewDecision decision) {
@@ -264,7 +337,7 @@ public final class RecruitmentTestResources {
                 decision == InterviewDecision.HIRE ? 4.5 : 2.0,
                 decision,
                 decision == InterviewDecision.HIRE
-                        ? "Engineering evaluation completed. Average score: 4.5"
+                        ? "Engineering evaluation completed"
                         : "Candidate evaluation failed"
         );
     }
@@ -316,6 +389,56 @@ public final class RecruitmentTestResources {
                     phone,
                     resumeUrl
             );
+        }
+    }
+
+    public static class UpdateApplicationStatusRequestBuilder {
+        private ApplicationStatus status = ApplicationStatus.INTERVIEW;
+        private String comment = "Candidate passed screening successfully";
+
+        public UpdateApplicationStatusRequestBuilder status(ApplicationStatus status) {
+            this.status = status;
+            return this;
+        }
+
+        public UpdateApplicationStatusRequestBuilder comment(String comment) {
+            this.comment = comment;
+            return this;
+        }
+
+        public UpdateApplicationStatusRequest build() {
+            return new UpdateApplicationStatusRequest(status, comment);
+        }
+    }
+
+    public static class SubmitInterviewFeedbackRequestBuilder {
+        private String interviewerName = "Alex Techlead";
+        private Integer technicalScore = 4;
+        private String notes = "Strong knowledge of Java and Spring Boot architecture";
+        private InterviewDecision decision = InterviewDecision.HIRE;
+
+        public SubmitInterviewFeedbackRequestBuilder interviewerName(String interviewerName) {
+            this.interviewerName = interviewerName;
+            return this;
+        }
+
+        public SubmitInterviewFeedbackRequestBuilder technicalScore(Integer technicalScore) {
+            this.technicalScore = technicalScore;
+            return this;
+        }
+
+        public SubmitInterviewFeedbackRequestBuilder notes(String notes) {
+            this.notes = notes;
+            return this;
+        }
+
+        public SubmitInterviewFeedbackRequestBuilder decision(InterviewDecision decision) {
+            this.decision = decision;
+            return this;
+        }
+
+        public SubmitInterviewFeedbackRequest build() {
+            return new SubmitInterviewFeedbackRequest(interviewerName, technicalScore, notes, decision);
         }
     }
 }

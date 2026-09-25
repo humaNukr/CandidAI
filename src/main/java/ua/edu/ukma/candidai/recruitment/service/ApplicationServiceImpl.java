@@ -92,13 +92,10 @@ public class ApplicationServiceImpl implements ApplicationService {
         ApplicationStatus currentStatus = existing.getStatus();
         ApplicationStatus newStatus = request.status();
 
-        if (!currentStatus.canTransitionTo(newStatus)) {
-            log.warn("Invalid status transition attempt from {} to {} for application {}",
-                    currentStatus, newStatus, id);
-            throw new InvalidStateTransitionException(
-                    "Invalid status transition from " + currentStatus + " to " + newStatus
-            );
-        }
+        Instant now = commonGenerator.now();
+        String comment = request.comment() != null ? request.comment() : existing.getComment();
+        Integer matchingScore = request.matchingScore() != null ? request.matchingScore() : existing.getMatchingScore();
+        existing.updateStatus(newStatus, matchingScore, comment, now);
 
         if (newStatus == ApplicationStatus.OFFER) {
             EvaluationResult evaluation = evaluateCandidate(id);
@@ -109,11 +106,6 @@ public class ApplicationServiceImpl implements ApplicationService {
                 );
             }
         }
-
-        Instant now = commonGenerator.now();
-        String comment = request.comment() != null ? request.comment() : existing.getComment();
-        Integer matchingScore = request.matchingScore() != null ? request.matchingScore() : existing.getMatchingScore();
-        existing.updateStatus(newStatus, matchingScore, comment, now);
 
         Application saved = applicationRepository.save(existing);
         log.info("Updated status for application {} from {} to {}", saved.getId(), currentStatus, newStatus);
@@ -142,7 +134,7 @@ public class ApplicationServiceImpl implements ApplicationService {
     public InterviewFeedbackResponse submitFeedback(UUID id, SubmitInterviewFeedbackRequest request) {
         Application application = findApplicationOrThrow(id);
 
-        if (application.getStatus() != ApplicationStatus.INTERVIEW) {
+        if (!application.isInInterview()) {
             log.warn("Cannot submit interview feedback for application {} in status {}", id, application.getStatus());
             throw new InvalidStateTransitionException(
                     "Cannot submit interview feedback for application " + id + " in status " + application.getStatus()
@@ -180,22 +172,14 @@ public class ApplicationServiceImpl implements ApplicationService {
         List<InterviewFeedbackResponse> feedbacks = feedbackRepository.findByApplicationId(id);
 
         JobCategory category = vacancyApi.getVacancyCategory(application.getVacancyId());
-        if (category == null) {
-            log.warn("Vacancy {} category not found for application {}", application.getVacancyId(), id);
-            throw new ResourceNotFoundException(
-                    "Vacancy category not found for vacancy: " + application.getVacancyId()
-            );
-        }
-
-        final JobCategory targetCategory = category;
         CandidateEvaluationStrategy strategy = evaluationStrategies.stream()
-                .filter(s -> s.supports(targetCategory))
+                .filter(s -> s.supports(category))
                 .findFirst()
-                .orElseThrow(() -> new IllegalStateException("No strategy found for category: " + targetCategory));
+                .orElseThrow(() -> new IllegalStateException("No strategy found for category: " + category));
 
         EvaluationResult result = strategy.evaluate(feedbacks);
         log.info("Evaluated candidate for application {} (category: {}): recommendation={}, score={}",
-                id, targetCategory, result.recommendedDecision(), result.averageScore());
+                id, category, result.recommendedDecision(), result.averageScore());
         return result;
     }
 

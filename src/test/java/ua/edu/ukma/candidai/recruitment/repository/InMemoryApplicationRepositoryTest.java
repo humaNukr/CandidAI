@@ -3,7 +3,6 @@ package ua.edu.ukma.candidai.recruitment.repository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import ua.edu.ukma.candidai.recruitment.dto.model.ApplicationStatus;
 import ua.edu.ukma.candidai.recruitment.model.Application;
 
 import java.time.Instant;
@@ -106,42 +105,11 @@ class InMemoryApplicationRepositoryTest {
         assertThat(result).containsExactlyInAnyOrder(app1, app2);
     }
 
-    @Test
-    @DisplayName("deleteById - should remove application by id")
-    void givenExistingApplication_deleteById_shouldRemoveFromStorage() {
-        Application application = createApplication(APPLICATION_ID_1, VACANCY_ID_1, "c1@example.com");
-        repository.save(application);
-
-        repository.deleteById(APPLICATION_ID_1);
-
-        assertThat(repository.findById(APPLICATION_ID_1)).isEmpty();
-        assertThat(repository.count()).isEqualTo(0);
-    }
-
-    @Test
-    @DisplayName("count - should return number of stored applications")
-    void givenStoredApplications_count_shouldReturnTotal() {
-        assertThat(repository.count()).isEqualTo(0);
-
-        repository.save(createApplication(APPLICATION_ID_1, VACANCY_ID_1, "c1@example.com"));
-        repository.save(createApplication(APPLICATION_ID_2, VACANCY_ID_2, "c2@example.com"));
-
-        assertThat(repository.count()).isEqualTo(2);
-    }
-
     private Application createApplication(UUID id, UUID vacancyId, String email) {
-        return Application.builder()
+        return ua.edu.ukma.candidai.recruitment.RecruitmentTestResources.anApplicationBuilder()
                 .id(id)
                 .vacancyId(vacancyId)
-                .candidateId(CANDIDATE_ID)
-                .candidateName("Candidate Name")
                 .email(email)
-                .phone("+380501234567")
-                .resumeUrl("https://storage.candidai.ukma.edu.ua/resumes/candidate.pdf")
-                .status(ApplicationStatus.APPLIED)
-                .comment(null)
-                .appliedAt(NOW)
-                .updatedAt(NOW)
                 .build();
     }
 }

@@ -19,12 +19,7 @@ public class ApplicationNotificationListener {
     public void on(ApplicationSubmittedEvent event) {
         String subject = "Application received: " + event.candidateName();
         String body = "Hello " + event.candidateName() + ", your application has been successfully submitted.";
-
-        if (event.candidateId() != null) {
-            dispatcher.dispatch(event.candidateId(), subject, body);
-        } else if (event.email() != null) {
-            dispatcher.dispatchByEmail(event.email(), subject, body);
-        }
+        dispatcher.dispatch(event.candidateId(), subject, body);
     }
 
     @ApplicationModuleListener
@@ -35,11 +30,6 @@ public class ApplicationNotificationListener {
                 event.previousStatus(),
                 event.newStatus()
         );
-
-        if (event.candidateId() != null) {
-            dispatcher.dispatch(event.candidateId(), subject, body);
-        } else if (event.email() != null) {
-            dispatcher.dispatchByEmail(event.email(), subject, body);
-        }
+        dispatcher.dispatch(event.candidateId(), subject, body);
     }
 }

@@ -74,15 +74,11 @@ class InMemoryVacancyRepository implements VacancyRepository {
 
     @Override
     public boolean existsActiveByAuthorIdAndTitle(UUID authorId, String title) {
-        if (authorId == null || title == null) {
-            return false;
-        }
         String normalizedTitle = title.trim();
         return storage.values().stream()
                 .anyMatch(v -> !v.isDeleted()
                         && v.getStatus() == VacancyStatus.OPEN
                         && authorId.equals(v.getAuthorId())
-                        && v.getTitle() != null
                         && v.getTitle().trim().equalsIgnoreCase(normalizedTitle));
     }
 }

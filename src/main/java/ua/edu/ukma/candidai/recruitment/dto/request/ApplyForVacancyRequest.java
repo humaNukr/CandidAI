@@ -20,6 +20,7 @@ public record ApplyForVacancyRequest(
         @Size(max = 100, message = "Candidate name must not exceed 100 characters")
         String candidateName,
 
+        @NotBlank(message = "Email is required")
         @Email(message = "Invalid email format")
         @Size(max = 150, message = "Email must not exceed 150 characters")
         String email,

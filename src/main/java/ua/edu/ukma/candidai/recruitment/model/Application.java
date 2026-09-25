@@ -5,7 +5,6 @@ import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 import ua.edu.ukma.candidai.common.exception.InvalidStateTransitionException;
 import ua.edu.ukma.candidai.recruitment.dto.model.ApplicationStatus;
 import ua.edu.ukma.candidai.recruitment.dto.request.ApplyForVacancyRequest;
@@ -14,7 +13,6 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Getter
-@Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
@@ -46,8 +44,6 @@ public class Application {
                 .phone(request.phone())
                 .resumeUrl(request.resumeUrl())
                 .status(ApplicationStatus.APPLIED)
-                .comment(null)
-                .matchingScore(null)
                 .appliedAt(now)
                 .updatedAt(now)
                 .build();

@@ -34,7 +34,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static ua.edu.ukma.candidai.recruitment.controller.TestResources.*;
+import static ua.edu.ukma.candidai.recruitment.RecruitmentTestResources.*;
 
 @WebMvcTest(ApplicationController.class)
 class ApplicationControllerTest {

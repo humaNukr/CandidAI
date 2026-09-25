@@ -43,20 +43,6 @@ class ApplicationNotificationListenerTest {
     }
 
     @Test
-    @DisplayName("dispatches by email when ApplicationSubmittedEvent has null candidateId")
-    void givenApplicationSubmittedEventWithoutCandidateId_on_shouldDispatchByEmail() {
-        ApplicationSubmittedEvent event = sampleApplicationSubmittedEvent(null);
-
-        listener.on(event);
-
-        verify(dispatcher).dispatchByEmail(
-                event.email(),
-                expectedApplicationSubmittedSubject(event),
-                expectedApplicationSubmittedBody(event)
-        );
-    }
-
-    @Test
     @DisplayName("dispatches to candidateId when ApplicationStatusChangedEvent received")
     void givenApplicationStatusChangedEvent_on_shouldDispatchToCandidateId() {
         ApplicationStatusChangedEvent event = sampleApplicationStatusChangedEvent(DEFAULT_RECIPIENT_ID);
@@ -65,20 +51,6 @@ class ApplicationNotificationListenerTest {
 
         verify(dispatcher).dispatch(
                 DEFAULT_RECIPIENT_ID,
-                expectedApplicationStatusChangedSubject(event),
-                expectedApplicationStatusChangedBody(event)
-        );
-    }
-
-    @Test
-    @DisplayName("dispatches by email when ApplicationStatusChangedEvent has null candidateId")
-    void givenApplicationStatusChangedEventWithoutCandidateId_on_shouldDispatchByEmail() {
-        ApplicationStatusChangedEvent event = sampleApplicationStatusChangedEvent(null);
-
-        listener.on(event);
-
-        verify(dispatcher).dispatchByEmail(
-                event.email(),
                 expectedApplicationStatusChangedSubject(event),
                 expectedApplicationStatusChangedBody(event)
         );

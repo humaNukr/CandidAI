@@ -38,14 +38,4 @@ class InMemoryApplicationRepository implements ApplicationRepository {
                 .filter(app -> app.getVacancyId().equals(vacancyId))
                 .toList();
     }
-
-    @Override
-    public void deleteById(UUID id) {
-        storage.remove(id);
-    }
-
-    @Override
-    public long count() {
-        return storage.size();
-    }
 }

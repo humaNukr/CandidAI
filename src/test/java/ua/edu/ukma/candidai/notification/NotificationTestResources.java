@@ -30,7 +30,6 @@ public final class NotificationTestResources {
 
     public static final String CANDIDAI_BRAND_NAME = "CandidAI";
     public static final String CANDIDAI_TAGLINE = "Recruitment Platform";
-    public static final String NOTIFICATION_OR_ID_NULL_MESSAGE = "Notification and its id must not be null";
     public static final String USER_NOT_FOUND_MESSAGE = "User not found";
 
     public static final UUID DEFAULT_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
@@ -508,6 +507,7 @@ public final class NotificationTestResources {
                 DEFAULT_APPLICATION_ID,
                 DEFAULT_VACANCY_ID,
                 candidateId,
+                DEFAULT_CANDIDATE_NAME,
                 DEFAULT_EMAIL,
                 ApplicationStatus.APPLIED,
                 ApplicationStatus.SCREENING,

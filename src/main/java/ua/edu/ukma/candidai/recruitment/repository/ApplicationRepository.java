@@ -15,8 +15,4 @@ public interface ApplicationRepository {
     boolean existsByVacancyIdAndEmail(UUID vacancyId, String email);
 
     List<Application> findByVacancyId(UUID vacancyId);
-
-    void deleteById(UUID id);
-
-    long count();
 }

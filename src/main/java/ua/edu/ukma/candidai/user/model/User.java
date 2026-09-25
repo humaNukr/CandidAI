@@ -13,7 +13,6 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Getter
-@Setter
 @ToString
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @Builder
@@ -24,6 +23,7 @@ public class User {
     @EqualsAndHashCode.Include
     private UUID id;
 
+    @Setter
     private String fullName;
 
     private String email;
@@ -32,6 +32,7 @@ public class User {
 
     private UserRole role;
 
+    @Setter
     private String telegramChatId;
 
     private Instant createdAt;

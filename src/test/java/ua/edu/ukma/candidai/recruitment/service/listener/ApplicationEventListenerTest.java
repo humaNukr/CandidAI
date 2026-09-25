@@ -15,6 +15,7 @@ class ApplicationEventListenerTest {
 
     private static final UUID APPLICATION_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
     private static final UUID VACANCY_ID = UUID.fromString("00000000-0000-0000-0000-000000000010");
+    private static final UUID CANDIDATE_ID = UUID.fromString("00000000-0000-0000-0000-000000000002");
     private static final Instant NOW = Instant.parse("2026-09-24T10:00:00Z");
 
     private final ApplicationEventListener listener = new ApplicationEventListener();
@@ -25,6 +26,7 @@ class ApplicationEventListenerTest {
         ApplicationSubmittedEvent event = new ApplicationSubmittedEvent(
                 APPLICATION_ID,
                 VACANCY_ID,
+                CANDIDATE_ID,
                 "John Doe",
                 "john.doe@example.com",
                 "https://storage.candidai.ukma.edu.ua/resumes/john.pdf",
@@ -41,6 +43,7 @@ class ApplicationEventListenerTest {
         ApplicationStatusChangedEvent event = new ApplicationStatusChangedEvent(
                 APPLICATION_ID,
                 VACANCY_ID,
+                CANDIDATE_ID,
                 "John Doe",
                 "john.doe@example.com",
                 ApplicationStatus.APPLIED,
