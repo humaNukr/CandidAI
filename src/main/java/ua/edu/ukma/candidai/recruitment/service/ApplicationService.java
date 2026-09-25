@@ -1,5 +1,6 @@
 package ua.edu.ukma.candidai.recruitment.service;
 
+import ua.edu.ukma.candidai.recruitment.dto.model.ApplicationStatus;
 import ua.edu.ukma.candidai.recruitment.dto.request.ApplyForVacancyRequest;
 import ua.edu.ukma.candidai.recruitment.dto.request.SubmitInterviewFeedbackRequest;
 import ua.edu.ukma.candidai.recruitment.dto.request.UpdateApplicationStatusRequest;
@@ -17,6 +18,12 @@ public interface ApplicationService {
     ApplicationResponse getById(UUID id);
 
     ApplicationResponse updateStatus(UUID id, UpdateApplicationStatusRequest request);
+
+    ApplicationResponse updateStatus(UUID id, ApplicationStatus status, Integer matchingScore, String comment);
+
+    default ApplicationResponse updateStatus(UUID id, ApplicationStatus status, String comment) {
+        return updateStatus(id, status, null, comment);
+    }
 
     InterviewFeedbackResponse submitFeedback(UUID id, SubmitInterviewFeedbackRequest request);
 

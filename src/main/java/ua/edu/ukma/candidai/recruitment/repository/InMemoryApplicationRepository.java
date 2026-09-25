@@ -1,7 +1,7 @@
 package ua.edu.ukma.candidai.recruitment.repository;
 
 import org.springframework.stereotype.Repository;
-import ua.edu.ukma.candidai.recruitment.dto.response.ApplicationResponse;
+import ua.edu.ukma.candidai.recruitment.model.Application;
 
 import java.util.List;
 import java.util.Map;
@@ -10,32 +10,32 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Repository
-public class InMemoryApplicationRepository implements ApplicationRepository {
+class InMemoryApplicationRepository implements ApplicationRepository {
 
-    private final Map<UUID, ApplicationResponse> storage = new ConcurrentHashMap<>();
+    private final Map<UUID, Application> storage = new ConcurrentHashMap<>();
 
     @Override
-    public ApplicationResponse save(ApplicationResponse application) {
-        storage.put(application.id(), application);
+    public Application save(Application application) {
+        storage.put(application.getId(), application);
         return application;
     }
 
     @Override
-    public Optional<ApplicationResponse> findById(UUID id) {
+    public Optional<Application> findById(UUID id) {
         return Optional.ofNullable(storage.get(id));
     }
 
     @Override
     public boolean existsByVacancyIdAndEmail(UUID vacancyId, String email) {
         return storage.values().stream()
-                .anyMatch(app -> app.vacancyId().equals(vacancyId)
-                        && app.email().equalsIgnoreCase(email));
+                .anyMatch(app -> app.getVacancyId().equals(vacancyId)
+                        && app.getEmail().equalsIgnoreCase(email));
     }
 
     @Override
-    public List<ApplicationResponse> findByVacancyId(UUID vacancyId) {
+    public List<Application> findByVacancyId(UUID vacancyId) {
         return storage.values().stream()
-                .filter(app -> app.vacancyId().equals(vacancyId))
+                .filter(app -> app.getVacancyId().equals(vacancyId))
                 .toList();
     }
 }

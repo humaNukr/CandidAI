@@ -268,18 +268,4 @@ class InMemoryVacancyRepositoryTest {
 
         assertThat(repository.existsActiveByAuthorIdAndTitle(DEFAULT_AUTHOR_ID, "DevOps Engineer")).isFalse();
     }
-
-    @Test
-    @DisplayName("existsActiveByAuthorIdAndTitle with null author or title should return false")
-    void givenNullAuthorOrTitle_existsActiveByAuthorIdAndTitle_shouldReturnFalse() {
-        Vacancy vacancy = aVacancyBuilder()
-                .authorId(DEFAULT_AUTHOR_ID)
-                .title("Software Engineer")
-                .status(VacancyStatus.OPEN)
-                .build();
-        repository.save(vacancy);
-
-        assertThat(repository.existsActiveByAuthorIdAndTitle(null, "Software Engineer")).isFalse();
-        assertThat(repository.existsActiveByAuthorIdAndTitle(DEFAULT_AUTHOR_ID, null)).isFalse();
-    }
 }

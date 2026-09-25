@@ -5,45 +5,31 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.modulith.events.ApplicationModuleListener;
 import org.springframework.stereotype.Component;
 import ua.edu.ukma.candidai.notification.service.NotificationDispatcher;
-import ua.edu.ukma.candidai.recruitment.event.ApplicationStatusChangedEvent;
-import ua.edu.ukma.candidai.recruitment.event.ApplicationSubmittedEvent;
+import ua.edu.ukma.candidai.recruitment.ApplicationStatusChangedEvent;
+import ua.edu.ukma.candidai.recruitment.ApplicationSubmittedEvent;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
-@Slf4j
 public class ApplicationNotificationListener {
 
     private final NotificationDispatcher dispatcher;
 
     @ApplicationModuleListener
     public void on(ApplicationSubmittedEvent event) {
-        log.info("Processing application submitted notification for candidate: {}", event.email());
-        String name = event.candidateName() != null ? event.candidateName() : "Candidate";
-        String subject = "Application Received - CandidAI";
-        String body = String.format(
-                "Hello %s! Thank you for applying. We have received your application and resume. "
-                        + "We will notify you once your application status changes.",
-                name
-        );
-        dispatcher.dispatchDirectEmail(name, event.email(), subject, body);
+        String subject = "Application received: " + event.candidateName();
+        String body = "Hello " + event.candidateName() + ", your application has been successfully submitted.";
+        dispatcher.dispatch(event.candidateId(), subject, body);
     }
 
     @ApplicationModuleListener
     public void on(ApplicationStatusChangedEvent event) {
-        log.info("Processing application status changed notification for candidate: {} (status: {})",
-                event.email(), event.newStatus());
-        String name = event.candidateName() != null ? event.candidateName() : "Candidate";
-        String subject = "Application Status Update: " + event.newStatus() + " - CandidAI";
-        String commentInfo = (event.comment() != null && !event.comment().isBlank())
-                ? String.format(" Comment: %s.", event.comment())
-                : "";
+        String subject = "Application status updated: " + event.newStatus();
         String body = String.format(
-                "Hello %s! Your application status has been updated from %s to %s.%s",
-                name,
+                "Your application status has been changed from %s to %s.",
                 event.previousStatus(),
-                event.newStatus(),
-                commentInfo
+                event.newStatus()
         );
-        dispatcher.dispatchDirectEmail(name, event.email(), subject, body);
+        dispatcher.dispatch(event.candidateId(), subject, body);
     }
 }

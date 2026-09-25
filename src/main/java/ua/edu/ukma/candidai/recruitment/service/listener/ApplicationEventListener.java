@@ -3,8 +3,8 @@ package ua.edu.ukma.candidai.recruitment.service.listener;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.modulith.events.ApplicationModuleListener;
 import org.springframework.stereotype.Component;
-import ua.edu.ukma.candidai.recruitment.event.ApplicationStatusChangedEvent;
-import ua.edu.ukma.candidai.recruitment.event.ApplicationSubmittedEvent;
+import ua.edu.ukma.candidai.recruitment.ApplicationStatusChangedEvent;
+import ua.edu.ukma.candidai.recruitment.ApplicationSubmittedEvent;
 
 @Slf4j
 @Component

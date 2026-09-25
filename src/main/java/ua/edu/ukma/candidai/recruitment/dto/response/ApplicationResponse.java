@@ -8,6 +8,7 @@ import java.util.UUID;
 public record ApplicationResponse(
         UUID id,
         UUID vacancyId,
+        UUID candidateId,
         String candidateName,
         String email,
         String phone,
@@ -18,18 +19,4 @@ public record ApplicationResponse(
         Instant appliedAt,
         Instant updatedAt
 ) {
-    public ApplicationResponse(
-            UUID id,
-            UUID vacancyId,
-            String candidateName,
-            String email,
-            String phone,
-            String resumeUrl,
-            ApplicationStatus status,
-            String comment,
-            Instant appliedAt,
-            Instant updatedAt
-    ) {
-        this(id, vacancyId, candidateName, email, phone, resumeUrl, status, null, comment, appliedAt, updatedAt);
-    }
 }

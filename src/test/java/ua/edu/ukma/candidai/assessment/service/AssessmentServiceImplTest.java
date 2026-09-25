@@ -94,7 +94,10 @@ class AssessmentServiceImplTest {
         assertThat(actual).isEqualTo(result);
         verify(screeningResultRepository).save(result);
         verify(recruitmentApi).updateStatus(
-                eq(APP_ID), eq(ApplicationStatus.REJECTED), eq(30), eq("Lacks Java knowledge")
+                eq(APP_ID),
+                eq(ApplicationStatus.REJECTED),
+                eq(30),
+                eq("Lacks Java knowledge")
         );
     }
 
@@ -151,6 +154,7 @@ class AssessmentServiceImplTest {
         AiScreeningResult result = AiScreeningResult.completed(
                 APP_ID, VACANCY_ID, 85, true, "Strong fit", List.of("Java"), List.of(), List.of("Q1"), NOW
         );
+
         when(screeningResultRepository.findByApplicationId(APP_ID)).thenReturn(Optional.of(result));
 
         AiScreeningResult actual = assessmentService.getScreeningResult(APP_ID);

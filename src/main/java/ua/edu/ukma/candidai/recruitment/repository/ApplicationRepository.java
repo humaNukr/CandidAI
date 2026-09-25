@@ -1,17 +1,18 @@
 package ua.edu.ukma.candidai.recruitment.repository;
 
-import ua.edu.ukma.candidai.recruitment.dto.response.ApplicationResponse;
+import ua.edu.ukma.candidai.recruitment.model.Application;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 public interface ApplicationRepository {
-    ApplicationResponse save(ApplicationResponse application);
 
-    Optional<ApplicationResponse> findById(UUID id);
+    Application save(Application application);
+
+    Optional<Application> findById(UUID id);
 
     boolean existsByVacancyIdAndEmail(UUID vacancyId, String email);
 
-    List<ApplicationResponse> findByVacancyId(UUID vacancyId);
+    List<Application> findByVacancyId(UUID vacancyId);
 }
