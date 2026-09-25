@@ -19,6 +19,7 @@ class InMemoryApplicationRepositoryTest {
     private static final UUID VACANCY_ID_2 = UUID.fromString("00000000-0000-0000-0000-000000000020");
     private static final UUID APPLICATION_ID_1 = UUID.fromString("00000000-0000-0000-0000-000000000001");
     private static final UUID APPLICATION_ID_2 = UUID.fromString("00000000-0000-0000-0000-000000000002");
+    private static final UUID CANDIDATE_ID = UUID.fromString("00000000-0000-0000-0000-000000000003");
     private static final Instant NOW = Instant.parse("2026-09-20T10:00:00Z");
 
     private InMemoryApplicationRepository repository;
@@ -132,6 +133,7 @@ class InMemoryApplicationRepositoryTest {
         return Application.builder()
                 .id(id)
                 .vacancyId(vacancyId)
+                .candidateId(CANDIDATE_ID)
                 .candidateName("Candidate Name")
                 .email(email)
                 .phone("+380501234567")

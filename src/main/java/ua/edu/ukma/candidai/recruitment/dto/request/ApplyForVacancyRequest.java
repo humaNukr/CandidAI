@@ -13,6 +13,9 @@ public record ApplyForVacancyRequest(
         @NotNull(message = "Vacancy ID is required")
         UUID vacancyId,
 
+        @NotNull(message = "Candidate ID is required")
+        UUID candidateId,
+
         @NotBlank(message = "Candidate name is required")
         @Size(max = 100, message = "Candidate name must not exceed 100 characters")
         String candidateName,
@@ -28,5 +31,5 @@ public record ApplyForVacancyRequest(
         @URL(message = "Invalid resume URL format")
         @Size(max = 500, message = "Resume URL must not exceed 500 characters")
         String resumeUrl
-        ) {
+) {
 }

@@ -92,10 +92,6 @@ public class TestResources {
         return aVacancyBuilder().build();
     }
 
-    public static Vacancy aDraftVacancy() {
-        return aVacancy(VacancyStatus.DRAFT);
-    }
-
     public static Vacancy aVacancy(VacancyStatus status) {
         return aVacancyBuilder()
                 .status(status)
@@ -109,6 +105,10 @@ public class TestResources {
                 .publishedAt(status == VacancyStatus.DRAFT ? null : DEFAULT_NOW)
                 .updatedAt(updatedAt)
                 .build();
+    }
+
+    public static Vacancy aDraftVacancy() {
+        return aVacancy(VacancyStatus.DRAFT);
     }
 
     public static Vacancy aDeletedVacancy() {
@@ -156,10 +156,6 @@ public class TestResources {
         return aVacancyResponse(status, DEFAULT_NOW);
     }
 
-    public static VacancyResponse aDraftVacancyResponse() {
-        return aVacancyResponse(VacancyStatus.DRAFT);
-    }
-
     public static VacancyResponse aVacancyResponse(JobCategory category) {
         return aVacancyResponse(VacancyStatus.OPEN, category, DEFAULT_NOW);
     }
@@ -195,6 +191,10 @@ public class TestResources {
                 DEFAULT_NOW,
                 updatedAt
         );
+    }
+
+    public static VacancyResponse aDraftVacancyResponse() {
+        return aVacancyResponse(VacancyStatus.DRAFT);
     }
 
     public static Page<Vacancy> aVacancyPage(List<Vacancy> content, Pageable pageable) {

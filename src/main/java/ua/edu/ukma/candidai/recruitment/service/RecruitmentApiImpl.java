@@ -34,6 +34,9 @@ class RecruitmentApiImpl implements RecruitmentApi {
 
     @Override
     public void updateStatus(UUID applicationId, ApplicationStatus status, Integer matchingScore, String comment) {
-        applicationService.updateStatus(applicationId, new UpdateApplicationStatusRequest(status, comment, matchingScore));
+        applicationService.updateStatus(
+                applicationId,
+                new UpdateApplicationStatusRequest(status, comment, matchingScore)
+        );
     }
 }

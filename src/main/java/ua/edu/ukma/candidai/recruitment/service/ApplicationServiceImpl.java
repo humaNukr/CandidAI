@@ -68,6 +68,7 @@ public class ApplicationServiceImpl implements ApplicationService {
         eventPublisher.publishEvent(new ApplicationSubmittedEvent(
                 saved.getId(),
                 saved.getVacancyId(),
+                saved.getCandidateId(),
                 saved.getCandidateName(),
                 saved.getEmail(),
                 saved.getResumeUrl(),
@@ -90,14 +91,15 @@ public class ApplicationServiceImpl implements ApplicationService {
         ApplicationStatus currentStatus = existing.getStatus();
         ApplicationStatus newStatus = request.status();
 
+        if (!currentStatus.canTransitionTo(newStatus)) {
+            log.warn("Invalid status transition attempt from {} to {} for application {}",
+                    currentStatus, newStatus, id);
+            throw new InvalidStateTransitionException(
+                    "Invalid status transition from " + currentStatus + " to " + newStatus
+            );
+        }
+
         if (newStatus == ApplicationStatus.OFFER) {
-            if (!currentStatus.canTransitionTo(newStatus)) {
-                log.warn("Invalid status transition attempt from {} to {} for application {}",
-                        currentStatus, newStatus, id);
-                throw new InvalidStateTransitionException(
-                        "Invalid status transition from " + currentStatus + " to " + newStatus
-                );
-            }
             EvaluationResult evaluation = evaluateCandidate(id);
             if (evaluation.recommendedDecision() == InterviewDecision.REJECT) {
                 log.warn("Blocked transition to OFFER for application {}: evaluation result was REJECT", id);
@@ -118,6 +120,7 @@ public class ApplicationServiceImpl implements ApplicationService {
         eventPublisher.publishEvent(new ApplicationStatusChangedEvent(
                 saved.getId(),
                 saved.getVacancyId(),
+                saved.getCandidateId(),
                 saved.getEmail(),
                 currentStatus,
                 newStatus,
@@ -176,7 +179,10 @@ public class ApplicationServiceImpl implements ApplicationService {
 
         JobCategory category = vacancyApi.getVacancyCategory(application.getVacancyId());
         if (category == null) {
-            category = JobCategory.ENGINEERING;
+            log.warn("Vacancy {} category not found for application {}", application.getVacancyId(), id);
+            throw new ResourceNotFoundException(
+                    "Vacancy category not found for vacancy: " + application.getVacancyId()
+            );
         }
 
         final JobCategory targetCategory = category;

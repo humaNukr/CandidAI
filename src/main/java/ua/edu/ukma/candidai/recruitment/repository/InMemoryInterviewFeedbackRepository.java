@@ -11,7 +11,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 @Repository
-public class InMemoryInterviewFeedbackRepository implements InterviewFeedbackRepository {
+class InMemoryInterviewFeedbackRepository implements InterviewFeedbackRepository {
 
     private final Map<UUID, List<InterviewFeedbackResponse>> feedbacks = new ConcurrentHashMap<>();
 

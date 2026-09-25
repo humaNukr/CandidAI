@@ -90,7 +90,12 @@ class AssessmentServiceImplTest {
 
         assertThat(actual).isEqualTo(result);
         verify(screeningResultRepository).save(result);
-        verify(recruitmentApi).updateStatus(eq(APP_ID), eq(ApplicationStatus.REJECTED), eq(30), eq("Lacks Java knowledge"));
+        verify(recruitmentApi).updateStatus(
+                eq(APP_ID),
+                eq(ApplicationStatus.REJECTED),
+                eq(30),
+                eq("Lacks Java knowledge")
+        );
     }
 
     @Test

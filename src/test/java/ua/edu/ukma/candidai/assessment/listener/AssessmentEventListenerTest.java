@@ -19,6 +19,7 @@ class AssessmentEventListenerTest {
 
     private static final UUID APP_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
     private static final UUID VACANCY_ID = UUID.fromString("00000000-0000-0000-0000-000000000010");
+    private static final UUID CANDIDATE_ID = UUID.fromString("00000000-0000-0000-0000-000000000002");
     private static final Instant NOW = Instant.parse("2026-09-21T10:00:00Z");
 
     @Mock
@@ -31,7 +32,13 @@ class AssessmentEventListenerTest {
     @DisplayName("onApplicationSubmitted - should delegate screening to AssessmentService")
     void givenApplicationSubmittedEvent_onApplicationSubmitted_shouldDelegateToAssessmentService() {
         ApplicationSubmittedEvent event = new ApplicationSubmittedEvent(
-                APP_ID, VACANCY_ID, "John Doe", "test@example.com", "https://example.com/resume.pdf", NOW
+                APP_ID,
+                VACANCY_ID,
+                CANDIDATE_ID,
+                "John Doe",
+                "test@example.com",
+                "https://example.com/resume.pdf",
+                NOW
         );
 
         listener.onApplicationSubmitted(event);

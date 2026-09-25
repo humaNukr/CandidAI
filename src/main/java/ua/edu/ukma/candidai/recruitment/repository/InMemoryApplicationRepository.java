@@ -10,7 +10,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Repository
-public class InMemoryApplicationRepository implements ApplicationRepository {
+class InMemoryApplicationRepository implements ApplicationRepository {
 
     private final Map<UUID, Application> storage = new ConcurrentHashMap<>();
 

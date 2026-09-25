@@ -25,6 +25,7 @@ public class Application {
     private UUID id;
 
     private UUID vacancyId;
+    private UUID candidateId;
     private String candidateName;
     private String email;
     private String phone;
@@ -39,6 +40,7 @@ public class Application {
         return Application.builder()
                 .id(id)
                 .vacancyId(request.vacancyId())
+                .candidateId(request.candidateId())
                 .candidateName(request.candidateName())
                 .email(request.email())
                 .phone(request.phone())
