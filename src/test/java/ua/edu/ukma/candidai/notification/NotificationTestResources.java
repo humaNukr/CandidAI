@@ -14,6 +14,9 @@ import ua.edu.ukma.candidai.notification.config.NotificationProperties;
 import ua.edu.ukma.candidai.notification.model.Notification;
 import ua.edu.ukma.candidai.notification.model.NotificationChannel;
 import ua.edu.ukma.candidai.notification.model.NotificationDeliveryStatus;
+import ua.edu.ukma.candidai.recruitment.ApplicationStatusChangedEvent;
+import ua.edu.ukma.candidai.recruitment.ApplicationSubmittedEvent;
+import ua.edu.ukma.candidai.recruitment.dto.model.ApplicationStatus;
 import ua.edu.ukma.candidai.user.UserNotificationProfile;
 import ua.edu.ukma.candidai.vacancy.VacancyStatusChangedEvent;
 import ua.edu.ukma.candidai.vacancy.model.VacancyStatus;
@@ -35,11 +38,14 @@ public final class NotificationTestResources {
     public static final UUID DEFAULT_RECIPIENT_ID = UUID.fromString("00000000-0000-0000-0000-000000000002");
     public static final UUID OTHER_RECIPIENT_ID = UUID.fromString("00000000-0000-0000-0000-000000000088");
     public static final UUID DEFAULT_VACANCY_ID = UUID.fromString("00000000-0000-0000-0000-000000000010");
+    public static final UUID DEFAULT_APPLICATION_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
 
     public static final String DEFAULT_FULL_NAME = "John Doe";
+    public static final String DEFAULT_CANDIDATE_NAME = "John Doe";
     public static final String DEFAULT_EMAIL = "candidate@example.com";
     public static final String DEFAULT_TELEGRAM_CHAT_ID = "123456789";
     public static final String SECOND_TELEGRAM_CHAT_ID = "112233";
+    public static final String DEFAULT_RESUME_URL = "https://storage.candidai.ukma.edu.ua/resumes/john_doe.pdf";
 
     public static final String DEFAULT_VACANCY_TITLE = "Senior Java Engineer";
     public static final String DEFAULT_SUBJECT = "Статус вашої вакансії змінено";
@@ -196,6 +202,7 @@ public final class NotificationTestResources {
                 DEFAULT_NOW
         );
     }
+
     public static UserNotificationProfile sampleUserNotificationProfile() {
         return new UserNotificationProfile(
                 DEFAULT_RECIPIENT_ID,
@@ -474,6 +481,59 @@ public final class NotificationTestResources {
 
     public static String expectedEmailSendErrorMessage(String email) {
         return "Failed to construct or send email to " + email;
+    }
+
+    public static ApplicationSubmittedEvent sampleApplicationSubmittedEvent() {
+        return sampleApplicationSubmittedEvent(DEFAULT_RECIPIENT_ID);
+    }
+
+    public static ApplicationSubmittedEvent sampleApplicationSubmittedEvent(UUID candidateId) {
+        return new ApplicationSubmittedEvent(
+                DEFAULT_APPLICATION_ID,
+                DEFAULT_VACANCY_ID,
+                candidateId,
+                DEFAULT_CANDIDATE_NAME,
+                DEFAULT_EMAIL,
+                DEFAULT_RESUME_URL,
+                DEFAULT_NOW
+        );
+    }
+
+    public static ApplicationStatusChangedEvent sampleApplicationStatusChangedEvent() {
+        return sampleApplicationStatusChangedEvent(DEFAULT_RECIPIENT_ID);
+    }
+
+    public static ApplicationStatusChangedEvent sampleApplicationStatusChangedEvent(UUID candidateId) {
+        return new ApplicationStatusChangedEvent(
+                DEFAULT_APPLICATION_ID,
+                DEFAULT_VACANCY_ID,
+                candidateId,
+                DEFAULT_EMAIL,
+                ApplicationStatus.APPLIED,
+                ApplicationStatus.SCREENING,
+                "Passed resume screening",
+                DEFAULT_NOW
+        );
+    }
+
+    public static String expectedApplicationSubmittedSubject(ApplicationSubmittedEvent event) {
+        return "Application received: " + event.candidateName();
+    }
+
+    public static String expectedApplicationSubmittedBody(ApplicationSubmittedEvent event) {
+        return "Hello " + event.candidateName() + ", your application has been successfully submitted.";
+    }
+
+    public static String expectedApplicationStatusChangedSubject(ApplicationStatusChangedEvent event) {
+        return "Application status updated: " + event.newStatus();
+    }
+
+    public static String expectedApplicationStatusChangedBody(ApplicationStatusChangedEvent event) {
+        return String.format(
+                "Your application status has been changed from %s to %s.",
+                event.previousStatus(),
+                event.newStatus()
+        );
     }
 
     public static String currentYearString() {

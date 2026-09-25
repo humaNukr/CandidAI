@@ -17,18 +17,12 @@ class InMemoryNotificationRepository implements NotificationRepository {
 
     @Override
     public Notification save(Notification notification) {
-        if (notification == null || notification.id() == null) {
-            throw new IllegalArgumentException("Notification and its id must not be null");
-        }
         storage.put(notification.id(), notification);
         return notification;
     }
 
     @Override
     public Optional<Notification> findById(UUID id) {
-        if (id == null) {
-            return Optional.empty();
-        }
         return Optional.ofNullable(storage.get(id));
     }
 
@@ -39,9 +33,6 @@ class InMemoryNotificationRepository implements NotificationRepository {
 
     @Override
     public List<Notification> findByRecipientId(UUID recipientId) {
-        if (recipientId == null) {
-            return List.of();
-        }
         return storage.values().stream()
                 .filter(notification -> recipientId.equals(notification.recipientId()))
                 .toList();

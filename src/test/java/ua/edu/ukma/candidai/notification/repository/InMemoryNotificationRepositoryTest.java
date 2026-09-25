@@ -10,17 +10,14 @@ import ua.edu.ukma.candidai.notification.model.NotificationDeliveryStatus;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static ua.edu.ukma.candidai.notification.NotificationTestResources.DEFAULT_ERROR_MESSAGE;
 import static ua.edu.ukma.candidai.notification.NotificationTestResources.DEFAULT_ID;
 import static ua.edu.ukma.candidai.notification.NotificationTestResources.DEFAULT_RECIPIENT_ID;
-import static ua.edu.ukma.candidai.notification.NotificationTestResources.NOTIFICATION_OR_ID_NULL_MESSAGE;
 import static ua.edu.ukma.candidai.notification.NotificationTestResources.OTHER_RECIPIENT_ID;
 import static ua.edu.ukma.candidai.notification.NotificationTestResources.SECOND_ID;
 import static ua.edu.ukma.candidai.notification.NotificationTestResources.SENT_AT;
 import static ua.edu.ukma.candidai.notification.NotificationTestResources.sampleFailedNotification;
 import static ua.edu.ukma.candidai.notification.NotificationTestResources.sampleNotification;
-import static ua.edu.ukma.candidai.notification.NotificationTestResources.sampleNotificationWithNullId;
 import static ua.edu.ukma.candidai.notification.NotificationTestResources.samplePendingNotification;
 import static ua.edu.ukma.candidai.notification.NotificationTestResources.sampleSentNotification;
 
@@ -48,10 +45,9 @@ class InMemoryNotificationRepositoryTest {
     }
 
     @Test
-    @DisplayName("findById should return empty when id not found or null")
+    @DisplayName("findById should return empty when id not found")
     void givenNonExistentId_findById_shouldReturnEmpty() {
         assertThat(repository.findById(DEFAULT_ID)).isEmpty();
-        assertThat(repository.findById(null)).isEmpty();
     }
 
     @Test
@@ -95,25 +91,9 @@ class InMemoryNotificationRepositoryTest {
 
         List<Notification> byDefaultRecipient = repository.findByRecipientId(DEFAULT_RECIPIENT_ID);
         List<Notification> byOtherRecipient = repository.findByRecipientId(OTHER_RECIPIENT_ID);
-        List<Notification> byNullRecipient = repository.findByRecipientId(null);
 
         assertThat(byDefaultRecipient).containsExactly(notification1);
         assertThat(byOtherRecipient).containsExactly(notification2);
-        assertThat(byNullRecipient).isEmpty();
-    }
-
-    @Test
-    @DisplayName("save should throw IllegalArgumentException when notification or its id is null")
-    void givenNullNotificationOrNullId_save_shouldThrowIllegalArgumentException() {
-        assertThatThrownBy(() -> repository.save(null))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage(NOTIFICATION_OR_ID_NULL_MESSAGE);
-
-        Notification notificationWithNullId = sampleNotificationWithNullId();
-
-        assertThatThrownBy(() -> repository.save(notificationWithNullId))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage(NOTIFICATION_OR_ID_NULL_MESSAGE);
     }
 
     @Test

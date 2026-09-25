@@ -31,6 +31,13 @@ public class NotificationDispatcher {
         );
     }
 
+    public void dispatchByEmail(String email, String subject, String body) {
+        userApi.getUserNotificationProfileByEmail(email).ifPresentOrElse(
+                profile -> dispatchToProfile(profile, subject, body),
+                () -> log.warn("Cannot send notification: user profile not found for email: {}", email)
+        );
+    }
+
     private void dispatchToProfile(UserNotificationProfile profile, String subject, String body) {
         for (NotificationSender sender : senders) {
             if (sender.supports(profile)) {

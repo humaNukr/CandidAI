@@ -190,4 +190,39 @@ class NotificationDispatcherTest {
         verify(notificationRepository).save(expectedEmail);
         verify(notificationRepository).save(expectedTelegram);
     }
+
+    @Test
+    @DisplayName("sends and saves notification when user profile found by email and sender supports profile")
+    void givenUserFoundByEmail_dispatchByEmail_shouldSendAndPersistNotification() {
+        UserNotificationProfile profile = sampleUserNotificationProfile();
+        Notification expectedNotification = sampleNotification(
+                profile,
+                NotificationChannel.EMAIL,
+                NotificationDeliveryStatus.SENT
+        );
+
+        when(userApi.getUserNotificationProfileByEmail(DEFAULT_EMAIL)).thenReturn(Optional.of(profile));
+        when(emailSender.supports(profile)).thenReturn(true);
+        when(emailSender.getChannel()).thenReturn(NotificationChannel.EMAIL);
+        when(telegramSender.supports(profile)).thenReturn(false);
+        doNothing().when(emailSender).send(profile, DEFAULT_SUBJECT, DEFAULT_BODY);
+        when(generator.now()).thenReturn(DEFAULT_NOW);
+        when(generator.uuid()).thenReturn(DEFAULT_ID);
+
+        dispatcher.dispatchByEmail(DEFAULT_EMAIL, DEFAULT_SUBJECT, DEFAULT_BODY);
+
+        verify(emailSender).send(profile, DEFAULT_SUBJECT, DEFAULT_BODY);
+        verify(notificationRepository).save(expectedNotification);
+        verify(telegramSender, never()).send(profile, DEFAULT_SUBJECT, DEFAULT_BODY);
+    }
+
+    @Test
+    @DisplayName("does nothing when user notification profile not found by email")
+    void givenUserNotFoundByEmail_dispatchByEmail_shouldDoNothing() {
+        when(userApi.getUserNotificationProfileByEmail(DEFAULT_EMAIL)).thenReturn(Optional.empty());
+
+        dispatcher.dispatchByEmail(DEFAULT_EMAIL, DEFAULT_SUBJECT, DEFAULT_BODY);
+
+        verifyNoInteractions(emailSender, telegramSender, notificationRepository, generator);
+    }
 }
