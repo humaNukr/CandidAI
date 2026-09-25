@@ -2,8 +2,8 @@ package ua.edu.ukma.candidai.notification.email;
 
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.MailSendException;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
@@ -13,18 +13,31 @@ import ua.edu.ukma.candidai.notification.config.NotificationProperties;
 import java.nio.charset.StandardCharsets;
 
 @Component
-@RequiredArgsConstructor
 @Slf4j
 public class SmtpEmailTransport implements EmailTransport {
 
     private final JavaMailSender mailSender;
     private final NotificationProperties properties;
 
+    @Autowired
+    public SmtpEmailTransport(
+            @Autowired(required = false) JavaMailSender mailSender,
+            NotificationProperties properties
+    ) {
+        this.mailSender = mailSender;
+        this.properties = properties;
+    }
+
     @Override
     public void sendEmail(String to, String subject, String htmlContent) {
         if (!properties.mail().enabled()) {
             log.info("[EMAIL-DEV] Mail is disabled (notification.mail.enabled=false). "
                     + "Simulated email to: {} | Subject: {}", to, subject);
+            return;
+        }
+
+        if (mailSender == null) {
+            log.warn("JavaMailSender is not configured. Email to {} could not be sent.", to);
             return;
         }
 
