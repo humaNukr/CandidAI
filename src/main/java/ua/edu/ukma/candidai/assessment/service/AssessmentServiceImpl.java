@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import ua.edu.ukma.candidai.assessment.dto.AiScreeningResult;
 import ua.edu.ukma.candidai.assessment.dto.ScreeningStatus;
 import ua.edu.ukma.candidai.assessment.repository.ScreeningResultRepository;
+import ua.edu.ukma.candidai.common.exception.ResourceNotFoundException;
 import ua.edu.ukma.candidai.recruitment.ApplicationDetails;
 import ua.edu.ukma.candidai.recruitment.RecruitmentApi;
 import ua.edu.ukma.candidai.recruitment.dto.model.ApplicationStatus;
@@ -53,6 +54,7 @@ public class AssessmentServiceImpl implements AssessmentService {
                 recruitmentApi.updateStatus(
                         applicationId,
                         ApplicationStatus.SCREENING,
+                        result.matchingScore(),
                         "AI screening passed with score " + result.matchingScore() + "/100"
                 );
             }
@@ -63,11 +65,21 @@ public class AssessmentServiceImpl implements AssessmentService {
                 recruitmentApi.updateStatus(
                         applicationId,
                         ApplicationStatus.REJECTED,
+                        result.matchingScore(),
                         result.summary()
                 );
             }
         }
 
         return result;
+    }
+
+    @Override
+    public AiScreeningResult getScreeningResult(UUID applicationId) {
+        log.info("Fetching screening report for application: {}", applicationId);
+        return screeningResultRepository.findByApplicationId(applicationId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Screening result not found for application: " + applicationId
+                ));
     }
 }

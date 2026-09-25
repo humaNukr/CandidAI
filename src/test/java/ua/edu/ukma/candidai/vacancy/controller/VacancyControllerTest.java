@@ -12,6 +12,8 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.ObjectMapper;
+import ua.edu.ukma.candidai.common.exception.DuplicateResourceException;
+import ua.edu.ukma.candidai.common.exception.InvalidStateTransitionException;
 import ua.edu.ukma.candidai.common.exception.ResourceNotFoundException;
 import ua.edu.ukma.candidai.vacancy.model.JobCategory;
 import ua.edu.ukma.candidai.vacancy.model.VacancyStatus;
@@ -165,5 +167,41 @@ class VacancyControllerTest {
                 .andExpect(status().isNoContent());
 
         verify(vacancyService).deleteVacancy(DEFAULT_ID);
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/vacancies - duplicate vacancy should return 409 Conflict with ProblemDetail")
+    void givenDuplicateVacancy_createVacancy_shouldReturn409ConflictWithProblemDetail() throws Exception {
+        CreateVacancyRequest request = validCreateVacancyRequest();
+        when(vacancyService.createVacancy(any(CreateVacancyRequest.class)))
+                .thenThrow(new DuplicateResourceException("Vacancy already exists with title: " + request.title()));
+
+        mockMvc.perform(post(BASE_URL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status").value(409))
+                .andExpect(jsonPath("$.title").value("Resource Conflict"))
+                .andExpect(jsonPath("$.detail").value("Vacancy already exists with title: " + request.title()))
+                .andExpect(jsonPath("$.type").value("https://candidai.ukma.edu.ua/errors/conflict"))
+                .andExpect(jsonPath("$.timestamp").isNotEmpty());
+    }
+
+    @Test
+    @DisplayName("PATCH /api/v1/vacancies/{id}/status - invalid transition should return 422 with ProblemDetail")
+    void givenInvalidTransition_updateVacancyStatus_shouldReturn422UnprocessableWithProblemDetail() throws Exception {
+        UpdateVacancyStatusRequest request = validUpdateVacancyStatusRequest();
+        when(vacancyService.updateVacancyStatus(eq(DEFAULT_ID), any(UpdateVacancyStatusRequest.class)))
+                .thenThrow(new InvalidStateTransitionException("Cannot transition from CLOSED to DRAFT"));
+
+        mockMvc.perform(patch(BASE_URL + "/" + DEFAULT_ID + "/status")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.status").value(422))
+                .andExpect(jsonPath("$.title").value("Invalid State Transition"))
+                .andExpect(jsonPath("$.detail").value("Cannot transition from CLOSED to DRAFT"))
+                .andExpect(jsonPath("$.type").value("https://candidai.ukma.edu.ua/errors/invalid-state-transition"))
+                .andExpect(jsonPath("$.timestamp").isNotEmpty());
     }
 }

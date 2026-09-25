@@ -66,9 +66,12 @@ public class ApplicationController {
     }
 
     @GetMapping
-    public List<ApplicationResponse> getApplications(@RequestParam(required = false) UUID vacancyId) {
+    public List<ApplicationResponse> getApplications(
+            @RequestParam(required = false) UUID vacancyId,
+            @RequestParam(required = false, defaultValue = "false") boolean sortByScore
+    ) {
         if (vacancyId != null) {
-            return applicationService.getApplicationsByVacancy(vacancyId);
+            return applicationService.getApplicationsByVacancy(vacancyId, sortByScore);
         }
         return List.of();
     }

@@ -203,6 +203,7 @@ class ApplicationServiceTest {
         ApplicationStatusChangedEvent event = captor.getValue();
         assertThat(event.previousStatus()).isEqualTo(ApplicationStatus.APPLIED);
         assertThat(event.newStatus()).isEqualTo(ApplicationStatus.SCREENING);
+        assertThat(event.candidateName()).isEqualTo("John Doe");
         assertThat(event.comment()).isEqualTo("Passed");
     }
 
@@ -321,6 +322,23 @@ class ApplicationServiceTest {
     }
 
     @Test
+    @DisplayName("submitFeedback - should throw InvalidStateTransitionException when status is not INTERVIEW")
+    void givenApplicationNotInInterviewStatus_submitFeedback_shouldThrowInvalidStateTransitionException() {
+        ApplicationResponse existing = sampleApplication(ApplicationStatus.APPLIED);
+        SubmitInterviewFeedbackRequest request = new SubmitInterviewFeedbackRequest(
+                "Alex Lead", 4, "Strong skills", InterviewDecision.HIRE
+        );
+
+        when(applicationRepository.findById(APPLICATION_ID)).thenReturn(Optional.of(existing));
+
+        assertThatThrownBy(() -> applicationService.submitFeedback(APPLICATION_ID, request))
+                .isInstanceOf(InvalidStateTransitionException.class)
+                .hasMessageContaining("Expected: INTERVIEW");
+
+        verify(feedbackRepository, never()).save(any());
+    }
+
+    @Test
     @DisplayName("getFeedbacks - should return list of feedbacks")
     void givenExistingApplication_getFeedbacks_shouldReturnList() {
         ApplicationResponse existing = sampleApplication(ApplicationStatus.INTERVIEW);
@@ -355,6 +373,50 @@ class ApplicationServiceTest {
 
         assertThat(result.averageScore()).isEqualTo(4.5);
         assertThat(result.recommendedDecision()).isEqualTo(InterviewDecision.HIRE);
+    }
+
+    @Test
+    @DisplayName("updateStatus - should update matchingScore when provided in request")
+    void givenScoreInRequest_updateStatus_shouldUpdateMatchingScore() {
+        ApplicationResponse existing = sampleApplication(ApplicationStatus.APPLIED);
+        UpdateApplicationStatusRequest request = new UpdateApplicationStatusRequest(
+                ApplicationStatus.SCREENING,
+                "AI screening passed",
+                88
+        );
+
+        when(applicationRepository.findById(APPLICATION_ID)).thenReturn(Optional.of(existing));
+        when(commonGenerator.now()).thenReturn(NOW);
+        when(applicationRepository.save(any(ApplicationResponse.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        ApplicationResponse result = applicationService.updateStatus(APPLICATION_ID, request);
+
+        assertThat(result.status()).isEqualTo(ApplicationStatus.SCREENING);
+        assertThat(result.matchingScore()).isEqualTo(88);
+        assertThat(result.comment()).isEqualTo("AI screening passed");
+    }
+
+    @Test
+    @DisplayName("getApplicationsByVacancy - should sort by score descending with nulls last when sortByScore is true")
+    void givenSortByScore_getApplicationsByVacancy_shouldReturnSortedList() {
+        ApplicationResponse appLow = new ApplicationResponse(
+                UUID.randomUUID(), VACANCY_ID, "Low", "low@test.com", "123", "url",
+                ApplicationStatus.SCREENING, 50, null, NOW, NOW
+        );
+        ApplicationResponse appHigh = new ApplicationResponse(
+                UUID.randomUUID(), VACANCY_ID, "High", "high@test.com", "123", "url",
+                ApplicationStatus.SCREENING, 95, null, NOW, NOW
+        );
+        ApplicationResponse appNull = new ApplicationResponse(
+                UUID.randomUUID(), VACANCY_ID, "None", "none@test.com", "123", "url",
+                ApplicationStatus.APPLIED, null, null, NOW, NOW
+        );
+
+        when(applicationRepository.findByVacancyId(VACANCY_ID)).thenReturn(List.of(appLow, appNull, appHigh));
+
+        List<ApplicationResponse> result = applicationService.getApplicationsByVacancy(VACANCY_ID, true);
+
+        assertThat(result).containsExactly(appHigh, appLow, appNull);
     }
 
     private ApplicationResponse sampleApplication(ApplicationStatus status) {

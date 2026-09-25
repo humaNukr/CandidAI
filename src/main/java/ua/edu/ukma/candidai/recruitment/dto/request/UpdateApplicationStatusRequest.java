@@ -11,5 +11,11 @@ public record UpdateApplicationStatusRequest(
         ApplicationStatus status,
 
         @Size(max = 1000, message = "Comment must not exceed 1000 characters")
-        String comment
-) {}
+        String comment,
+
+        Integer matchingScore
+) {
+    public UpdateApplicationStatusRequest(ApplicationStatus status, String comment) {
+        this(status, comment, null);
+    }
+}

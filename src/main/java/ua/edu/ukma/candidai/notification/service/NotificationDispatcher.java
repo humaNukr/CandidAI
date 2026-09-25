@@ -31,6 +31,19 @@ public class NotificationDispatcher {
         );
     }
 
+    public void dispatchDirect(String fullName, String email, String telegramChatId, String subject, String body) {
+        if ((email == null || email.isBlank()) && (telegramChatId == null || telegramChatId.isBlank())) {
+            log.warn("Cannot send direct notification: neither email nor telegram chat ID provided for {}", fullName);
+            return;
+        }
+        UserNotificationProfile profile = new UserNotificationProfile(null, fullName, email, telegramChatId);
+        dispatchToProfile(profile, subject, body);
+    }
+
+    public void dispatchDirectEmail(String fullName, String email, String subject, String body) {
+        dispatchDirect(fullName, email, null, subject, body);
+    }
+
     private void dispatchToProfile(UserNotificationProfile profile, String subject, String body) {
         for (NotificationSender sender : senders) {
             if (sender.supports(profile)) {
@@ -61,7 +74,8 @@ public class NotificationDispatcher {
             sender.send(profile, subject, body);
             Notification sentRecord = notification.markSent(generator.now());
             notificationRepository.save(sentRecord);
-            log.info("[NOTIFICATION] Sent {} to recipient {}", sender.getChannel(), profile.userId());
+            log.info("[NOTIFICATION] Sent {} to recipient {}", sender.getChannel(),
+                    profile.userId() != null ? profile.userId() : profile.email());
         } catch (Exception e) {
             log.error("Failed to send notification via {}: {}", sender.getChannel(), e.getMessage());
             Notification failedRecord = notification.markFailed(e.getMessage());
