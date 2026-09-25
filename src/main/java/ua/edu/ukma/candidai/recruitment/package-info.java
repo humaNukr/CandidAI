@@ -1,4 +1,4 @@
 @org.springframework.modulith.ApplicationModule(
-        allowedDependencies = "common"
+        allowedDependencies = {"common", "vacancy", "vacancy::model"}
 )
 package ua.edu.ukma.candidai.recruitment;

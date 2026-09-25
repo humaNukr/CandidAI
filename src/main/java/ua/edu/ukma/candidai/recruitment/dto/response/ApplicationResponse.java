@@ -8,12 +8,15 @@ import java.util.UUID;
 public record ApplicationResponse(
         UUID id,
         UUID vacancyId,
+        UUID candidateId,
         String candidateName,
         String email,
         String phone,
         String resumeUrl,
         ApplicationStatus status,
+        Integer matchingScore,
         String comment,
         Instant appliedAt,
         Instant updatedAt
-) {}
+) {
+}

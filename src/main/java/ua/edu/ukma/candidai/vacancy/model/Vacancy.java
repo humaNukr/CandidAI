@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
+import ua.edu.ukma.candidai.common.exception.InvalidStateTransitionException;
 import ua.edu.ukma.candidai.vacancy.dto.request.CreateVacancyRequest;
 
 import java.math.BigDecimal;
@@ -27,6 +28,7 @@ public class Vacancy {
     private UUID id;
     private UUID authorId;
     private UUID assignedRecruiterId;
+    private UUID companyId;
     private String title;
     private JobCategory category;
     private String specialization;
@@ -51,10 +53,19 @@ public class Vacancy {
     private Instant updatedAt;
 
     public static Vacancy create(CreateVacancyRequest request, UUID id, Instant now) {
+        VacancyStatus initialStatus = request.status() != null ? request.status() : VacancyStatus.OPEN;
+        if (initialStatus != VacancyStatus.DRAFT && initialStatus != VacancyStatus.OPEN) {
+            throw new InvalidStateTransitionException(
+                    "Initial vacancy status must be DRAFT or OPEN, got: " + initialStatus
+            );
+        }
+        Instant publishedAt = (initialStatus == VacancyStatus.OPEN) ? now : null;
+
         return Vacancy.builder()
                 .id(id)
                 .authorId(request.authorId())
                 .assignedRecruiterId(request.assignedRecruiterId())
+                .companyId(request.companyId())
                 .title(request.title())
                 .category(request.category())
                 .specialization(request.specialization())
@@ -70,9 +81,9 @@ public class Vacancy {
                 .employmentType(request.employmentType())
                 .locationType(request.locationType())
                 .location(request.location())
-                .status(VacancyStatus.OPEN)
+                .status(initialStatus)
                 .deleted(false)
-                .publishedAt(now)
+                .publishedAt(publishedAt)
                 .expiresAt(request.expiresAt())
                 .createdAt(now)
                 .updatedAt(now)
@@ -80,6 +91,14 @@ public class Vacancy {
     }
 
     public void updateStatus(VacancyStatus status, Instant updatedAt) {
+        if (!this.status.canTransitionTo(status)) {
+            throw new InvalidStateTransitionException(
+                    "Cannot transition vacancy status from " + this.status + " to " + status
+            );
+        }
+        if (this.status == VacancyStatus.DRAFT && status == VacancyStatus.OPEN) {
+            this.publishedAt = updatedAt;
+        }
         this.status = status;
         this.updatedAt = updatedAt;
     }

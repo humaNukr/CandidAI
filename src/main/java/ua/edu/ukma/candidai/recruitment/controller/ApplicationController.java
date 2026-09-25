@@ -9,62 +9,34 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
-import ua.edu.ukma.candidai.common.exception.ResourceNotFoundException;
-import ua.edu.ukma.candidai.common.util.CommonGenerator;
-import ua.edu.ukma.candidai.recruitment.dto.model.ApplicationStatus;
 import ua.edu.ukma.candidai.recruitment.dto.request.ApplyForVacancyRequest;
 import ua.edu.ukma.candidai.recruitment.dto.request.SubmitInterviewFeedbackRequest;
 import ua.edu.ukma.candidai.recruitment.dto.request.UpdateApplicationStatusRequest;
 import ua.edu.ukma.candidai.recruitment.dto.response.ApplicationResponse;
 import ua.edu.ukma.candidai.recruitment.dto.response.InterviewFeedbackResponse;
+import ua.edu.ukma.candidai.recruitment.service.ApplicationService;
+import ua.edu.ukma.candidai.recruitment.service.strategy.EvaluationResult;
 
 import java.net.URI;
-import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 @RestController
 @RequestMapping("/api/v1/applications")
 @RequiredArgsConstructor
 public class ApplicationController {
 
-    private final CommonGenerator generator;
-    private final Map<UUID, ApplicationResponse> applications = new ConcurrentHashMap<>();
-    private final Map<UUID, List<InterviewFeedbackResponse>> feedbacks = new ConcurrentHashMap<>();
+    private final ApplicationService applicationService;
 
     @PatchMapping("/{id}/status")
     public ApplicationResponse updateApplicationStatus(
             @PathVariable UUID id,
             @RequestBody @Valid UpdateApplicationStatusRequest request
     ) {
-        ApplicationResponse existing = applications.get(id);
-        if (existing == null) {
-            throw new ResourceNotFoundException("Application not found with id: " + id);
-        }
-
-        Instant now = generator.now();
-        String comment = request.comment() != null ? request.comment() : existing.comment();
-
-        ApplicationResponse updated = new ApplicationResponse(
-                existing.id(),
-                existing.vacancyId(),
-                existing.candidateName(),
-                existing.email(),
-                existing.phone(),
-                existing.resumeUrl(),
-                request.status(),
-                comment,
-                existing.appliedAt(),
-                now
-        );
-
-        applications.put(id, updated);
-        return updated;
+        return applicationService.updateStatus(id, request);
     }
 
     @PostMapping("/{id}/feedbacks")
@@ -72,26 +44,10 @@ public class ApplicationController {
             @PathVariable UUID id,
             @RequestBody @Valid SubmitInterviewFeedbackRequest request
     ) {
-        if (!applications.containsKey(id)) {
-            throw new ResourceNotFoundException("Application not found with id: " + id);
-        }
-
-        UUID feedbackId = generator.uuid();
-        InterviewFeedbackResponse feedback = new InterviewFeedbackResponse(
-                feedbackId,
-                id,
-                request.interviewerName(),
-                request.technicalScore(),
-                request.notes(),
-                request.decision(),
-                generator.now()
-        );
-
-        feedbacks.computeIfAbsent(id, k -> new CopyOnWriteArrayList<>()).add(feedback);
-
+        InterviewFeedbackResponse feedback = applicationService.submitFeedback(id, request);
         URI location = ServletUriComponentsBuilder.fromCurrentRequest()
                 .path("/{feedbackId}")
-                .buildAndExpand(feedbackId)
+                .buildAndExpand(feedback.id())
                 .toUri();
 
         return ResponseEntity.created(location).body(feedback);
@@ -101,47 +57,37 @@ public class ApplicationController {
     public ResponseEntity<ApplicationResponse> applyForVacancy(
             @RequestBody @Valid ApplyForVacancyRequest request
     ) {
-        UUID id = generator.uuid();
-        Instant now = generator.now();
-        ApplicationResponse application = new ApplicationResponse(
-                id,
-                request.vacancyId(),
-                request.candidateName(),
-                request.email(),
-                request.phone(),
-                request.resumeUrl(),
-                ApplicationStatus.APPLIED,
-                null,
-                now,
-                now
-        );
-        applications.put(id, application);
+        ApplicationResponse application = applicationService.apply(request);
         URI location = ServletUriComponentsBuilder.fromCurrentRequest()
                 .path("/{id}")
-                .buildAndExpand(id)
+                .buildAndExpand(application.id())
                 .toUri();
         return ResponseEntity.created(location).body(application);
     }
 
+    @GetMapping
+    public List<ApplicationResponse> getApplications(
+            @RequestParam(required = false) UUID vacancyId,
+            @RequestParam(required = false, defaultValue = "false") boolean sortByScore
+    ) {
+        if (vacancyId != null) {
+            return applicationService.getApplicationsByVacancy(vacancyId, sortByScore);
+        }
+        return List.of();
+    }
+
     @GetMapping("/{id}")
     public ApplicationResponse getApplicationById(@PathVariable UUID id) {
-        ApplicationResponse application = applications.get(id);
-        if (application == null) {
-            throw new ResourceNotFoundException("Application not found with id: " + id);
-        }
-        return application;
+        return applicationService.getById(id);
     }
 
     @GetMapping("/{id}/feedbacks")
     public List<InterviewFeedbackResponse> getFeedbacks(@PathVariable UUID id) {
-        if (!applications.containsKey(id)) {
-            throw new ResourceNotFoundException("Application not found with id: " + id);
-        }
-
-        return feedbacks.getOrDefault(id, List.of());
+        return applicationService.getFeedbacks(id);
     }
 
-    public void saveApplication(ApplicationResponse application) {
-        applications.put(application.id(), application);
+    @GetMapping("/{id}/evaluation")
+    public EvaluationResult getEvaluation(@PathVariable UUID id) {
+        return applicationService.evaluateCandidate(id);
     }
 }

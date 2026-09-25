@@ -15,6 +15,7 @@ public record VacancyResponse(
         UUID id,
         UUID authorId,
         UUID assignedRecruiterId,
+        UUID companyId,
         String title,
         JobCategory category,
         String specialization,
