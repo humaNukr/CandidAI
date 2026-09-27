@@ -1,7 +1,6 @@
 -- liquibase formatted sql
 
 -- changeset artem:V20260927_104600_setup_tables
--- 1. Користувачі
 CREATE TABLE IF NOT EXISTS users (
     id UUID PRIMARY KEY,
     full_name VARCHAR(120) NOT NULL,
@@ -12,7 +11,6 @@ CREATE TABLE IF NOT EXISTS users (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
--- 2. Компанії (Батьківська для вакансій)
 CREATE TABLE IF NOT EXISTS companies (
     id UUID PRIMARY KEY,
     name VARCHAR(120) NOT NULL UNIQUE,
@@ -22,7 +20,6 @@ CREATE TABLE IF NOT EXISTS companies (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
--- 3. Вакансії (Належать компанії)
 CREATE TABLE IF NOT EXISTS vacancies (
     id UUID PRIMARY KEY,
     company_id UUID NOT NULL,
@@ -52,7 +49,6 @@ CREATE TABLE IF NOT EXISTS vacancies (
     CONSTRAINT fk_vacancy_author FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE SET NULL
 );
 
--- 4. Навички (Для ManyToMany зв'язку з вакансіями)
 CREATE TABLE IF NOT EXISTS skills (
     id UUID PRIMARY KEY,
     name VARCHAR(50) NOT NULL UNIQUE
@@ -66,7 +62,6 @@ CREATE TABLE IF NOT EXISTS vacancy_skills (
     CONSTRAINT fk_vs_skill FOREIGN KEY (skill_id) REFERENCES skills(id) ON DELETE CASCADE
 );
 
--- 5. Заявки кандидатів
 CREATE TABLE IF NOT EXISTS applications (
     id UUID PRIMARY KEY,
     vacancy_id UUID NOT NULL,
@@ -84,7 +79,6 @@ CREATE TABLE IF NOT EXISTS applications (
     CONSTRAINT fk_app_candidate FOREIGN KEY (candidate_id) REFERENCES users(id) ON DELETE SET NULL
 );
 
--- 6. Відгуки співбесід (Належать заявці, OneToMany з orphanRemoval)
 CREATE TABLE IF NOT EXISTS interview_feedbacks (
     id UUID PRIMARY KEY,
     application_id UUID NOT NULL,
