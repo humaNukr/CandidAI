@@ -1,5 +1,6 @@
 package ua.edu.ukma.candidai.company;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.test.web.servlet.MvcResult;
 import tools.jackson.databind.ObjectMapper;
@@ -11,6 +12,7 @@ import ua.edu.ukma.candidai.company.model.Company;
 import ua.edu.ukma.candidai.vacancy.model.Vacancy;
 import ua.edu.ukma.candidai.vacancy.model.VacancyStatus;
 
+import java.net.URI;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -195,6 +197,68 @@ public final class CompanyTestResources {
                 .contactEmail(DEFAULT_CONTACT_EMAIL)
                 .createdAt(DEFAULT_CREATED_AT)
                 .vacancies(new ArrayList<>());
+    }
+
+    public static Company expectedCreatedCompany() {
+        return Company.builder()
+                .name(DEFAULT_NAME)
+                .description(DEFAULT_DESCRIPTION)
+                .logoUrl(DEFAULT_LOGO_URL)
+                .contactEmail(DEFAULT_CONTACT_EMAIL)
+                .build();
+    }
+
+    public static CompanyResponse sampleCompanyResponseWithActiveVacancies(int activeVacanciesCount) {
+        return new CompanyResponse(
+                DEFAULT_COMPANY_ID,
+                DEFAULT_NAME,
+                DEFAULT_DESCRIPTION,
+                DEFAULT_LOGO_URL,
+                DEFAULT_CONTACT_EMAIL,
+                DEFAULT_CREATED_AT,
+                activeVacanciesCount
+        );
+    }
+
+    public static ProblemDetail expectedNotFoundProblemDetail(UUID id) {
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
+                HttpStatus.NOT_FOUND,
+                expectedCompanyNotFoundMessage(id)
+        );
+        problemDetail.setTitle("Resource Not Found");
+        problemDetail.setType(URI.create("https://candidai.ukma.edu.ua/errors/not-found"));
+        problemDetail.setInstance(URI.create(BASE_URL + "/" + id));
+        problemDetail.setProperty("timestamp", Instant.EPOCH);
+        return problemDetail;
+    }
+
+    public static ProblemDetail expectedConflictProblemDetail(String name) {
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
+                HttpStatus.CONFLICT,
+                expectedDuplicateCompanyNameMessage(name)
+        );
+        problemDetail.setTitle("Resource Conflict");
+        problemDetail.setType(URI.create("https://candidai.ukma.edu.ua/errors/conflict"));
+        problemDetail.setInstance(URI.create(BASE_URL));
+        problemDetail.setProperty("timestamp", Instant.EPOCH);
+        return problemDetail;
+    }
+
+    public static ProblemDetail expectedValidationProblemDetail(URI instance, Map<String, String> errors) {
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
+                HttpStatus.BAD_REQUEST,
+                "Input validation failed"
+        );
+        problemDetail.setTitle("Validation Error");
+        problemDetail.setType(URI.create("https://candidai.ukma.edu.ua/errors/validation"));
+        problemDetail.setInstance(instance);
+        problemDetail.setProperty("errors", errors);
+        problemDetail.setProperty("timestamp", Instant.EPOCH);
+        return problemDetail;
+    }
+
+    public static ProblemDetail expectedValidationProblemDetail(Map<String, String> errors) {
+        return expectedValidationProblemDetail(URI.create(BASE_URL), errors);
     }
 
     public static Vacancy sampleVacancy() {

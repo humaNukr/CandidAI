@@ -20,14 +20,8 @@ class CandidAiApplicationTest {
     @Test
     @DisplayName("contextLoads - should load application context successfully")
     void givenApplication_contextLoads_shouldStartContext() {
-        // Setup / Fixtures
-
-        // Stubbing / Mocking
-
-        // Execution / Action
         boolean isRunning = applicationContext.getId() != null;
 
-        // Assertions / Verification
         assertThat(isRunning).isTrue();
         assertThat(applicationContext).isNotNull();
     }
