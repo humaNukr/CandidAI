@@ -1,13 +1,23 @@
 package ua.edu.ukma.candidai.recruitment.repository;
 
-import ua.edu.ukma.candidai.recruitment.dto.response.InterviewFeedbackResponse;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
+import ua.edu.ukma.candidai.recruitment.model.InterviewFeedback;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
-public interface InterviewFeedbackRepository {
+@Repository
+public interface InterviewFeedbackRepository extends JpaRepository<InterviewFeedback, UUID> {
 
-    InterviewFeedbackResponse save(InterviewFeedbackResponse feedback);
+    List<InterviewFeedback> findByApplicationId(UUID applicationId);
 
-    List<InterviewFeedbackResponse> findByApplicationId(UUID applicationId);
+    @Query("SELECT f FROM InterviewFeedback f JOIN FETCH f.application WHERE f.id = :id")
+    Optional<InterviewFeedback> findByIdWithApplication(@Param("id") UUID id);
+
+    @Query("SELECT f FROM InterviewFeedback f JOIN FETCH f.application WHERE f.application.id = :applicationId")
+    List<InterviewFeedback> findAllByApplicationIdWithApplication(@Param("applicationId") UUID applicationId);
 }
