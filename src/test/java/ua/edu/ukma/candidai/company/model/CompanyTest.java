@@ -14,15 +14,14 @@ import static ua.edu.ukma.candidai.company.CompanyTestResources.sampleVacancy;
 class CompanyTest {
 
     @Test
-    @DisplayName("addVacancy - should maintain bidirectional relationship with vacancy")
-    void givenCompanyAndVacancy_addVacancy_shouldMaintainBidirectionalRelation() {
+    @DisplayName("addVacancy - should maintain relationship with vacancy")
+    void givenCompanyAndVacancy_addVacancy_shouldMaintainRelation() {
         Company company = sampleCompany();
         Vacancy vacancy = sampleVacancy();
 
         company.addVacancy(vacancy);
 
         assertThat(company.getVacancies()).contains(vacancy);
-        assertThat(vacancy.getCompany()).isSameAs(company);
         assertThat(vacancy.getCompanyId()).isEqualTo(DEFAULT_COMPANY_ID);
     }
 
@@ -37,8 +36,8 @@ class CompanyTest {
     }
 
     @Test
-    @DisplayName("removeVacancy - should maintain bidirectional relationship when removing vacancy")
-    void givenCompanyAndVacancy_removeVacancy_shouldMaintainBidirectionalRelation() {
+    @DisplayName("removeVacancy - should maintain relationship when removing vacancy")
+    void givenCompanyAndVacancy_removeVacancy_shouldMaintainRelation() {
         Company company = sampleCompany();
         Vacancy vacancy = sampleVacancy();
         company.addVacancy(vacancy);
@@ -46,7 +45,6 @@ class CompanyTest {
         company.removeVacancy(vacancy);
 
         assertThat(company.getVacancies()).doesNotContain(vacancy);
-        assertThat(vacancy.getCompany()).isNull();
         assertThat(vacancy.getCompanyId()).isNull();
     }
 

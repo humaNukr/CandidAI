@@ -4,6 +4,7 @@ import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
@@ -49,7 +50,8 @@ public class Company {
     private Instant createdAt;
 
     @Builder.Default
-    @OneToMany(mappedBy = "company", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
+    @JoinColumn(name = "company_id")
     private List<Vacancy> vacancies = new ArrayList<>();
 
     public void addVacancy(Vacancy vacancy) {
@@ -60,7 +62,6 @@ public class Company {
             this.vacancies = new ArrayList<>();
         }
         this.vacancies.add(vacancy);
-        vacancy.setCompany(this);
         vacancy.setCompanyId(this.id);
     }
 
@@ -71,7 +72,6 @@ public class Company {
         if (this.vacancies != null) {
             this.vacancies.remove(vacancy);
         }
-        vacancy.setCompany(null);
         vacancy.setCompanyId(null);
     }
 }

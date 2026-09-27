@@ -20,6 +20,9 @@ class CandidAiApplicationTest {
     @MockitoBean
     private EntityManagerFactory entityManagerFactory;
 
+    @MockitoBean
+    private ua.edu.ukma.candidai.company.repository.CompanyRepository companyRepository;
+
     @Test
     @DisplayName("contextLoads - should load application context successfully")
     void givenApplication_contextLoads_shouldStartContext() {

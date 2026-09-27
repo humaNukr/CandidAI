@@ -3,10 +3,7 @@ package ua.edu.ukma.candidai.vacancy.model;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.Transient;
 import lombok.AllArgsConstructor;
@@ -17,7 +14,6 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 import ua.edu.ukma.candidai.common.exception.InvalidStateTransitionException;
-import ua.edu.ukma.candidai.company.model.Company;
 import ua.edu.ukma.candidai.vacancy.dto.request.CreateVacancyRequest;
 
 import java.math.BigDecimal;
@@ -45,11 +41,6 @@ public class Vacancy {
     private UUID assignedRecruiterId;
 
     private UUID companyId;
-
-    @ToString.Exclude
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "company_id", insertable = false, updatable = false)
-    private Company company;
 
     private String title;
 
