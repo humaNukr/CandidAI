@@ -1,5 +1,8 @@
 package ua.edu.ukma.candidai.company;
 
+import org.springframework.http.ProblemDetail;
+import org.springframework.test.web.servlet.MvcResult;
+import tools.jackson.databind.ObjectMapper;
 import ua.edu.ukma.candidai.company.dto.request.CreateCompanyRequest;
 import ua.edu.ukma.candidai.company.dto.request.UpdateCompanyRequest;
 import ua.edu.ukma.candidai.company.dto.response.CompanyResponse;
@@ -10,10 +13,13 @@ import ua.edu.ukma.candidai.vacancy.model.VacancyStatus;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 public final class CompanyTestResources {
 
+    public static final String BASE_URL = "/api/v1/companies";
     public static final UUID DEFAULT_COMPANY_ID = UUID.fromString("00000000-0000-0000-0000-000000000010");
     public static final UUID NON_EXISTENT_COMPANY_ID = UUID.fromString("00000000-0000-0000-0000-000000000099");
     public static final String DEFAULT_NAME = "TechCorp";
@@ -27,7 +33,48 @@ public final class CompanyTestResources {
     public static final String UPDATED_LOGO_URL = "https://newtechcorp.com/logo.png";
     public static final String UPDATED_CONTACT_EMAIL = "info@newtechcorp.com";
 
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
     private CompanyTestResources() {
+    }
+
+    public static <T> T parseResponse(ObjectMapper objectMapper, MvcResult result, Class<T> clazz) throws Exception {
+        return objectMapper.readValue(result.getResponse().getContentAsString(), clazz);
+    }
+
+    public static <T> T parseResponse(MvcResult result, Class<T> clazz) throws Exception {
+        return parseResponse(OBJECT_MAPPER, result, clazz);
+    }
+
+    public static <T> List<T> parseResponseList(
+            ObjectMapper objectMapper,
+            MvcResult result,
+            Class<T> elementType
+    ) throws Exception {
+        return objectMapper.readValue(
+                result.getResponse().getContentAsString(),
+                objectMapper.getTypeFactory().constructCollectionType(List.class, elementType)
+        );
+    }
+
+    public static <T> List<T> parseResponseList(MvcResult result, Class<T> elementType) throws Exception {
+        return parseResponseList(OBJECT_MAPPER, result, elementType);
+    }
+
+    public static ProblemDetail parseProblemDetail(
+            ObjectMapper objectMapper,
+            MvcResult result
+    ) throws Exception {
+        return objectMapper.readValue(result.getResponse().getContentAsString(), ProblemDetail.class);
+    }
+
+    public static ProblemDetail parseProblemDetail(MvcResult result) throws Exception {
+        return parseProblemDetail(OBJECT_MAPPER, result);
+    }
+
+    @SuppressWarnings("unchecked")
+    public static Map<String, String> extractErrors(ProblemDetail problemDetail) {
+        return (Map<String, String>) problemDetail.getProperties().get("errors");
     }
 
     public static CreateCompanyRequest sampleCreateCompanyRequest() {
