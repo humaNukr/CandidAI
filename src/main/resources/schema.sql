@@ -1,6 +1,3 @@
--- liquibase formatted sql
-
--- changeset artem:V20260927_104600_setup_tables
 -- 1. Користувачі
 CREATE TABLE IF NOT EXISTS users (
     id UUID PRIMARY KEY,
