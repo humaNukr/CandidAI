@@ -22,33 +22,11 @@ import ua.edu.ukma.candidai.company.service.CompanyService;
 
 import java.util.List;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static ua.edu.ukma.candidai.company.CompanyTestResources.BASE_URL;
-import static ua.edu.ukma.candidai.company.CompanyTestResources.DEFAULT_COMPANY_ID;
-import static ua.edu.ukma.candidai.company.CompanyTestResources.DEFAULT_CONTACT_EMAIL;
-import static ua.edu.ukma.candidai.company.CompanyTestResources.DEFAULT_DESCRIPTION;
-import static ua.edu.ukma.candidai.company.CompanyTestResources.DEFAULT_LOGO_URL;
-import static ua.edu.ukma.candidai.company.CompanyTestResources.NON_EXISTENT_COMPANY_ID;
-import static ua.edu.ukma.candidai.company.CompanyTestResources.UPDATED_CONTACT_EMAIL;
-import static ua.edu.ukma.candidai.company.CompanyTestResources.UPDATED_DESCRIPTION;
-import static ua.edu.ukma.candidai.company.CompanyTestResources.UPDATED_LOGO_URL;
-import static ua.edu.ukma.candidai.company.CompanyTestResources.expectedCompanyNotFoundMessage;
-import static ua.edu.ukma.candidai.company.CompanyTestResources.expectedDuplicateCompanyNameMessage;
-import static ua.edu.ukma.candidai.company.CompanyTestResources.extractErrors;
-import static ua.edu.ukma.candidai.company.CompanyTestResources.sampleCompanyResponse;
-import static ua.edu.ukma.candidai.company.CompanyTestResources.sampleCompanySummaryResponse;
-import static ua.edu.ukma.candidai.company.CompanyTestResources.sampleCreateCompanyRequest;
-import static ua.edu.ukma.candidai.company.CompanyTestResources.sampleUpdateCompanyRequest;
-import static ua.edu.ukma.candidai.company.CompanyTestResources.sampleUpdatedCompanyResponse;
+import static org.assertj.core.api.Assertions.*;
+import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static ua.edu.ukma.candidai.company.CompanyTestResources.*;
 
 @WebMvcTest(CompanyController.class)
 class CompanyControllerTest {
@@ -163,12 +141,12 @@ class CompanyControllerTest {
     }
 
     @Test
-    @DisplayName("GET /api/v1/companies - should return 200 Ok with all companies when no search param")
-    void givenNoSearchParam_getAllCompanies_shouldReturn200OkWithAllCompanies() throws Exception {
+    @DisplayName("GET /api/v1/companies - should return 200 Ok with all companies when no name param")
+    void givenNoNameParam_getCompanies_shouldReturn200OkWithAllCompanies() throws Exception {
         CompanySummaryResponse summary = sampleCompanySummaryResponse();
         List<CompanySummaryResponse> expectedList = List.of(summary);
 
-        when(companyService.getAllCompanies(null)).thenReturn(expectedList);
+        when(companyService.getCompanies(null)).thenReturn(expectedList);
 
         MvcResult result = mockMvc.perform(get(BASE_URL))
                 .andExpect(status().isOk())
@@ -180,15 +158,15 @@ class CompanyControllerTest {
     }
 
     @Test
-    @DisplayName("GET /api/v1/companies - should return 200 Ok with filtered companies when search param provided")
-    void givenSearchParam_getAllCompanies_shouldReturn200OkWithFilteredCompanies() throws Exception {
-        String search = "Tech";
+    @DisplayName("GET /api/v1/companies - should return 200 Ok with filtered companies when name param provided")
+    void givenNameParam_getCompanies_shouldReturn200OkWithFilteredCompanies() throws Exception {
+        String name = "Tech";
         CompanySummaryResponse summary = sampleCompanySummaryResponse();
         List<CompanySummaryResponse> expectedList = List.of(summary);
 
-        when(companyService.getAllCompanies(search)).thenReturn(expectedList);
+        when(companyService.getCompanies(name)).thenReturn(expectedList);
 
-        MvcResult result = mockMvc.perform(get(BASE_URL).param("search", search))
+        MvcResult result = mockMvc.perform(get(BASE_URL).param("name", name))
                 .andExpect(status().isOk())
                 .andReturn();
 

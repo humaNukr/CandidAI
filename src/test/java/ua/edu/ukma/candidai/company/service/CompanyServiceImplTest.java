@@ -15,28 +15,14 @@ import ua.edu.ukma.candidai.company.dto.response.CompanySummaryResponse;
 import ua.edu.ukma.candidai.company.model.Company;
 import ua.edu.ukma.candidai.company.repository.CompanyRepository;
 
+import ua.edu.ukma.candidai.common.util.CommonGenerator;
+
 import java.util.List;
 import java.util.Optional;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-import static ua.edu.ukma.candidai.company.CompanyTestResources.DEFAULT_COMPANY_ID;
-import static ua.edu.ukma.candidai.company.CompanyTestResources.DEFAULT_NAME;
-import static ua.edu.ukma.candidai.company.CompanyTestResources.NON_EXISTENT_COMPANY_ID;
-import static ua.edu.ukma.candidai.company.CompanyTestResources.UPDATED_CONTACT_EMAIL;
-import static ua.edu.ukma.candidai.company.CompanyTestResources.UPDATED_DESCRIPTION;
-import static ua.edu.ukma.candidai.company.CompanyTestResources.UPDATED_LOGO_URL;
-import static ua.edu.ukma.candidai.company.CompanyTestResources.expectedCompanyNotFoundMessage;
-import static ua.edu.ukma.candidai.company.CompanyTestResources.expectedDuplicateCompanyNameMessage;
-import static ua.edu.ukma.candidai.company.CompanyTestResources.sampleCompany;
-import static ua.edu.ukma.candidai.company.CompanyTestResources.sampleCompanyResponse;
-import static ua.edu.ukma.candidai.company.CompanyTestResources.sampleCompanySummaryResponse;
-import static ua.edu.ukma.candidai.company.CompanyTestResources.sampleCompanyWithVacancies;
-import static ua.edu.ukma.candidai.company.CompanyTestResources.sampleCreateCompanyRequest;
-import static ua.edu.ukma.candidai.company.CompanyTestResources.sampleUpdateCompanyRequest;
-import static ua.edu.ukma.candidai.company.CompanyTestResources.sampleUpdatedCompanyResponse;
+import static org.assertj.core.api.Assertions.*;
+import static org.mockito.Mockito.*;
+import static ua.edu.ukma.candidai.company.CompanyTestResources.*;
 
 @ExtendWith(MockitoExtension.class)
 class CompanyServiceImplTest {
@@ -46,6 +32,9 @@ class CompanyServiceImplTest {
 
     @Mock
     private CompanyMapper companyMapper;
+
+    @Mock
+    private CommonGenerator commonGenerator;
 
     @InjectMocks
     private CompanyServiceImpl companyService;
@@ -61,6 +50,8 @@ class CompanyServiceImplTest {
         // Stubbing / Mocking
         when(companyRepository.existsByNameIgnoreCase(request.name())).thenReturn(false);
         when(companyMapper.toEntity(request)).thenReturn(company);
+        when(commonGenerator.uuid()).thenReturn(DEFAULT_COMPANY_ID);
+        when(commonGenerator.now()).thenReturn(DEFAULT_CREATED_AT);
         when(companyRepository.save(company)).thenReturn(company);
         when(companyMapper.toResponse(company)).thenReturn(expectedResponse);
 
@@ -119,10 +110,10 @@ class CompanyServiceImplTest {
     }
 
     @Test
-    @DisplayName("getAllCompanies should return matching companies when search keyword is provided")
-    void givenSearchKeyword_getAllCompanies_shouldReturnMatchingCompanies() {
+    @DisplayName("getCompanies should return matching companies when name keyword is provided")
+    void givenNameKeyword_getCompanies_shouldReturnMatchingCompanies() {
         // Setup / Fixtures
-        String search = "Tech";
+        String name = "Tech";
         Company company = sampleCompany();
         CompanySummaryResponse summaryResponse = sampleCompanySummaryResponse();
 
@@ -131,15 +122,15 @@ class CompanyServiceImplTest {
         when(companyMapper.toSummaryResponse(company)).thenReturn(summaryResponse);
 
         // Execution / Action
-        List<CompanySummaryResponse> response = companyService.getAllCompanies(search);
+        List<CompanySummaryResponse> response = companyService.getCompanies(name);
 
         // Assertions / Verification
         assertThat(response).containsExactly(summaryResponse);
     }
 
     @Test
-    @DisplayName("getAllCompanies should return all companies when search is blank")
-    void givenBlankSearch_getAllCompanies_shouldReturnAllCompanies() {
+    @DisplayName("getCompanies should return all companies when name is blank")
+    void givenBlankName_getCompanies_shouldReturnAllCompanies() {
         // Setup / Fixtures
         Company company = sampleCompany();
         CompanySummaryResponse summaryResponse = sampleCompanySummaryResponse();
@@ -149,15 +140,15 @@ class CompanyServiceImplTest {
         when(companyMapper.toSummaryResponse(company)).thenReturn(summaryResponse);
 
         // Execution / Action
-        List<CompanySummaryResponse> response = companyService.getAllCompanies("   ");
+        List<CompanySummaryResponse> response = companyService.getCompanies("   ");
 
         // Assertions / Verification
         assertThat(response).containsExactly(summaryResponse);
     }
 
     @Test
-    @DisplayName("getAllCompanies should return all companies when search is null")
-    void givenNullSearch_getAllCompanies_shouldReturnAllCompanies() {
+    @DisplayName("getCompanies should return all companies when name is null")
+    void givenNullName_getCompanies_shouldReturnAllCompanies() {
         // Setup / Fixtures
         Company company = sampleCompany();
         CompanySummaryResponse summaryResponse = sampleCompanySummaryResponse();
@@ -167,7 +158,7 @@ class CompanyServiceImplTest {
         when(companyMapper.toSummaryResponse(company)).thenReturn(summaryResponse);
 
         // Execution / Action
-        List<CompanySummaryResponse> response = companyService.getAllCompanies(null);
+        List<CompanySummaryResponse> response = companyService.getCompanies(null);
 
         // Assertions / Verification
         assertThat(response).containsExactly(summaryResponse);

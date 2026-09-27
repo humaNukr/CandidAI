@@ -12,12 +12,9 @@ import ua.edu.ukma.candidai.company.repository.CompanyRepository;
 
 import java.util.Optional;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
-import static ua.edu.ukma.candidai.company.CompanyTestResources.DEFAULT_COMPANY_ID;
-import static ua.edu.ukma.candidai.company.CompanyTestResources.NON_EXISTENT_COMPANY_ID;
-import static ua.edu.ukma.candidai.company.CompanyTestResources.sampleCompany;
-import static ua.edu.ukma.candidai.company.CompanyTestResources.sampleCompanyResponse;
+import static org.assertj.core.api.Assertions.*;
+import static org.mockito.Mockito.*;
+import static ua.edu.ukma.candidai.company.CompanyTestResources.*;
 
 @ExtendWith(MockitoExtension.class)
 class CompanyApiImplTest {

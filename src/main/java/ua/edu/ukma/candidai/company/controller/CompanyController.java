@@ -46,10 +46,10 @@ public class CompanyController {
     }
 
     @GetMapping
-    public List<CompanySummaryResponse> getAllCompanies(
-            @RequestParam(name = "search", required = false) String search
+    public List<CompanySummaryResponse> getCompanies(
+            @RequestParam(name = "name", required = false) String name
     ) {
-        return companyService.getAllCompanies(search);
+        return companyService.getCompanies(name);
     }
 
     @PutMapping("/{id}")

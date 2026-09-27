@@ -7,6 +7,10 @@ public enum VacancyStatus {
     CLOSED,
     ARCHIVED;
 
+    public boolean isInitial() {
+        return this == DRAFT || this == OPEN;
+    }
+
     public boolean canTransitionTo(VacancyStatus target) {
         if (this == target) {
             return true;

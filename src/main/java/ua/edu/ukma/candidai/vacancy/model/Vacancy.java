@@ -95,7 +95,7 @@ public class Vacancy {
 
     public static Vacancy create(CreateVacancyRequest request, UUID id, Instant now) {
         VacancyStatus initialStatus = request.status() != null ? request.status() : VacancyStatus.OPEN;
-        if (initialStatus != VacancyStatus.DRAFT && initialStatus != VacancyStatus.OPEN) {
+        if (!initialStatus.isInitial()) {
             throw new InvalidStateTransitionException(
                     "Initial vacancy status must be DRAFT or OPEN, got: " + initialStatus
             );

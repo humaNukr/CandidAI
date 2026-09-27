@@ -9,21 +9,8 @@ import ua.edu.ukma.candidai.company.dto.response.CompanyResponse;
 import ua.edu.ukma.candidai.company.dto.response.CompanySummaryResponse;
 import ua.edu.ukma.candidai.company.model.Company;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static ua.edu.ukma.candidai.company.CompanyTestResources.DEFAULT_COMPANY_ID;
-import static ua.edu.ukma.candidai.company.CompanyTestResources.DEFAULT_CONTACT_EMAIL;
-import static ua.edu.ukma.candidai.company.CompanyTestResources.DEFAULT_CREATED_AT;
-import static ua.edu.ukma.candidai.company.CompanyTestResources.DEFAULT_DESCRIPTION;
-import static ua.edu.ukma.candidai.company.CompanyTestResources.DEFAULT_LOGO_URL;
-import static ua.edu.ukma.candidai.company.CompanyTestResources.DEFAULT_NAME;
-import static ua.edu.ukma.candidai.company.CompanyTestResources.UPDATED_CONTACT_EMAIL;
-import static ua.edu.ukma.candidai.company.CompanyTestResources.UPDATED_DESCRIPTION;
-import static ua.edu.ukma.candidai.company.CompanyTestResources.UPDATED_LOGO_URL;
-import static ua.edu.ukma.candidai.company.CompanyTestResources.UPDATED_NAME;
-import static ua.edu.ukma.candidai.company.CompanyTestResources.sampleCompany;
-import static ua.edu.ukma.candidai.company.CompanyTestResources.sampleCompanyWithVacancies;
-import static ua.edu.ukma.candidai.company.CompanyTestResources.sampleCreateCompanyRequest;
-import static ua.edu.ukma.candidai.company.CompanyTestResources.sampleUpdateCompanyRequest;
+import static org.assertj.core.api.Assertions.*;
+import static ua.edu.ukma.candidai.company.CompanyTestResources.*;
 
 class CompanyMapperTest {
 

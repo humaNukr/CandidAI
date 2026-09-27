@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ua.edu.ukma.candidai.common.exception.DuplicateResourceException;
 import ua.edu.ukma.candidai.common.exception.ResourceNotFoundException;
+import ua.edu.ukma.candidai.common.util.CommonGenerator;
 import ua.edu.ukma.candidai.company.dto.request.CreateCompanyRequest;
 import ua.edu.ukma.candidai.company.dto.request.UpdateCompanyRequest;
 import ua.edu.ukma.candidai.company.dto.response.CompanyResponse;
@@ -12,7 +13,6 @@ import ua.edu.ukma.candidai.company.dto.response.CompanySummaryResponse;
 import ua.edu.ukma.candidai.company.model.Company;
 import ua.edu.ukma.candidai.company.repository.CompanyRepository;
 
-import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -23,6 +23,7 @@ public class CompanyServiceImpl implements CompanyService {
 
     private final CompanyRepository companyRepository;
     private final CompanyMapper companyMapper;
+    private final CommonGenerator commonGenerator;
 
     @Override
     public CompanyResponse createCompany(CreateCompanyRequest request) {
@@ -31,8 +32,8 @@ public class CompanyServiceImpl implements CompanyService {
         }
 
         Company company = companyMapper.toEntity(request);
-        company.setId(UUID.randomUUID());
-        company.setCreatedAt(Instant.now());
+        company.setId(commonGenerator.uuid());
+        company.setCreatedAt(commonGenerator.now());
 
         Company saved = companyRepository.save(company);
         return companyMapper.toResponse(saved);
@@ -48,10 +49,10 @@ public class CompanyServiceImpl implements CompanyService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<CompanySummaryResponse> getAllCompanies(String search) {
+    public List<CompanySummaryResponse> getCompanies(String name) {
         List<Company> companies;
-        if (search != null && !search.isBlank()) {
-            companies = companyRepository.findByNameContainingIgnoreCase(search.trim());
+        if (name != null && !name.isBlank()) {
+            companies = companyRepository.findByNameContainingIgnoreCase(name.trim());
         } else {
             companies = companyRepository.findAll();
         }

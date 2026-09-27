@@ -14,7 +14,7 @@ public interface CompanyService {
 
     CompanyResponse getCompanyById(UUID id);
 
-    List<CompanySummaryResponse> getAllCompanies(String search);
+    List<CompanySummaryResponse> getCompanies(String name);
 
     CompanyResponse updateCompany(UUID id, UpdateCompanyRequest request);
 

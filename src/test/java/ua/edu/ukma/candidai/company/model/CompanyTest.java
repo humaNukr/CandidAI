@@ -6,10 +6,8 @@ import ua.edu.ukma.candidai.vacancy.model.Vacancy;
 
 import java.util.UUID;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static ua.edu.ukma.candidai.company.CompanyTestResources.DEFAULT_COMPANY_ID;
-import static ua.edu.ukma.candidai.company.CompanyTestResources.sampleCompany;
-import static ua.edu.ukma.candidai.company.CompanyTestResources.sampleVacancy;
+import static org.assertj.core.api.Assertions.*;
+import static ua.edu.ukma.candidai.company.CompanyTestResources.*;
 
 class CompanyTest {
 
