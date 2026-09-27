@@ -34,6 +34,10 @@ dependencies {
     implementation("org.springframework.modulith:spring-modulith-events-api")
     implementation("org.mapstruct:mapstruct:$mapstructVersion")
 
+    implementation("org.springframework.boot:spring-boot-starter-data-jpa")
+    implementation("org.liquibase:liquibase-core")
+    runtimeOnly("org.postgresql:postgresql")
+
     compileOnly("org.projectlombok:lombok")
     annotationProcessor("org.projectlombok:lombok")
     annotationProcessor("org.projectlombok:lombok-mapstruct-binding:$lombokMapstructBindingVersion")
@@ -47,6 +51,11 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
     testImplementation("org.springframework.boot:spring-boot-starter-validation-test")
     testImplementation("org.springframework.modulith:spring-modulith-starter-test")
+    
+    testImplementation("org.springframework.boot:spring-boot-testcontainers")
+    testImplementation("org.testcontainers:junit-jupiter")
+    testImplementation("org.testcontainers:postgresql")
+    
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
