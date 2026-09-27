@@ -86,9 +86,27 @@ public final class CompanyTestResources {
         );
     }
 
+    public static CreateCompanyRequest sampleInvalidCreateCompanyRequest() {
+        return new CreateCompanyRequest(
+                "",
+                DEFAULT_DESCRIPTION,
+                DEFAULT_LOGO_URL,
+                DEFAULT_CONTACT_EMAIL
+        );
+    }
+
     public static UpdateCompanyRequest sampleUpdateCompanyRequest() {
         return new UpdateCompanyRequest(
                 UPDATED_NAME,
+                UPDATED_DESCRIPTION,
+                UPDATED_LOGO_URL,
+                UPDATED_CONTACT_EMAIL
+        );
+    }
+
+    public static UpdateCompanyRequest sampleInvalidUpdateCompanyRequest() {
+        return new UpdateCompanyRequest(
+                "",
                 UPDATED_DESCRIPTION,
                 UPDATED_LOGO_URL,
                 UPDATED_CONTACT_EMAIL

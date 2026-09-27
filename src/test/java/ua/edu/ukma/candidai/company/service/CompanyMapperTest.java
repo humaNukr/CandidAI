@@ -19,10 +19,15 @@ class CompanyMapperTest {
     @Test
     @DisplayName("toEntity - should map CreateCompanyRequest to Company")
     void givenCreateRequest_toEntity_shouldMapAllFields() {
+        // Setup / Fixtures
         CreateCompanyRequest request = sampleCreateCompanyRequest();
 
+        // Stubbing / Mocking
+
+        // Execution / Action
         Company entity = mapper.toEntity(request);
 
+        // Assertions / Verification
         assertThat(entity).isNotNull();
         assertThat(entity.getName()).isEqualTo(DEFAULT_NAME);
         assertThat(entity.getDescription()).isEqualTo(DEFAULT_DESCRIPTION);
@@ -35,10 +40,15 @@ class CompanyMapperTest {
     @Test
     @DisplayName("toResponse - should map Company to CompanyResponse and count only OPEN vacancies")
     void givenCompanyWithVacancies_toResponse_shouldCalculateActiveVacanciesCountCorrectly() {
+        // Setup / Fixtures
         Company company = sampleCompanyWithVacancies();
 
+        // Stubbing / Mocking
+
+        // Execution / Action
         CompanyResponse response = mapper.toResponse(company);
 
+        // Assertions / Verification
         assertThat(response).isNotNull();
         assertThat(response.id()).isEqualTo(DEFAULT_COMPANY_ID);
         assertThat(response.name()).isEqualTo(DEFAULT_NAME);
@@ -52,11 +62,16 @@ class CompanyMapperTest {
     @Test
     @DisplayName("toResponse - should return 0 active vacancies when company has no vacancies")
     void givenCompanyWithoutVacancies_toResponse_shouldReturnZeroActiveVacancies() {
+        // Setup / Fixtures
         Company company = sampleCompany();
         company.setVacancies(null);
 
+        // Stubbing / Mocking
+
+        // Execution / Action
         CompanyResponse response = mapper.toResponse(company);
 
+        // Assertions / Verification
         assertThat(response).isNotNull();
         assertThat(response.activeVacanciesCount()).isZero();
     }
@@ -64,10 +79,15 @@ class CompanyMapperTest {
     @Test
     @DisplayName("toSummaryResponse - should map Company to CompanySummaryResponse")
     void givenCompany_toSummaryResponse_shouldMapAllSummaryFields() {
+        // Setup / Fixtures
         Company company = sampleCompany();
 
+        // Stubbing / Mocking
+
+        // Execution / Action
         CompanySummaryResponse response = mapper.toSummaryResponse(company);
 
+        // Assertions / Verification
         assertThat(response).isNotNull();
         assertThat(response.id()).isEqualTo(DEFAULT_COMPANY_ID);
         assertThat(response.name()).isEqualTo(DEFAULT_NAME);
@@ -80,11 +100,16 @@ class CompanyMapperTest {
     @Test
     @DisplayName("updateEntityFromRequest - should update existing Company in-place")
     void givenUpdateRequest_updateEntityFromRequest_shouldUpdateEntityInPlace() {
+        // Setup / Fixtures
         Company company = sampleCompany();
         UpdateCompanyRequest updateRequest = sampleUpdateCompanyRequest();
 
+        // Stubbing / Mocking
+
+        // Execution / Action
         mapper.updateEntityFromRequest(updateRequest, company);
 
+        // Assertions / Verification
         assertThat(company.getName()).isEqualTo(UPDATED_NAME);
         assertThat(company.getDescription()).isEqualTo(UPDATED_DESCRIPTION);
         assertThat(company.getLogoUrl()).isEqualTo(UPDATED_LOGO_URL);
