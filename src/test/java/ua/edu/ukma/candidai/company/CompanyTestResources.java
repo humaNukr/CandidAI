@@ -2,6 +2,8 @@ package ua.edu.ukma.candidai.company;
 
 import ua.edu.ukma.candidai.company.dto.request.CreateCompanyRequest;
 import ua.edu.ukma.candidai.company.dto.request.UpdateCompanyRequest;
+import ua.edu.ukma.candidai.company.dto.response.CompanyResponse;
+import ua.edu.ukma.candidai.company.dto.response.CompanySummaryResponse;
 import ua.edu.ukma.candidai.company.model.Company;
 import ua.edu.ukma.candidai.vacancy.model.Vacancy;
 import ua.edu.ukma.candidai.vacancy.model.VacancyStatus;
@@ -13,6 +15,7 @@ import java.util.UUID;
 public final class CompanyTestResources {
 
     public static final UUID DEFAULT_COMPANY_ID = UUID.fromString("00000000-0000-0000-0000-000000000010");
+    public static final UUID NON_EXISTENT_COMPANY_ID = UUID.fromString("00000000-0000-0000-0000-000000000099");
     public static final String DEFAULT_NAME = "TechCorp";
     public static final String DEFAULT_DESCRIPTION = "Leading tech company";
     public static final String DEFAULT_LOGO_URL = "https://techcorp.com/logo.png";
@@ -47,6 +50,58 @@ public final class CompanyTestResources {
 
     public static Company sampleCompany() {
         return sampleCompanyBuilder().build();
+    }
+
+    public static Company sampleUpdatedCompany() {
+        return sampleCompanyBuilder()
+                .name(UPDATED_NAME)
+                .description(UPDATED_DESCRIPTION)
+                .logoUrl(UPDATED_LOGO_URL)
+                .contactEmail(UPDATED_CONTACT_EMAIL)
+                .build();
+    }
+
+    public static CompanyResponse sampleCompanyResponse() {
+        return new CompanyResponse(
+                DEFAULT_COMPANY_ID,
+                DEFAULT_NAME,
+                DEFAULT_DESCRIPTION,
+                DEFAULT_LOGO_URL,
+                DEFAULT_CONTACT_EMAIL,
+                DEFAULT_CREATED_AT,
+                0
+        );
+    }
+
+    public static CompanyResponse sampleUpdatedCompanyResponse() {
+        return new CompanyResponse(
+                DEFAULT_COMPANY_ID,
+                UPDATED_NAME,
+                UPDATED_DESCRIPTION,
+                UPDATED_LOGO_URL,
+                UPDATED_CONTACT_EMAIL,
+                DEFAULT_CREATED_AT,
+                0
+        );
+    }
+
+    public static CompanySummaryResponse sampleCompanySummaryResponse() {
+        return new CompanySummaryResponse(
+                DEFAULT_COMPANY_ID,
+                DEFAULT_NAME,
+                DEFAULT_DESCRIPTION,
+                DEFAULT_LOGO_URL,
+                DEFAULT_CONTACT_EMAIL,
+                DEFAULT_CREATED_AT
+        );
+    }
+
+    public static String expectedCompanyNotFoundMessage(UUID id) {
+        return "Company not found with id: " + id;
+    }
+
+    public static String expectedDuplicateCompanyNameMessage(String name) {
+        return "Company with name '" + name + "' already exists";
     }
 
     public static Company sampleCompanyWithVacancies() {
