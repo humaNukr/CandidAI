@@ -1,5 +1,6 @@
 package ua.edu.ukma.candidai.vacancy.model;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -40,6 +41,7 @@ public class Vacancy {
 
     private UUID assignedRecruiterId;
 
+    @Column(name = "company_id", insertable = false, updatable = false)
     private UUID companyId;
 
     private String title;

@@ -1,6 +1,5 @@
 package ua.edu.ukma.candidai;
 
-import jakarta.persistence.EntityManagerFactory;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -16,12 +15,6 @@ class CandidAiApplicationTest {
 
     @MockitoBean
     private DataSource dataSource;
-
-    @MockitoBean
-    private EntityManagerFactory entityManagerFactory;
-
-    @MockitoBean
-    private ua.edu.ukma.candidai.company.repository.CompanyRepository companyRepository;
 
     @Test
     @DisplayName("contextLoads - should load application context successfully")
