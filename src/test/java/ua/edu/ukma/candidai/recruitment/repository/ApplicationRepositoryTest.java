@@ -119,6 +119,75 @@ class ApplicationRepositoryTest {
         assertThat(found.get().getFeedbacks().getFirst().getInterviewerName()).isEqualTo("Tech Lead");
     }
 
+    @Test
+    @DisplayName("findByCandidateId - should return applications for specific candidate")
+    void givenApplications_findByCandidateId_shouldReturnMatchingList() {
+        Application app = createApplication("candidate.specific@example.com");
+        applicationRepository.save(app);
+        entityManager.flush();
+
+        List<Application> results = applicationRepository.findByCandidateId(candidateId);
+
+        assertThat(results).hasSize(1);
+        assertThat(results.getFirst().getCandidateId()).isEqualTo(candidateId);
+    }
+
+    @Test
+    @DisplayName("findByVacancyIdAndStatus - should filter applications by vacancy and status")
+    void givenApplications_findByVacancyIdAndStatus_shouldReturnMatchingApplications() {
+        Application app = createApplication("applied@example.com");
+        applicationRepository.save(app);
+        entityManager.flush();
+
+        List<Application> applied = applicationRepository.findByVacancyIdAndStatus(
+                vacancyId,
+                ApplicationStatus.APPLIED
+        );
+        List<Application> hired = applicationRepository.findByVacancyIdAndStatus(
+                vacancyId,
+                ApplicationStatus.HIRED
+        );
+
+        assertThat(applied).hasSize(1);
+        assertThat(hired).isEmpty();
+    }
+
+    @Test
+    @DisplayName("orphanRemoval - should delete feedback from database when removed from application")
+    void givenApplicationWithFeedback_whenFeedbackRemoved_shouldDeleteOrphanFeedback() {
+        Application app = createApplication("orphan.test@example.com");
+        InterviewFeedback feedback = InterviewFeedback.builder()
+                .id(UUID.randomUUID())
+                .application(app)
+                .interviewerName("Tech Lead")
+                .technicalScore(8)
+                .decision(InterviewDecision.HIRE)
+                .notes("Good candidate")
+                .createdAt(Instant.now())
+                .build();
+        app.addFeedback(feedback);
+        applicationRepository.save(app);
+        entityManager.flush();
+        entityManager.clear();
+
+        Application loaded = applicationRepository.findByIdWithFeedbacks(app.getId()).orElseThrow();
+        loaded.removeFeedback(loaded.getFeedbacks().getFirst());
+        applicationRepository.save(loaded);
+        entityManager.flush();
+        entityManager.clear();
+
+        Application afterRemoval = applicationRepository.findByIdWithFeedbacks(app.getId()).orElseThrow();
+        assertThat(afterRemoval.getFeedbacks()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("findById - should return empty optional when application does not exist")
+    void givenNonExistentId_findById_shouldReturnEmpty() {
+        Optional<Application> result = applicationRepository.findById(UUID.randomUUID());
+
+        assertThat(result).isEmpty();
+    }
+
     private Application createApplication(String email) {
         return Application.builder()
                 .id(UUID.randomUUID())
