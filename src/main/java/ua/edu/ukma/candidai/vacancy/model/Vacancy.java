@@ -1,5 +1,14 @@
 package ua.edu.ukma.candidai.vacancy.model;
 
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
@@ -8,6 +17,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 import ua.edu.ukma.candidai.common.exception.InvalidStateTransitionException;
+import ua.edu.ukma.candidai.company.model.Company;
 import ua.edu.ukma.candidai.vacancy.dto.request.CreateVacancyRequest;
 
 import java.math.BigDecimal;
@@ -15,6 +25,8 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
+@Entity
+@Table(name = "vacancies")
 @Getter
 @Setter
 @ToString
@@ -24,32 +36,70 @@ import java.util.UUID;
 @AllArgsConstructor
 public class Vacancy {
 
+    @Id
     @EqualsAndHashCode.Include
     private UUID id;
+
     private UUID authorId;
+
     private UUID assignedRecruiterId;
+
     private UUID companyId;
+
+    @ToString.Exclude
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "company_id", insertable = false, updatable = false)
+    private Company company;
+
     private String title;
+
+    @Enumerated(EnumType.STRING)
     private JobCategory category;
+
     private String specialization;
+
     private String seniorityLevel;
+
     private Integer minYearsOfExperience;
+
     private String description;
+
+    @Transient
     private List<String> requiredSkills;
+
+    @Transient
     private List<String> preferredSkills;
+
+    @Enumerated(EnumType.STRING)
     private EnglishLevel minEnglishLevel;
+
     private BigDecimal salaryMin;
+
     private BigDecimal salaryMax;
+
     private String currency;
+
+    @Enumerated(EnumType.STRING)
     private EmploymentType employmentType;
+
+    @Enumerated(EnumType.STRING)
     private LocationType locationType;
+
     private String location;
+
+    @Enumerated(EnumType.STRING)
     private VacancyStatus status;
+
     private boolean deleted;
+
     private Instant deletedAt;
+
     private Instant publishedAt;
+
     private Instant expiresAt;
+
     private Instant createdAt;
+
     private Instant updatedAt;
 
     public static Vacancy create(CreateVacancyRequest request, UUID id, Instant now) {
