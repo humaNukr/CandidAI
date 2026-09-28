@@ -34,6 +34,9 @@ dependencies {
     implementation("org.springframework.modulith:spring-modulith-events-api")
     implementation("org.mapstruct:mapstruct:$mapstructVersion")
 
+    implementation("org.apache.pdfbox:pdfbox:3.0.4")
+    implementation("org.apache.poi:poi-ooxml:5.3.0")
+
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.liquibase:liquibase-core")
     runtimeOnly("org.postgresql:postgresql")
