@@ -240,7 +240,7 @@ public class TestResources {
         private Integer minYearsOfExperience = 5;
         private String description = "Great opportunity for Java and Spring Boot developers";
         private List<String> requiredSkills = List.of("Java");
-        private List<String> preferredSkills = List.of("Docker");
+        private List<String> preferredSkills = List.of();
         private EnglishLevel minEnglishLevel = EnglishLevel.B2;
         private BigDecimal salaryMin = DEFAULT_SALARY_MIN;
         private BigDecimal salaryMax = DEFAULT_SALARY_MAX;
@@ -272,6 +272,16 @@ public class TestResources {
 
         public CreateVacancyRequestBuilder title(String title) {
             this.title = title;
+            return this;
+        }
+
+        public CreateVacancyRequestBuilder requiredSkills(List<String> requiredSkills) {
+            this.requiredSkills = requiredSkills;
+            return this;
+        }
+
+        public CreateVacancyRequestBuilder preferredSkills(List<String> preferredSkills) {
+            this.preferredSkills = preferredSkills;
             return this;
         }
 
