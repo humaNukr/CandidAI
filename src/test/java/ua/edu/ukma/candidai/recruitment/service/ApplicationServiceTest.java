@@ -33,8 +33,11 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import ua.edu.ukma.candidai.recruitment.model.InterviewFeedback;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static ua.edu.ukma.candidai.recruitment.RecruitmentTestResources.DEFAULT_APPLICATION_ID;
@@ -50,6 +53,7 @@ import static ua.edu.ukma.candidai.recruitment.RecruitmentTestResources.anApplic
 import static ua.edu.ukma.candidai.recruitment.RecruitmentTestResources.anApplicationBuilder;
 import static ua.edu.ukma.candidai.recruitment.RecruitmentTestResources.anApplicationResponse;
 import static ua.edu.ukma.candidai.recruitment.RecruitmentTestResources.anEvaluationResult;
+import static ua.edu.ukma.candidai.recruitment.RecruitmentTestResources.anInterviewFeedback;
 import static ua.edu.ukma.candidai.recruitment.RecruitmentTestResources.validApplyForVacancyRequest;
 import static ua.edu.ukma.candidai.recruitment.RecruitmentTestResources.validSubmitFeedbackRequest;
 
@@ -312,10 +316,13 @@ class ApplicationServiceTest {
                 ApplicationStatus.OFFER,
                 "Candidate did not pass but trying to offer"
         );
+        InterviewFeedback rejectFeedbackEntity = anInterviewFeedback(existing, 2, InterviewDecision.REJECT);
         InterviewFeedbackResponse rejectFeedback = aRejectFeedbackResponse();
 
         when(applicationRepository.findById(DEFAULT_APPLICATION_ID)).thenReturn(Optional.of(existing));
-        when(feedbackRepository.findByApplicationId(DEFAULT_APPLICATION_ID)).thenReturn(List.of(rejectFeedback));
+        when(feedbackRepository.findByApplicationId(DEFAULT_APPLICATION_ID)).thenReturn(List.of(rejectFeedbackEntity));
+        when(applicationMapper.toFeedbackResponseList(List.of(rejectFeedbackEntity)))
+                .thenReturn(List.of(rejectFeedback));
         when(vacancyApi.getVacancyCategory(DEFAULT_VACANCY_ID)).thenReturn(JobCategory.ENGINEERING);
         when(evaluationStrategy.supports(JobCategory.ENGINEERING)).thenReturn(true);
         when(evaluationStrategy.evaluate(List.of(rejectFeedback)))
@@ -334,6 +341,7 @@ class ApplicationServiceTest {
                 ApplicationStatus.OFFER,
                 "Strong candidate"
         );
+        InterviewFeedback hireFeedbackEntity = anInterviewFeedback(existing, 5, InterviewDecision.HIRE);
         InterviewFeedbackResponse hireFeedback = aHireFeedbackResponse();
         Instant updatedAt = DEFAULT_NOW.plusSeconds(3600);
         Application updatedApplication = anApplication(
@@ -350,7 +358,8 @@ class ApplicationServiceTest {
         );
 
         when(applicationRepository.findById(DEFAULT_APPLICATION_ID)).thenReturn(Optional.of(existing));
-        when(feedbackRepository.findByApplicationId(DEFAULT_APPLICATION_ID)).thenReturn(List.of(hireFeedback));
+        when(feedbackRepository.findByApplicationId(DEFAULT_APPLICATION_ID)).thenReturn(List.of(hireFeedbackEntity));
+        when(applicationMapper.toFeedbackResponseList(List.of(hireFeedbackEntity))).thenReturn(List.of(hireFeedback));
         when(vacancyApi.getVacancyCategory(DEFAULT_VACANCY_ID)).thenReturn(JobCategory.ENGINEERING);
         when(evaluationStrategy.supports(JobCategory.ENGINEERING)).thenReturn(true);
         when(evaluationStrategy.evaluate(List.of(hireFeedback)))
@@ -413,12 +422,14 @@ class ApplicationServiceTest {
     void givenExistingApplicationInInterview_submitFeedback_shouldSaveAndReturnResponse() {
         Application existing = anApplication(ApplicationStatus.INTERVIEW);
         SubmitInterviewFeedbackRequest request = validSubmitFeedbackRequest();
+        InterviewFeedback feedbackEntity = anInterviewFeedback(existing);
         InterviewFeedbackResponse expected = aFeedbackResponse();
 
         when(applicationRepository.findById(DEFAULT_APPLICATION_ID)).thenReturn(Optional.of(existing));
         when(commonGenerator.uuid()).thenReturn(DEFAULT_FEEDBACK_ID);
         when(commonGenerator.now()).thenReturn(DEFAULT_NOW);
-        when(feedbackRepository.save(expected)).thenReturn(expected);
+        when(feedbackRepository.save(any(InterviewFeedback.class))).thenReturn(feedbackEntity);
+        when(applicationMapper.toResponse(feedbackEntity)).thenReturn(expected);
 
         InterviewFeedbackResponse actual = applicationService.submitFeedback(DEFAULT_APPLICATION_ID, request);
 
@@ -445,10 +456,12 @@ class ApplicationServiceTest {
     @DisplayName("getFeedbacks with existing application should return feedback list")
     void givenExistingApplication_getFeedbacks_shouldReturnList() {
         Application existing = anApplication(ApplicationStatus.INTERVIEW);
+        InterviewFeedback feedbackEntity = anInterviewFeedback(existing);
         InterviewFeedbackResponse feedback = aFeedbackResponse();
 
         when(applicationRepository.findById(DEFAULT_APPLICATION_ID)).thenReturn(Optional.of(existing));
-        when(feedbackRepository.findByApplicationId(DEFAULT_APPLICATION_ID)).thenReturn(List.of(feedback));
+        when(feedbackRepository.findByApplicationId(DEFAULT_APPLICATION_ID)).thenReturn(List.of(feedbackEntity));
+        when(applicationMapper.toFeedbackResponseList(List.of(feedbackEntity))).thenReturn(List.of(feedback));
 
         List<InterviewFeedbackResponse> actual = applicationService.getFeedbacks(DEFAULT_APPLICATION_ID);
 
@@ -461,6 +474,12 @@ class ApplicationServiceTest {
     @DisplayName("evaluateCandidate with interview feedbacks should calculate score and return recommendation")
     void givenCandidateFeedbacks_evaluateCandidate_shouldExecuteStrategy() {
         Application application = anApplication(ApplicationStatus.INTERVIEW);
+        InterviewFeedback fbEntity1 = anInterviewFeedback(application, 5, InterviewDecision.HIRE);
+        InterviewFeedback fbEntity2 = anInterviewFeedback(
+                application,
+                4,
+                InterviewDecision.HIRE
+        );
         InterviewFeedbackResponse fb1 = aFeedbackResponse(5);
         InterviewFeedbackResponse fb2 = aFeedbackResponse(
                 UUID.fromString("00000000-0000-0000-0000-000000000004"),
@@ -471,7 +490,8 @@ class ApplicationServiceTest {
         EvaluationResult expectedResult = anEvaluationResult();
 
         when(applicationRepository.findById(DEFAULT_APPLICATION_ID)).thenReturn(Optional.of(application));
-        when(feedbackRepository.findByApplicationId(DEFAULT_APPLICATION_ID)).thenReturn(List.of(fb1, fb2));
+        when(feedbackRepository.findByApplicationId(DEFAULT_APPLICATION_ID)).thenReturn(List.of(fbEntity1, fbEntity2));
+        when(applicationMapper.toFeedbackResponseList(List.of(fbEntity1, fbEntity2))).thenReturn(List.of(fb1, fb2));
         when(vacancyApi.getVacancyCategory(DEFAULT_VACANCY_ID)).thenReturn(JobCategory.ENGINEERING);
         when(evaluationStrategy.supports(JobCategory.ENGINEERING)).thenReturn(true);
         when(evaluationStrategy.evaluate(List.of(fb1, fb2))).thenReturn(expectedResult);
@@ -487,10 +507,12 @@ class ApplicationServiceTest {
     @DisplayName("evaluateCandidate with no matching strategy should throw IllegalStateException")
     void givenNoMatchingStrategy_evaluateCandidate_shouldThrowIllegalStateException() {
         Application application = anApplication(ApplicationStatus.INTERVIEW);
+        InterviewFeedback fbEntity = anInterviewFeedback(application);
         InterviewFeedbackResponse fb = aFeedbackResponse();
 
         when(applicationRepository.findById(DEFAULT_APPLICATION_ID)).thenReturn(Optional.of(application));
-        when(feedbackRepository.findByApplicationId(DEFAULT_APPLICATION_ID)).thenReturn(List.of(fb));
+        when(feedbackRepository.findByApplicationId(DEFAULT_APPLICATION_ID)).thenReturn(List.of(fbEntity));
+        when(applicationMapper.toFeedbackResponseList(List.of(fbEntity))).thenReturn(List.of(fb));
         when(vacancyApi.getVacancyCategory(DEFAULT_VACANCY_ID)).thenReturn(JobCategory.ENGINEERING);
         when(evaluationStrategy.supports(JobCategory.ENGINEERING)).thenReturn(false);
 
