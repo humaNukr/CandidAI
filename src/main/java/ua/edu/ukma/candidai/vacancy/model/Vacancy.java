@@ -1,12 +1,15 @@
 package ua.edu.ukma.candidai.vacancy.model;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.Table;
-import jakarta.persistence.Transient;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
@@ -19,6 +22,7 @@ import ua.edu.ukma.candidai.vacancy.dto.request.CreateVacancyRequest;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -57,11 +61,14 @@ public class Vacancy {
 
     private String description;
 
-    @Transient
-    private List<String> requiredSkills;
-
-    @Transient
-    private List<String> preferredSkills;
+    @Builder.Default
+    @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE})
+    @JoinTable(
+            name = "vacancy_skills",
+            joinColumns = @JoinColumn(name = "vacancy_id"),
+            inverseJoinColumns = @JoinColumn(name = "skill_id")
+    )
+    private List<Skill> skills = new ArrayList<>();
 
     @Enumerated(EnumType.STRING)
     private EnglishLevel minEnglishLevel;
@@ -96,6 +103,10 @@ public class Vacancy {
     private Instant updatedAt;
 
     public static Vacancy create(CreateVacancyRequest request, UUID id, Instant now) {
+        return create(request, id, now, List.of());
+    }
+
+    public static Vacancy create(CreateVacancyRequest request, UUID id, Instant now, List<Skill> skills) {
         VacancyStatus initialStatus = request.status() != null ? request.status() : VacancyStatus.OPEN;
         if (!initialStatus.isInitial()) {
             throw new InvalidStateTransitionException(
@@ -115,8 +126,7 @@ public class Vacancy {
                 .seniorityLevel(request.seniorityLevel())
                 .minYearsOfExperience(request.minYearsOfExperience())
                 .description(request.description())
-                .requiredSkills(request.requiredSkills())
-                .preferredSkills(request.preferredSkills())
+                .skills(skills != null ? new ArrayList<>(skills) : new ArrayList<>())
                 .minEnglishLevel(request.minEnglishLevel())
                 .salaryMin(request.salaryMin())
                 .salaryMax(request.salaryMax())
@@ -131,6 +141,32 @@ public class Vacancy {
                 .createdAt(now)
                 .updatedAt(now)
                 .build();
+    }
+
+    public void addSkill(Skill skill) {
+        if (skill != null) {
+            if (this.skills == null) {
+                this.skills = new ArrayList<>();
+            }
+            if (!this.skills.contains(skill)) {
+                this.skills.add(skill);
+            }
+        }
+    }
+
+    public void removeSkill(Skill skill) {
+        if (skill != null && this.skills != null) {
+            this.skills.remove(skill);
+        }
+    }
+
+    public List<String> getSkillNames() {
+        if (this.skills == null) {
+            return List.of();
+        }
+        return this.skills.stream()
+                .map(Skill::getName)
+                .toList();
     }
 
     public void updateStatus(VacancyStatus status, Instant updatedAt) {
