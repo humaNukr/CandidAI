@@ -44,8 +44,8 @@ public class ResumeController {
             throw new IllegalArgumentException("File size exceeds 10MB limit");
         }
 
-        String storedFileName = fileStorageService.storeFile(file);
         String extractedText = resumeParsingService.parse(file.getInputStream(), file.getContentType());
+        String storedFileName = fileStorageService.storeFile(file);
 
         String preview = extractedText.length() > PREVIEW_LENGTH
                 ? extractedText.substring(0, PREVIEW_LENGTH) + "..."

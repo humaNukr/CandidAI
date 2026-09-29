@@ -20,6 +20,7 @@ import ua.edu.ukma.candidai.common.storage.FileStorageService;
 import static org.hamcrest.Matchers.endsWith;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -35,6 +36,7 @@ class ResumeControllerTest {
 
     private static final String UPLOAD_URL = "/api/v1/resumes/upload";
     private static final String DOWNLOAD_URL_PREFIX = "/api/v1/resumes/download/";
+    private static final int OVER_SIZE_LIMIT = 10 * 1024 * 1024 + 1;
 
     @Autowired
     private MockMvc mockMvc;
@@ -160,5 +162,54 @@ class ResumeControllerTest {
                 .andExpect(jsonPath("$.status").value(404));
 
         verify(fileStorageService).loadFileAsResource(fileName);
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/resumes/upload - should return 400 Bad Request when file exceeds 10MB limit")
+    void givenFileExceedingMaxSize_uploadResume_shouldReturn400BadRequest() throws Exception {
+        byte[] largeContent = new byte[OVER_SIZE_LIMIT];
+        MockMultipartFile largeFile = new MockMultipartFile(
+                "file", "large.pdf", MediaType.APPLICATION_PDF_VALUE, largeContent
+        );
+
+        mockMvc.perform(multipart(UPLOAD_URL).file(largeFile))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.detail").value("File size exceeds 10MB limit"));
+
+        verify(fileStorageService, never()).storeFile(any());
+        verify(resumeParsingService, never()).parse(any(), any());
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/resumes/upload - should return 400 Bad Request and not store file when parse fails")
+    void givenCorruptFile_uploadResume_shouldFailAndNotStoreFile() throws Exception {
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "corrupt.pdf", MediaType.APPLICATION_PDF_VALUE, "corrupted".getBytes()
+        );
+
+        when(resumeParsingService.parse(any(), any()))
+                .thenThrow(new IllegalArgumentException("Could not parse PDF resume"));
+
+        mockMvc.perform(multipart(UPLOAD_URL).file(file))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.detail").value("Could not parse PDF resume"));
+
+        verify(fileStorageService, never()).storeFile(any());
+    }
+
+    @Test
+    @DisplayName("GET /api/v1/resumes/download/{fileName} - should return 403 Forbidden when path traversal attempted")
+    void givenPathTraversalFileName_downloadResume_shouldReturn403Forbidden() throws Exception {
+        String fileName = "..%2F..%2Fbuild.gradle.kts";
+        when(fileStorageService.loadFileAsResource(any()))
+                .thenThrow(new SecurityException("Access denied: path traversal attempt"));
+
+        mockMvc.perform(get(DOWNLOAD_URL_PREFIX + fileName))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(403))
+                .andExpect(jsonPath("$.title").value("Access Denied"))
+                .andExpect(jsonPath("$.detail").value("Access denied: path traversal attempt"));
     }
 }

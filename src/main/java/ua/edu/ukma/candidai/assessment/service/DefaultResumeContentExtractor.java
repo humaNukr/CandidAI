@@ -63,7 +63,7 @@ public class DefaultResumeContentExtractor implements ResumeContentExtractor {
 
     private String determineContentType(String fileName) {
         String lower = fileName.toLowerCase();
-        if (lower.endsWith(".docx") || lower.endsWith(".doc")) {
+        if (lower.endsWith(".docx")) {
             return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
         }
         return MediaType.APPLICATION_PDF_VALUE;

@@ -117,6 +117,20 @@ class GlobalExceptionHandlerTest {
         assertThat(problem.getProperties()).containsKey("timestamp");
     }
 
+    @Test
+    @DisplayName("handleSecurity should return 403 ProblemDetail with correct fields")
+    void givenSecurityException_handleSecurity_shouldReturn403ProblemDetail() {
+        SecurityException ex = new SecurityException("Access denied: path traversal attempt");
+
+        ProblemDetail problem = handler.handleSecurity(ex);
+
+        assertThat(problem.getStatus()).isEqualTo(HttpStatus.FORBIDDEN.value());
+        assertThat(problem.getTitle()).isEqualTo("Access Denied");
+        assertThat(problem.getDetail()).isEqualTo("Access denied: path traversal attempt");
+        assertThat(problem.getType()).isEqualTo(URI.create("https://candidai.ukma.edu.ua/errors/forbidden"));
+        assertThat(problem.getProperties()).containsKey("timestamp");
+    }
+
     @SuppressWarnings("unused")
     private void dummyMethod(String param) {
     }

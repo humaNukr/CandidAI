@@ -30,7 +30,6 @@ class DocxResumeParserTest {
     @ValueSource(strings = {
             "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
             "APPLICATION/VND.OPENXMLFORMATS-OFFICEDOCUMENT.WORDPROCESSINGML.DOCUMENT",
-            "application/msword",
             "application/x-tika-ooxml"
     })
     @DisplayName("supports should return true for supported Word content types")
@@ -40,7 +39,7 @@ class DocxResumeParserTest {
 
     @ParameterizedTest
     @NullAndEmptySource
-    @ValueSource(strings = {"application/pdf", "application/json", "image/png"})
+    @ValueSource(strings = {"application/pdf", "application/json", "image/png", "application/msword"})
     @DisplayName("supports should return false for unsupported or empty content types")
     void givenUnsupportedContentTypes_supports_shouldReturnFalse(String contentType) {
         assertThat(parser.supports(contentType)).isFalse();

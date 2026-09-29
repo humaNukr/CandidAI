@@ -76,6 +76,10 @@ public class LocalFileStorageService implements FileStorageService {
 
     @Override
     public Path getFilePath(String fileName) {
-        return this.storageLocation.resolve(fileName).normalize();
+        Path filePath = this.storageLocation.resolve(fileName).normalize();
+        if (!filePath.startsWith(this.storageLocation)) {
+            throw new SecurityException("Access denied: path traversal attempt");
+        }
+        return filePath;
     }
 }

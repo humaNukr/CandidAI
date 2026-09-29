@@ -101,4 +101,20 @@ class LocalFileStorageServiceTest {
         Path path = storageService.getFilePath("document.docx");
         assertThat(path).isEqualTo(tempDir.resolve("document.docx").normalize());
     }
+
+    @Test
+    @DisplayName("getFilePath should throw SecurityException when path traversal is attempted")
+    void givenPathTraversalFileName_getFilePath_shouldThrowSecurityException() {
+        assertThatThrownBy(() -> storageService.getFilePath("../../etc/passwd"))
+                .isInstanceOf(SecurityException.class)
+                .hasMessageContaining("Access denied: path traversal attempt");
+    }
+
+    @Test
+    @DisplayName("loadFileAsResource should throw SecurityException when path traversal is attempted")
+    void givenPathTraversalFileName_loadFileAsResource_shouldThrowSecurityException() {
+        assertThatThrownBy(() -> storageService.loadFileAsResource("../../etc/passwd"))
+                .isInstanceOf(SecurityException.class)
+                .hasMessageContaining("Access denied: path traversal attempt");
+    }
 }

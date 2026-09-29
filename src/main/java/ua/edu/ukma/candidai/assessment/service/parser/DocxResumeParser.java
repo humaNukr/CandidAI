@@ -14,7 +14,6 @@ public class DocxResumeParser implements ResumeParser {
 
     private static final Set<String> SUPPORTED_TYPES = Set.of(
             "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-            "application/msword",
             "application/x-tika-ooxml"
     );
 
