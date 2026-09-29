@@ -8,6 +8,7 @@ import ua.edu.ukma.candidai.recruitment.dto.request.UpdateApplicationStatusReque
 import ua.edu.ukma.candidai.recruitment.dto.response.ApplicationResponse;
 import ua.edu.ukma.candidai.recruitment.dto.response.InterviewFeedbackResponse;
 import ua.edu.ukma.candidai.recruitment.model.Application;
+import ua.edu.ukma.candidai.recruitment.model.InterviewFeedback;
 import ua.edu.ukma.candidai.recruitment.service.strategy.EvaluationResult;
 
 import java.time.Instant;
@@ -322,6 +323,26 @@ public final class RecruitmentTestResources {
 
     public static InterviewFeedbackResponse anInterviewFeedbackResponse(String notes) {
         return aFeedbackResponse(DEFAULT_FEEDBACK_ID, "Alex Techlead", 4, notes);
+    }
+
+    public static InterviewFeedback anInterviewFeedback(Application application) {
+        return anInterviewFeedback(application, 4, InterviewDecision.HIRE);
+    }
+
+    public static InterviewFeedback anInterviewFeedback(
+            Application application,
+            Integer score,
+            InterviewDecision decision
+    ) {
+        return InterviewFeedback.builder()
+                .id(DEFAULT_FEEDBACK_ID)
+                .application(application)
+                .interviewerName("Alex Lead")
+                .technicalScore(score)
+                .notes("Strong skills")
+                .decision(decision)
+                .createdAt(DEFAULT_NOW)
+                .build();
     }
 
     public static EvaluationResult anEvaluationResult() {

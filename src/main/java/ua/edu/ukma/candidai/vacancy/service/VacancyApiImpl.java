@@ -8,6 +8,7 @@ import ua.edu.ukma.candidai.vacancy.VacancyDetails;
 import ua.edu.ukma.candidai.vacancy.dto.response.VacancyResponse;
 import ua.edu.ukma.candidai.vacancy.model.JobCategory;
 import ua.edu.ukma.candidai.vacancy.model.VacancyStatus;
+import ua.edu.ukma.candidai.vacancy.repository.VacancyRepository;
 
 import java.util.UUID;
 
@@ -16,6 +17,7 @@ import java.util.UUID;
 class VacancyApiImpl implements VacancyApi {
 
     private final VacancyService vacancyService;
+    private final VacancyRepository vacancyRepository;
 
     @Override
     public boolean isVacancyOpen(UUID vacancyId) {
@@ -43,5 +45,13 @@ class VacancyApiImpl implements VacancyApi {
                 vacancy.preferredSkills(),
                 vacancy.seniorityLevel()
         );
+    }
+
+    @Override
+    public int countActiveVacanciesByCompanyId(UUID companyId) {
+        if (companyId == null) {
+            return 0;
+        }
+        return (int) vacancyRepository.countByCompanyIdAndStatus(companyId, VacancyStatus.OPEN);
     }
 }

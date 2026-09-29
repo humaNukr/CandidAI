@@ -4,10 +4,13 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ua.edu.ukma.candidai.common.exception.DuplicateResourceException;
 import ua.edu.ukma.candidai.common.exception.InvalidStateTransitionException;
 import ua.edu.ukma.candidai.common.exception.ResourceNotFoundException;
 import ua.edu.ukma.candidai.common.util.CommonGenerator;
+import ua.edu.ukma.candidai.recruitment.ApplicationStatusChangedEvent;
+import ua.edu.ukma.candidai.recruitment.ApplicationSubmittedEvent;
 import ua.edu.ukma.candidai.recruitment.dto.model.ApplicationStatus;
 import ua.edu.ukma.candidai.recruitment.dto.model.InterviewDecision;
 import ua.edu.ukma.candidai.recruitment.dto.request.ApplyForVacancyRequest;
@@ -15,9 +18,8 @@ import ua.edu.ukma.candidai.recruitment.dto.request.SubmitInterviewFeedbackReque
 import ua.edu.ukma.candidai.recruitment.dto.request.UpdateApplicationStatusRequest;
 import ua.edu.ukma.candidai.recruitment.dto.response.ApplicationResponse;
 import ua.edu.ukma.candidai.recruitment.dto.response.InterviewFeedbackResponse;
-import ua.edu.ukma.candidai.recruitment.ApplicationStatusChangedEvent;
-import ua.edu.ukma.candidai.recruitment.ApplicationSubmittedEvent;
 import ua.edu.ukma.candidai.recruitment.model.Application;
+import ua.edu.ukma.candidai.recruitment.model.InterviewFeedback;
 import ua.edu.ukma.candidai.recruitment.repository.ApplicationRepository;
 import ua.edu.ukma.candidai.recruitment.repository.InterviewFeedbackRepository;
 import ua.edu.ukma.candidai.recruitment.service.strategy.CandidateEvaluationStrategy;
@@ -44,6 +46,7 @@ public class ApplicationServiceImpl implements ApplicationService {
     private final List<CandidateEvaluationStrategy> evaluationStrategies;
 
     @Override
+    @Transactional
     public ApplicationResponse apply(ApplyForVacancyRequest request) {
         log.info("Processing job application for candidate '{}' on vacancy: {}",
                 request.candidateName(), request.vacancyId());
@@ -81,12 +84,14 @@ public class ApplicationServiceImpl implements ApplicationService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public ApplicationResponse getById(UUID id) {
         log.debug("Fetching application with id: {}", id);
         return applicationMapper.toResponse(findApplicationOrThrow(id));
     }
 
     @Override
+    @Transactional
     public ApplicationResponse updateStatus(UUID id, UpdateApplicationStatusRequest request) {
         Application existing = findApplicationOrThrow(id);
         ApplicationStatus currentStatus = existing.getStatus();
@@ -131,6 +136,7 @@ public class ApplicationServiceImpl implements ApplicationService {
     }
 
     @Override
+    @Transactional
     public InterviewFeedbackResponse submitFeedback(UUID id, SubmitInterviewFeedbackRequest request) {
         Application application = findApplicationOrThrow(id);
 
@@ -144,32 +150,37 @@ public class ApplicationServiceImpl implements ApplicationService {
         UUID feedbackId = commonGenerator.uuid();
         Instant now = commonGenerator.now();
 
-        InterviewFeedbackResponse feedback = new InterviewFeedbackResponse(
-                feedbackId,
-                id,
-                request.interviewerName(),
-                request.technicalScore(),
-                request.notes(),
-                request.decision(),
-                now
-        );
+        InterviewFeedback feedback = InterviewFeedback.builder()
+                .id(feedbackId)
+                .application(application)
+                .interviewerName(request.interviewerName())
+                .technicalScore(request.technicalScore())
+                .notes(request.notes())
+                .decision(request.decision())
+                .createdAt(now)
+                .build();
 
-        InterviewFeedbackResponse saved = feedbackRepository.save(feedback);
+        application.addFeedback(feedback);
+        InterviewFeedback saved = feedbackRepository.save(feedback);
         log.info("Saved interview feedback {} for application {}: decision={}, score={}",
-                saved.id(), id, saved.decision(), saved.technicalScore());
-        return saved;
+                saved.getId(), id, saved.getDecision(), saved.getTechnicalScore());
+        return applicationMapper.toResponse(saved);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<InterviewFeedbackResponse> getFeedbacks(UUID id) {
         findApplicationOrThrow(id);
-        return feedbackRepository.findByApplicationId(id);
+        List<InterviewFeedback> feedbacks = feedbackRepository.findByApplicationId(id);
+        return applicationMapper.toFeedbackResponseList(feedbacks);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public EvaluationResult evaluateCandidate(UUID id) {
         Application application = findApplicationOrThrow(id);
-        List<InterviewFeedbackResponse> feedbacks = feedbackRepository.findByApplicationId(id);
+        List<InterviewFeedback> feedbacks = feedbackRepository.findByApplicationId(id);
+        List<InterviewFeedbackResponse> feedbackResponses = applicationMapper.toFeedbackResponseList(feedbacks);
 
         JobCategory category = vacancyApi.getVacancyCategory(application.getVacancyId());
         CandidateEvaluationStrategy strategy = evaluationStrategies.stream()
@@ -177,18 +188,20 @@ public class ApplicationServiceImpl implements ApplicationService {
                 .findFirst()
                 .orElseThrow(() -> new IllegalStateException("No strategy found for category: " + category));
 
-        EvaluationResult result = strategy.evaluate(feedbacks);
+        EvaluationResult result = strategy.evaluate(feedbackResponses);
         log.info("Evaluated candidate for application {} (category: {}): recommendation={}, score={}",
                 id, category, result.recommendedDecision(), result.averageScore());
         return result;
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<ApplicationResponse> getApplicationsByVacancy(UUID vacancyId) {
         return getApplicationsByVacancy(vacancyId, false);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<ApplicationResponse> getApplicationsByVacancy(UUID vacancyId, boolean sortByScore) {
         List<ApplicationResponse> applications = applicationRepository.findByVacancyId(vacancyId).stream()
                 .map(applicationMapper::toResponse)
