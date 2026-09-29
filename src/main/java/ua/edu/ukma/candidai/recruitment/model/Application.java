@@ -13,7 +13,6 @@ import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 import ua.edu.ukma.candidai.common.exception.InvalidStateTransitionException;
 import ua.edu.ukma.candidai.recruitment.dto.model.ApplicationStatus;
 import ua.edu.ukma.candidai.recruitment.dto.request.ApplyForVacancyRequest;
@@ -26,7 +25,6 @@ import java.util.UUID;
 @Entity
 @Table(name = "applications")
 @Getter
-@Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
