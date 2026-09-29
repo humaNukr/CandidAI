@@ -182,7 +182,7 @@ public class TestResources {
                 5,
                 "Great opportunity for Java and Spring Boot developers",
                 List.of("Java"),
-                List.of("Docker"),
+                List.of(),
                 EnglishLevel.B2,
                 DEFAULT_SALARY_MIN,
                 DEFAULT_SALARY_MAX,
