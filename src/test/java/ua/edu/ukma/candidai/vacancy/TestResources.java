@@ -10,6 +10,7 @@ import ua.edu.ukma.candidai.vacancy.model.EmploymentType;
 import ua.edu.ukma.candidai.vacancy.model.EnglishLevel;
 import ua.edu.ukma.candidai.vacancy.model.JobCategory;
 import ua.edu.ukma.candidai.vacancy.model.LocationType;
+import ua.edu.ukma.candidai.vacancy.model.Skill;
 import ua.edu.ukma.candidai.vacancy.model.Vacancy;
 import ua.edu.ukma.candidai.vacancy.model.VacancyStatus;
 
@@ -28,6 +29,10 @@ public class TestResources {
     public static final BigDecimal DEFAULT_SALARY_MIN = BigDecimal.valueOf(3000);
     public static final BigDecimal DEFAULT_SALARY_MAX = BigDecimal.valueOf(5000);
     public static final Instant DEFAULT_NOW = Instant.parse("2026-09-12T10:00:00Z");
+    public static final UUID SKILL_1_ID = UUID.fromString("00000000-0000-0000-0000-000000000011");
+    public static final UUID SKILL_2_ID = UUID.fromString("00000000-0000-0000-0000-000000000012");
+    public static final String SKILL_JAVA = "Java";
+    public static final String SKILL_DOCKER = "Docker";
 
     public static final String JSON_WITH_UNKNOWN_PROPERTY = """
             {
@@ -207,6 +212,20 @@ public class TestResources {
 
     public static UpdateVacancyStatusRequest validUpdateVacancyStatusRequest() {
         return new UpdateVacancyStatusRequest(VacancyStatus.CLOSED);
+    }
+
+    public static Skill aSkillJava() {
+        return Skill.builder()
+                .id(SKILL_1_ID)
+                .name(SKILL_JAVA)
+                .build();
+    }
+
+    public static Skill aSkillDocker() {
+        return Skill.builder()
+                .id(SKILL_2_ID)
+                .name(SKILL_DOCKER)
+                .build();
     }
 
     public static class CreateVacancyRequestBuilder {
