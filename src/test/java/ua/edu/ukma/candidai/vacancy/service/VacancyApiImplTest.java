@@ -10,19 +10,22 @@ import ua.edu.ukma.candidai.common.exception.ResourceNotFoundException;
 import ua.edu.ukma.candidai.vacancy.dto.response.VacancyResponse;
 import ua.edu.ukma.candidai.vacancy.model.JobCategory;
 import ua.edu.ukma.candidai.vacancy.model.VacancyStatus;
+import ua.edu.ukma.candidai.vacancy.repository.VacancyRepository;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.when;
-import static ua.edu.ukma.candidai.vacancy.TestResources.DEFAULT_ID;
-import static ua.edu.ukma.candidai.vacancy.TestResources.NON_EXISTENT_ID;
-import static ua.edu.ukma.candidai.vacancy.TestResources.aVacancyResponse;
+import java.util.UUID;
+
+import static org.assertj.core.api.Assertions.*;
+import static org.mockito.Mockito.*;
+import static ua.edu.ukma.candidai.vacancy.TestResources.*;
 
 @ExtendWith(MockitoExtension.class)
 class VacancyApiImplTest {
 
     @Mock
     private VacancyService vacancyService;
+
+    @Mock
+    private VacancyRepository vacancyRepository;
 
     @InjectMocks
     private VacancyApiImpl vacancyApi;
@@ -80,5 +83,24 @@ class VacancyApiImplTest {
         assertThatThrownBy(() -> vacancyApi.getVacancyCategory(NON_EXISTENT_ID))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessage("Vacancy not found with id: " + NON_EXISTENT_ID);
+    }
+
+    @Test
+    @DisplayName("countActiveVacanciesByCompanyId should return count from repository")
+    void givenCompanyId_countActiveVacanciesByCompanyId_shouldReturnCount() {
+        UUID companyId = UUID.randomUUID();
+        when(vacancyRepository.countByCompanyIdAndStatus(companyId, VacancyStatus.OPEN)).thenReturn(3L);
+
+        int actual = vacancyApi.countActiveVacanciesByCompanyId(companyId);
+
+        assertThat(actual).isEqualTo(3);
+    }
+
+    @Test
+    @DisplayName("countActiveVacanciesByCompanyId should return zero when companyId is null")
+    void givenNullCompanyId_countActiveVacanciesByCompanyId_shouldReturnZero() {
+        int actual = vacancyApi.countActiveVacanciesByCompanyId(null);
+
+        assertThat(actual).isZero();
     }
 }

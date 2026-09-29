@@ -41,7 +41,7 @@ public class Vacancy {
 
     private UUID assignedRecruiterId;
 
-    @Column(name = "company_id", insertable = false, updatable = false)
+    @Column(name = "company_id", nullable = false)
     private UUID companyId;
 
     private String title;

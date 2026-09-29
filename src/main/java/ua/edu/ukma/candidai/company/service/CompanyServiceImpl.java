@@ -12,6 +12,7 @@ import ua.edu.ukma.candidai.company.dto.response.CompanyResponse;
 import ua.edu.ukma.candidai.company.dto.response.CompanySummaryResponse;
 import ua.edu.ukma.candidai.company.model.Company;
 import ua.edu.ukma.candidai.company.repository.CompanyRepository;
+import ua.edu.ukma.candidai.vacancy.VacancyApi;
 
 import java.util.List;
 import java.util.UUID;
@@ -24,6 +25,7 @@ public class CompanyServiceImpl implements CompanyService {
     private final CompanyRepository companyRepository;
     private final CompanyMapper companyMapper;
     private final CommonGenerator commonGenerator;
+    private final VacancyApi vacancyApi;
 
     @Override
     public CompanyResponse createCompany(CreateCompanyRequest request) {
@@ -36,15 +38,16 @@ public class CompanyServiceImpl implements CompanyService {
         company.setCreatedAt(commonGenerator.now());
 
         Company saved = companyRepository.save(company);
-        return companyMapper.toResponse(saved);
+        return companyMapper.toResponse(saved, 0);
     }
 
     @Override
     @Transactional(readOnly = true)
     public CompanyResponse getCompanyById(UUID id) {
-        Company company = companyRepository.findWithVacanciesById(id)
+        Company company = companyRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Company", id));
-        return companyMapper.toResponse(company);
+        int activeVacanciesCount = vacancyApi.countActiveVacanciesByCompanyId(id);
+        return companyMapper.toResponse(company, activeVacanciesCount);
     }
 
     @Override
@@ -74,7 +77,8 @@ public class CompanyServiceImpl implements CompanyService {
 
         companyMapper.updateEntityFromRequest(request, company);
         Company saved = companyRepository.save(company);
-        return companyMapper.toResponse(saved);
+        int activeVacanciesCount = vacancyApi.countActiveVacanciesByCompanyId(id);
+        return companyMapper.toResponse(saved, activeVacanciesCount);
     }
 
     @Override

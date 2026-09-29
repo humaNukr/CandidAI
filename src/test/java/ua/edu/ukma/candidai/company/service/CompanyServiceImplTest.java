@@ -16,6 +16,7 @@ import ua.edu.ukma.candidai.company.model.Company;
 import ua.edu.ukma.candidai.company.repository.CompanyRepository;
 
 import ua.edu.ukma.candidai.common.util.CommonGenerator;
+import ua.edu.ukma.candidai.vacancy.VacancyApi;
 
 import java.util.List;
 import java.util.Optional;
@@ -36,6 +37,9 @@ class CompanyServiceImplTest {
     @Mock
     private CommonGenerator commonGenerator;
 
+    @Mock
+    private VacancyApi vacancyApi;
+
     @InjectMocks
     private CompanyServiceImpl companyService;
 
@@ -51,7 +55,7 @@ class CompanyServiceImplTest {
         when(commonGenerator.uuid()).thenReturn(DEFAULT_COMPANY_ID);
         when(commonGenerator.now()).thenReturn(DEFAULT_CREATED_AT);
         when(companyRepository.save(company)).thenReturn(company);
-        when(companyMapper.toResponse(company)).thenReturn(expectedResponse);
+        when(companyMapper.toResponse(company, 0)).thenReturn(expectedResponse);
 
         CompanyResponse response = companyService.createCompany(request);
 
@@ -73,11 +77,12 @@ class CompanyServiceImplTest {
     @Test
     @DisplayName("getCompanyById should return company response when company exists")
     void givenExistingId_getCompanyById_shouldReturnCompanyResponse() {
-        Company company = sampleCompanyWithVacancies();
+        Company company = sampleCompany();
         CompanyResponse expectedResponse = sampleCompanyResponse();
 
-        when(companyRepository.findWithVacanciesById(DEFAULT_COMPANY_ID)).thenReturn(Optional.of(company));
-        when(companyMapper.toResponse(company)).thenReturn(expectedResponse);
+        when(companyRepository.findById(DEFAULT_COMPANY_ID)).thenReturn(Optional.of(company));
+        when(vacancyApi.countActiveVacanciesByCompanyId(DEFAULT_COMPANY_ID)).thenReturn(0);
+        when(companyMapper.toResponse(company, 0)).thenReturn(expectedResponse);
 
         CompanyResponse response = companyService.getCompanyById(DEFAULT_COMPANY_ID);
 
@@ -87,7 +92,7 @@ class CompanyServiceImplTest {
     @Test
     @DisplayName("getCompanyById should throw ResourceNotFoundException when company does not exist")
     void givenNonExistentId_getCompanyById_shouldThrowResourceNotFoundException() {
-        when(companyRepository.findWithVacanciesById(NON_EXISTENT_COMPANY_ID)).thenReturn(Optional.empty());
+        when(companyRepository.findById(NON_EXISTENT_COMPANY_ID)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> companyService.getCompanyById(NON_EXISTENT_COMPANY_ID))
                 .isInstanceOf(ResourceNotFoundException.class)
@@ -147,7 +152,8 @@ class CompanyServiceImplTest {
         when(companyRepository.findById(DEFAULT_COMPANY_ID)).thenReturn(Optional.of(company));
         when(companyRepository.existsByNameIgnoreCase(request.name())).thenReturn(false);
         when(companyRepository.save(company)).thenReturn(company);
-        when(companyMapper.toResponse(company)).thenReturn(expectedResponse);
+        when(vacancyApi.countActiveVacanciesByCompanyId(DEFAULT_COMPANY_ID)).thenReturn(0);
+        when(companyMapper.toResponse(company, 0)).thenReturn(expectedResponse);
 
         CompanyResponse response = companyService.updateCompany(DEFAULT_COMPANY_ID, request);
 
@@ -169,7 +175,8 @@ class CompanyServiceImplTest {
 
         when(companyRepository.findById(DEFAULT_COMPANY_ID)).thenReturn(Optional.of(company));
         when(companyRepository.save(company)).thenReturn(company);
-        when(companyMapper.toResponse(company)).thenReturn(expectedResponse);
+        when(vacancyApi.countActiveVacanciesByCompanyId(DEFAULT_COMPANY_ID)).thenReturn(0);
+        when(companyMapper.toResponse(company, 0)).thenReturn(expectedResponse);
 
         CompanyResponse response = companyService.updateCompany(DEFAULT_COMPANY_ID, request);
 

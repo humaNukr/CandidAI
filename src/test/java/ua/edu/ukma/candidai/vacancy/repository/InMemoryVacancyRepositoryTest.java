@@ -268,4 +268,50 @@ class InMemoryVacancyRepositoryTest {
 
         assertThat(repository.existsActiveByAuthorIdAndTitle(DEFAULT_AUTHOR_ID, "DevOps Engineer")).isFalse();
     }
+
+    @Test
+    @DisplayName("countByCompanyIdAndStatus - should count matching active vacancies for company")
+    void givenVacancies_countByCompanyIdAndStatus_shouldCountMatchingActiveVacancies() {
+        Vacancy openVacancy = aVacancyBuilder()
+                .id(UUID.randomUUID())
+                .companyId(DEFAULT_COMPANY_ID)
+                .status(VacancyStatus.OPEN)
+                .deleted(false)
+                .build();
+        Vacancy closedVacancy = aVacancyBuilder()
+                .id(UUID.randomUUID())
+                .companyId(DEFAULT_COMPANY_ID)
+                .status(VacancyStatus.CLOSED)
+                .deleted(false)
+                .build();
+        Vacancy deletedOpenVacancy = aVacancyBuilder()
+                .id(UUID.randomUUID())
+                .companyId(DEFAULT_COMPANY_ID)
+                .status(VacancyStatus.OPEN)
+                .deleted(true)
+                .build();
+        Vacancy otherCompanyVacancy = aVacancyBuilder()
+                .id(UUID.randomUUID())
+                .companyId(UUID.randomUUID())
+                .status(VacancyStatus.OPEN)
+                .deleted(false)
+                .build();
+
+        repository.save(openVacancy);
+        repository.save(closedVacancy);
+        repository.save(deletedOpenVacancy);
+        repository.save(otherCompanyVacancy);
+
+        long count = repository.countByCompanyIdAndStatus(DEFAULT_COMPANY_ID, VacancyStatus.OPEN);
+
+        assertThat(count).isEqualTo(1L);
+    }
+
+    @Test
+    @DisplayName("countByCompanyIdAndStatus - should return zero when companyId is null")
+    void givenNullCompanyId_countByCompanyIdAndStatus_shouldReturnZero() {
+        long count = repository.countByCompanyIdAndStatus(null, VacancyStatus.OPEN);
+
+        assertThat(count).isZero();
+    }
 }
