@@ -3,6 +3,10 @@ package ua.edu.ukma.candidai.vacancy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ProblemDetail;
+import org.springframework.test.web.servlet.MvcResult;
+import tools.jackson.databind.ObjectMapper;
 import ua.edu.ukma.candidai.vacancy.dto.request.CreateVacancyRequest;
 import ua.edu.ukma.candidai.vacancy.dto.request.UpdateVacancyStatusRequest;
 import ua.edu.ukma.candidai.vacancy.dto.response.VacancyResponse;
@@ -15,9 +19,11 @@ import ua.edu.ukma.candidai.vacancy.model.Vacancy;
 import ua.edu.ukma.candidai.vacancy.model.VacancyStatus;
 
 import java.math.BigDecimal;
+import java.net.URI;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 public class TestResources {
@@ -80,6 +86,93 @@ public class TestResources {
                     "detail": "Vacancy not found with id: %s"
                 }
                 """.formatted(id);
+    }
+
+    public static <T> T parseResponse(ObjectMapper objectMapper, MvcResult result, Class<T> clazz) throws Exception {
+        return objectMapper.readValue(result.getResponse().getContentAsString(), clazz);
+    }
+
+    public static ProblemDetail parseProblemDetail(ObjectMapper objectMapper, MvcResult result) throws Exception {
+        return objectMapper.readValue(result.getResponse().getContentAsString(), ProblemDetail.class);
+    }
+
+    public static <T> List<T> parsePagedContent(
+            ObjectMapper objectMapper,
+            MvcResult result,
+            Class<T> elementType
+    ) throws Exception {
+        tools.jackson.databind.JsonNode root = objectMapper.readTree(result.getResponse().getContentAsString());
+        tools.jackson.databind.JsonNode contentNode = root.get("content");
+        return objectMapper.treeToValue(
+                contentNode,
+                objectMapper.getTypeFactory().constructCollectionType(List.class, elementType)
+        );
+    }
+
+    @SuppressWarnings("unchecked")
+    public static Map<String, String> extractErrors(ProblemDetail problemDetail) {
+        return (Map<String, String>) problemDetail.getProperties().get("errors");
+    }
+
+    public static ProblemDetail expectedValidationProblemDetail(Map<String, String> errors) {
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
+                HttpStatus.BAD_REQUEST,
+                "Input validation failed"
+        );
+        problemDetail.setTitle("Validation Error");
+        problemDetail.setType(URI.create("https://candidai.ukma.edu.ua/errors/validation"));
+        problemDetail.setInstance(URI.create(BASE_URL));
+        problemDetail.setProperty("errors", errors);
+        problemDetail.setProperty("timestamp", Instant.EPOCH);
+        return problemDetail;
+    }
+
+    public static ProblemDetail expectedConflictProblemDetail(String detail) {
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
+                HttpStatus.CONFLICT,
+                detail
+        );
+        problemDetail.setTitle("Resource Conflict");
+        problemDetail.setType(URI.create("https://candidai.ukma.edu.ua/errors/conflict"));
+        problemDetail.setInstance(URI.create(BASE_URL));
+        problemDetail.setProperty("timestamp", Instant.EPOCH);
+        return problemDetail;
+    }
+
+    public static ProblemDetail expectedNotFoundProblemDetail(UUID id) {
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
+                HttpStatus.NOT_FOUND,
+                "Vacancy not found with id: " + id
+        );
+        problemDetail.setTitle("Resource Not Found");
+        problemDetail.setType(URI.create("https://candidai.ukma.edu.ua/errors/not-found"));
+        problemDetail.setInstance(URI.create(BASE_URL + "/" + id));
+        problemDetail.setProperty("timestamp", Instant.EPOCH);
+        return problemDetail;
+    }
+
+    public static ProblemDetail expectedJsonParsingProblemDetail() {
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
+                HttpStatus.BAD_REQUEST,
+                "Malformed request body or unknown properties"
+        );
+        problemDetail.setTitle("JSON Parsing Error");
+        problemDetail.setType(URI.create("https://candidai.ukma.edu.ua/errors/bad-request"));
+        problemDetail.setInstance(URI.create(BASE_URL));
+        problemDetail.setProperty("timestamp", Instant.EPOCH);
+        return problemDetail;
+    }
+
+    public static ProblemDetail expectedInvalidStateTransitionProblemDetail(String detail) {
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
+                HttpStatus.UNPROCESSABLE_CONTENT,
+                detail
+        );
+        problemDetail.setTitle("Invalid State Transition");
+        problemDetail.setType(URI.create("https://candidai.ukma.edu.ua/errors/invalid-state-transition"));
+        problemDetail.setInstance(URI.create(BASE_URL + "/" + DEFAULT_ID + "/status"));
+        problemDetail.setProperty("timestamp", Instant.EPOCH);
+        return problemDetail;
     }
 
     public static CreateVacancyRequestBuilder aCreateVacancyRequest() {
