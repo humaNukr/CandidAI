@@ -81,4 +81,16 @@ class InMemoryVacancyRepository implements VacancyRepository {
                         && authorId.equals(v.getAuthorId())
                         && v.getTitle().trim().equalsIgnoreCase(normalizedTitle));
     }
+
+    @Override
+    public long countByCompanyIdAndStatus(UUID companyId, VacancyStatus status) {
+        if (companyId == null || status == null) {
+            return 0;
+        }
+        return storage.values().stream()
+                .filter(v -> !v.isDeleted()
+                        && status == v.getStatus()
+                        && companyId.equals(v.getCompanyId()))
+                .count();
+    }
 }
