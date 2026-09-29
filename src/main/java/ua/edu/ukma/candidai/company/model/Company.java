@@ -51,7 +51,7 @@ public class Company {
 
     @Builder.Default
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
-    @JoinColumn(name = "company_id")
+    @JoinColumn(name = "company_id", insertable = false, updatable = false)
     private List<Vacancy> vacancies = new ArrayList<>();
 
     public void addVacancy(Vacancy vacancy) {

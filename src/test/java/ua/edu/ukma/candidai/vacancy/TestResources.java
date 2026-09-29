@@ -16,6 +16,7 @@ import ua.edu.ukma.candidai.vacancy.model.VacancyStatus;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -136,8 +137,7 @@ public class TestResources {
                 .seniorityLevel("Senior")
                 .minYearsOfExperience(5)
                 .description("Great opportunity for Java and Spring Boot developers")
-                .requiredSkills(List.of("Java"))
-                .preferredSkills(List.of("Docker"))
+                .skills(new ArrayList<>(List.of(aSkillJava())))
                 .minEnglishLevel(EnglishLevel.B2)
                 .salaryMin(DEFAULT_SALARY_MIN)
                 .salaryMax(DEFAULT_SALARY_MAX)
