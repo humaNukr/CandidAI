@@ -20,39 +20,28 @@ import ua.edu.ukma.candidai.vacancy.dto.request.CreateVacancyRequest;
 import ua.edu.ukma.candidai.vacancy.dto.request.UpdateVacancyStatusRequest;
 import ua.edu.ukma.candidai.vacancy.dto.response.VacancyResponse;
 import ua.edu.ukma.candidai.vacancy.model.JobCategory;
+import ua.edu.ukma.candidai.vacancy.model.Skill;
 import ua.edu.ukma.candidai.vacancy.model.Vacancy;
 import ua.edu.ukma.candidai.vacancy.model.VacancyStatus;
+import ua.edu.ukma.candidai.vacancy.repository.SkillRepository;
 import ua.edu.ukma.candidai.vacancy.repository.VacancyRepository;
 
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.when;
-import static ua.edu.ukma.candidai.vacancy.TestResources.DEFAULT_AUTHOR_ID;
-import static ua.edu.ukma.candidai.vacancy.TestResources.DEFAULT_ID;
-import static ua.edu.ukma.candidai.vacancy.TestResources.DEFAULT_NOW;
-import static ua.edu.ukma.candidai.vacancy.TestResources.NON_EXISTENT_ID;
-import static ua.edu.ukma.candidai.vacancy.TestResources.aCreateVacancyRequest;
-import static ua.edu.ukma.candidai.vacancy.TestResources.aDeletedVacancy;
-import static ua.edu.ukma.candidai.vacancy.TestResources.aDraftVacancy;
-import static ua.edu.ukma.candidai.vacancy.TestResources.aDraftVacancyResponse;
-import static ua.edu.ukma.candidai.vacancy.TestResources.aVacancy;
-import static ua.edu.ukma.candidai.vacancy.TestResources.aVacancyPage;
-import static ua.edu.ukma.candidai.vacancy.TestResources.aVacancyResponse;
-import static ua.edu.ukma.candidai.vacancy.TestResources.aVacancyResponsePage;
-import static ua.edu.ukma.candidai.vacancy.TestResources.validCreateDraftVacancyRequest;
-import static ua.edu.ukma.candidai.vacancy.TestResources.validCreateVacancyRequest;
+import static org.assertj.core.api.Assertions.*;
+import static org.mockito.Mockito.*;
+import static ua.edu.ukma.candidai.vacancy.TestResources.*;
 
 @ExtendWith(MockitoExtension.class)
 class VacancyServiceTest {
 
     @Mock
     private VacancyRepository vacancyRepository;
+
+    @Mock
+    private SkillRepository skillRepository;
 
     @Mock
     private VacancyMapper vacancyMapper;
@@ -67,13 +56,15 @@ class VacancyServiceTest {
     private VacancyServiceImpl vacancyService;
 
     @Test
-    @DisplayName("createVacancy with unique title should save vacancy and return response")
-    void givenUniqueTitle_createVacancy_shouldSaveAndReturnResponse() {
+    @DisplayName("createVacancy with unique title and existing skill should reuse skill and return response")
+    void givenUniqueTitleAndExistingSkill_createVacancy_shouldReuseSkillAndReturnResponse() {
         CreateVacancyRequest request = validCreateVacancyRequest();
         Vacancy vacancy = aVacancy();
         VacancyResponse expectedResponse = aVacancyResponse();
 
-        when(vacancyRepository.existsActiveByAuthorIdAndTitle(DEFAULT_AUTHOR_ID, request.title())).thenReturn(false);
+        when(vacancyRepository.existsByAuthorIdAndTitleIgnoreCaseAndStatusAndDeletedFalse(
+                DEFAULT_AUTHOR_ID, request.title(), VacancyStatus.OPEN)).thenReturn(false);
+        when(skillRepository.findByNameIgnoreCase(SKILL_JAVA)).thenReturn(Optional.of(aSkillJava()));
         when(generator.uuid()).thenReturn(DEFAULT_ID);
         when(generator.now()).thenReturn(DEFAULT_NOW);
         when(vacancyRepository.save(vacancy)).thenReturn(vacancy);
@@ -85,6 +76,33 @@ class VacancyServiceTest {
                 .usingRecursiveComparison()
                 .isEqualTo(expectedResponse);
         verify(vacancyRepository).save(vacancy);
+        verify(skillRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("createVacancy with unique title and new skill should create skill and return response")
+    void givenUniqueTitleAndNewSkill_createVacancy_shouldCreateSkillAndReturnResponse() {
+        CreateVacancyRequest request = validCreateVacancyRequest();
+        Vacancy vacancy = aVacancy();
+        VacancyResponse expectedResponse = aVacancyResponse();
+        Skill newSkill = aSkillJava();
+
+        when(vacancyRepository.existsByAuthorIdAndTitleIgnoreCaseAndStatusAndDeletedFalse(
+                DEFAULT_AUTHOR_ID, request.title(), VacancyStatus.OPEN)).thenReturn(false);
+        when(skillRepository.findByNameIgnoreCase(SKILL_JAVA)).thenReturn(Optional.empty());
+        when(generator.uuid()).thenReturn(SKILL_1_ID, DEFAULT_ID);
+        when(generator.now()).thenReturn(DEFAULT_NOW);
+        when(skillRepository.save(newSkill)).thenReturn(newSkill);
+        when(vacancyRepository.save(vacancy)).thenReturn(vacancy);
+        when(vacancyMapper.toResponse(vacancy)).thenReturn(expectedResponse);
+
+        VacancyResponse actual = vacancyService.createVacancy(request);
+
+        assertThat(actual)
+                .usingRecursiveComparison()
+                .isEqualTo(expectedResponse);
+        verify(skillRepository).save(newSkill);
+        verify(vacancyRepository).save(vacancy);
     }
 
     @Test
@@ -94,7 +112,9 @@ class VacancyServiceTest {
         Vacancy draftVacancy = aDraftVacancy();
         VacancyResponse expectedResponse = aDraftVacancyResponse();
 
-        when(vacancyRepository.existsActiveByAuthorIdAndTitle(DEFAULT_AUTHOR_ID, request.title())).thenReturn(false);
+        when(vacancyRepository.existsByAuthorIdAndTitleIgnoreCaseAndStatusAndDeletedFalse(
+                DEFAULT_AUTHOR_ID, request.title(), VacancyStatus.OPEN)).thenReturn(false);
+        when(skillRepository.findByNameIgnoreCase(SKILL_JAVA)).thenReturn(Optional.of(aSkillJava()));
         when(generator.uuid()).thenReturn(DEFAULT_ID);
         when(generator.now()).thenReturn(DEFAULT_NOW);
         when(vacancyRepository.save(draftVacancy)).thenReturn(draftVacancy);
@@ -105,8 +125,6 @@ class VacancyServiceTest {
         assertThat(actual)
                 .usingRecursiveComparison()
                 .isEqualTo(expectedResponse);
-        assertThat(actual.publishedAt()).isNull();
-        assertThat(actual.status()).isEqualTo(VacancyStatus.DRAFT);
         verify(vacancyRepository).save(draftVacancy);
     }
 
@@ -117,7 +135,9 @@ class VacancyServiceTest {
                 .status(VacancyStatus.CLOSED)
                 .build();
 
-        when(vacancyRepository.existsActiveByAuthorIdAndTitle(DEFAULT_AUTHOR_ID, request.title())).thenReturn(false);
+        when(vacancyRepository.existsByAuthorIdAndTitleIgnoreCaseAndStatusAndDeletedFalse(
+                DEFAULT_AUTHOR_ID, request.title(), VacancyStatus.OPEN)).thenReturn(false);
+        when(skillRepository.findByNameIgnoreCase(SKILL_JAVA)).thenReturn(Optional.of(aSkillJava()));
         when(generator.uuid()).thenReturn(DEFAULT_ID);
         when(generator.now()).thenReturn(DEFAULT_NOW);
 
@@ -131,12 +151,13 @@ class VacancyServiceTest {
     @DisplayName("createVacancy with duplicate title for author should throw DuplicateResourceException")
     void givenDuplicateTitleForAuthor_createVacancy_shouldThrowDuplicateResourceException() {
         CreateVacancyRequest request = validCreateVacancyRequest();
-        when(vacancyRepository.existsActiveByAuthorIdAndTitle(DEFAULT_AUTHOR_ID, request.title())).thenReturn(true);
+
+        when(vacancyRepository.existsByAuthorIdAndTitleIgnoreCaseAndStatusAndDeletedFalse(
+                DEFAULT_AUTHOR_ID, request.title(), VacancyStatus.OPEN)).thenReturn(true);
 
         assertThatThrownBy(() -> vacancyService.createVacancy(request))
                 .isInstanceOf(DuplicateResourceException.class)
                 .hasMessageContaining("Active vacancy with title 'Senior Java Engineer' already exists");
-
         verifyNoMoreInteractions(vacancyRepository);
     }
 
@@ -146,7 +167,7 @@ class VacancyServiceTest {
         Vacancy vacancy = aVacancy();
         VacancyResponse expectedResponse = aVacancyResponse();
 
-        when(vacancyRepository.findById(DEFAULT_ID)).thenReturn(Optional.of(vacancy));
+        when(vacancyRepository.findWithSkillsById(DEFAULT_ID)).thenReturn(Optional.of(vacancy));
         when(vacancyMapper.toResponse(vacancy)).thenReturn(expectedResponse);
 
         VacancyResponse actual = vacancyService.getVacancyById(DEFAULT_ID);
@@ -159,7 +180,7 @@ class VacancyServiceTest {
     @Test
     @DisplayName("getVacancyById with non-existent id should throw ResourceNotFoundException")
     void givenNonExistentId_getVacancyById_shouldThrowResourceNotFoundException() {
-        when(vacancyRepository.findById(NON_EXISTENT_ID)).thenReturn(Optional.empty());
+        when(vacancyRepository.findWithSkillsById(NON_EXISTENT_ID)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> vacancyService.getVacancyById(NON_EXISTENT_ID))
                 .isInstanceOf(ResourceNotFoundException.class)
@@ -170,7 +191,8 @@ class VacancyServiceTest {
     @DisplayName("getVacancyById with soft-deleted vacancy should throw ResourceNotFoundException")
     void givenDeletedVacancy_getVacancyById_shouldThrowResourceNotFoundException() {
         Vacancy deletedVacancy = aDeletedVacancy();
-        when(vacancyRepository.findById(DEFAULT_ID)).thenReturn(Optional.of(deletedVacancy));
+
+        when(vacancyRepository.findWithSkillsById(DEFAULT_ID)).thenReturn(Optional.of(deletedVacancy));
 
         assertThatThrownBy(() -> vacancyService.getVacancyById(DEFAULT_ID))
                 .isInstanceOf(ResourceNotFoundException.class)
@@ -183,13 +205,11 @@ class VacancyServiceTest {
         Vacancy vacancy = aVacancy();
         UpdateVacancyStatusRequest request = new UpdateVacancyStatusRequest(VacancyStatus.PAUSED);
         Instant updatedAt = DEFAULT_NOW.plusSeconds(3600);
-
-        when(vacancyRepository.findById(DEFAULT_ID)).thenReturn(Optional.of(vacancy));
-        when(generator.now()).thenReturn(updatedAt);
-
         Vacancy expectedSavedVacancy = aVacancy(VacancyStatus.PAUSED, updatedAt);
         VacancyResponse expectedResponse = aVacancyResponse(VacancyStatus.PAUSED, updatedAt);
 
+        when(vacancyRepository.findWithSkillsById(DEFAULT_ID)).thenReturn(Optional.of(vacancy));
+        when(generator.now()).thenReturn(updatedAt);
         when(vacancyRepository.save(expectedSavedVacancy)).thenReturn(expectedSavedVacancy);
         when(vacancyMapper.toResponse(expectedSavedVacancy)).thenReturn(expectedResponse);
 
@@ -215,12 +235,11 @@ class VacancyServiceTest {
         Vacancy closedVacancy = aVacancy(VacancyStatus.CLOSED);
         UpdateVacancyStatusRequest request = new UpdateVacancyStatusRequest(VacancyStatus.OPEN);
 
-        when(vacancyRepository.findById(DEFAULT_ID)).thenReturn(Optional.of(closedVacancy));
+        when(vacancyRepository.findWithSkillsById(DEFAULT_ID)).thenReturn(Optional.of(closedVacancy));
 
         assertThatThrownBy(() -> vacancyService.updateVacancyStatus(DEFAULT_ID, request))
                 .isInstanceOf(InvalidStateTransitionException.class)
                 .hasMessageContaining("Cannot transition vacancy status from CLOSED to OPEN");
-
         verifyNoMoreInteractions(vacancyRepository);
     }
 
@@ -229,11 +248,10 @@ class VacancyServiceTest {
     void givenExistingId_deleteVacancy_shouldSoftDelete() {
         Vacancy vacancy = aVacancy();
         Instant deletedAt = DEFAULT_NOW.plusSeconds(7200);
-
-        when(vacancyRepository.findById(DEFAULT_ID)).thenReturn(Optional.of(vacancy));
-        when(generator.now()).thenReturn(deletedAt);
-
         Vacancy expectedDeletedVacancy = aDeletedVacancy(deletedAt);
+
+        when(vacancyRepository.findWithSkillsById(DEFAULT_ID)).thenReturn(Optional.of(vacancy));
+        when(generator.now()).thenReturn(deletedAt);
 
         vacancyService.deleteVacancy(DEFAULT_ID);
 
@@ -243,12 +261,11 @@ class VacancyServiceTest {
     @Test
     @DisplayName("deleteVacancy with non-existent id should throw ResourceNotFoundException")
     void givenNonExistentId_deleteVacancy_shouldThrowResourceNotFoundException() {
-        when(vacancyRepository.findById(NON_EXISTENT_ID)).thenReturn(Optional.empty());
+        when(vacancyRepository.findWithSkillsById(NON_EXISTENT_ID)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> vacancyService.deleteVacancy(NON_EXISTENT_ID))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("Vacancy not found with id: " + NON_EXISTENT_ID);
-
         verifyNoMoreInteractions(vacancyRepository);
     }
 
@@ -260,7 +277,7 @@ class VacancyServiceTest {
         VacancyResponse expectedResponse = aVacancyResponse();
         Page<Vacancy> vacancyPage = aVacancyPage(List.of(vacancy), pageable);
 
-        when(vacancyRepository.findAll(VacancyStatus.OPEN, JobCategory.ENGINEERING, pageable))
+        when(vacancyRepository.findAllActive(VacancyStatus.OPEN, JobCategory.ENGINEERING, pageable))
                 .thenReturn(vacancyPage);
         when(vacancyMapper.toResponse(vacancy)).thenReturn(expectedResponse);
 
