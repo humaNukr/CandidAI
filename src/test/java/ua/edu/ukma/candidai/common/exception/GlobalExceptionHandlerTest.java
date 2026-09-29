@@ -103,6 +103,34 @@ class GlobalExceptionHandlerTest {
         assertThat(errors).containsEntry("email", "must not be blank");
     }
 
+    @Test
+    @DisplayName("handleIllegalArgument should return 400 ProblemDetail with correct fields")
+    void givenIllegalArgumentException_handleIllegalArgument_shouldReturn400ProblemDetail() {
+        IllegalArgumentException ex = new IllegalArgumentException("Cannot upload empty file");
+
+        ProblemDetail problem = handler.handleIllegalArgument(ex);
+
+        assertThat(problem.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST.value());
+        assertThat(problem.getTitle()).isEqualTo("Bad Request");
+        assertThat(problem.getDetail()).isEqualTo("Cannot upload empty file");
+        assertThat(problem.getType()).isEqualTo(URI.create("https://candidai.ukma.edu.ua/errors/bad-request"));
+        assertThat(problem.getProperties()).containsKey("timestamp");
+    }
+
+    @Test
+    @DisplayName("handleSecurity should return 403 ProblemDetail with correct fields")
+    void givenSecurityException_handleSecurity_shouldReturn403ProblemDetail() {
+        SecurityException ex = new SecurityException("Access denied: path traversal attempt");
+
+        ProblemDetail problem = handler.handleSecurity(ex);
+
+        assertThat(problem.getStatus()).isEqualTo(HttpStatus.FORBIDDEN.value());
+        assertThat(problem.getTitle()).isEqualTo("Access Denied");
+        assertThat(problem.getDetail()).isEqualTo("Access denied: path traversal attempt");
+        assertThat(problem.getType()).isEqualTo(URI.create("https://candidai.ukma.edu.ua/errors/forbidden"));
+        assertThat(problem.getProperties()).containsKey("timestamp");
+    }
+
     @SuppressWarnings("unused")
     private void dummyMethod(String param) {
     }
