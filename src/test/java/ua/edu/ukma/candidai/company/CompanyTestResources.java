@@ -9,12 +9,9 @@ import ua.edu.ukma.candidai.company.dto.request.UpdateCompanyRequest;
 import ua.edu.ukma.candidai.company.dto.response.CompanyResponse;
 import ua.edu.ukma.candidai.company.dto.response.CompanySummaryResponse;
 import ua.edu.ukma.candidai.company.model.Company;
-import ua.edu.ukma.candidai.vacancy.model.Vacancy;
-import ua.edu.ukma.candidai.vacancy.model.VacancyStatus;
 
 import java.net.URI;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -171,23 +168,6 @@ public final class CompanyTestResources {
         return "Company with name '" + name + "' already exists";
     }
 
-    public static Company sampleCompanyWithVacancies() {
-        Company company = sampleCompany();
-        Vacancy openVacancy = Vacancy.builder()
-                .id(UUID.fromString("00000000-0000-0000-0000-000000000011"))
-                .title("Java Developer")
-                .status(VacancyStatus.OPEN)
-                .build();
-        Vacancy closedVacancy = Vacancy.builder()
-                .id(UUID.fromString("00000000-0000-0000-0000-000000000012"))
-                .title("Kotlin Developer")
-                .status(VacancyStatus.CLOSED)
-                .build();
-        company.addVacancy(openVacancy);
-        company.addVacancy(closedVacancy);
-        return company;
-    }
-
     public static Company.CompanyBuilder sampleCompanyBuilder() {
         return Company.builder()
                 .id(DEFAULT_COMPANY_ID)
@@ -195,8 +175,7 @@ public final class CompanyTestResources {
                 .description(DEFAULT_DESCRIPTION)
                 .logoUrl(DEFAULT_LOGO_URL)
                 .contactEmail(DEFAULT_CONTACT_EMAIL)
-                .createdAt(DEFAULT_CREATED_AT)
-                .vacancies(new ArrayList<>());
+                .createdAt(DEFAULT_CREATED_AT);
     }
 
     public static Company expectedCreatedCompany() {
@@ -259,13 +238,5 @@ public final class CompanyTestResources {
 
     public static ProblemDetail expectedValidationProblemDetail(Map<String, String> errors) {
         return expectedValidationProblemDetail(URI.create(BASE_URL), errors);
-    }
-
-    public static Vacancy sampleVacancy() {
-        return Vacancy.builder()
-                .id(UUID.fromString("00000000-0000-0000-0000-000000000013"))
-                .title("Backend Engineer")
-                .status(VacancyStatus.OPEN)
-                .build();
     }
 }

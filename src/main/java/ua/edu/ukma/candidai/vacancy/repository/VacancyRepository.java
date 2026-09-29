@@ -28,6 +28,8 @@ public interface VacancyRepository extends JpaRepository<Vacancy, UUID> {
 
     List<Vacancy> findByStatusAndCompanyId(VacancyStatus status, UUID companyId);
 
+    long countByCompanyIdAndStatus(UUID companyId, VacancyStatus status);
+
     boolean existsByAuthorIdAndTitleIgnoreCaseAndStatusAndDeletedFalse(
             UUID authorId,
             String title,

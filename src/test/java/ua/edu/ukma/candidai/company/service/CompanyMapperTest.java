@@ -27,20 +27,20 @@ class CompanyMapperTest {
     }
 
     @Test
-    @DisplayName("toResponse - should map Company to CompanyResponse and count only OPEN vacancies")
-    void givenCompanyWithVacancies_toResponse_shouldCalculateActiveVacanciesCountCorrectly() {
-        Company company = sampleCompanyWithVacancies();
+    @DisplayName("toResponse - should map Company and activeVacanciesCount to CompanyResponse")
+    void givenCompanyAndCount_toResponse_shouldMapAllFieldsAndSetCount() {
+        Company company = sampleCompany();
+        int count = 3;
 
-        CompanyResponse response = mapper.toResponse(company);
+        CompanyResponse response = mapper.toResponse(company, count);
 
-        assertThat(response).usingRecursiveComparison().isEqualTo(sampleCompanyResponseWithActiveVacancies(1));
+        assertThat(response).usingRecursiveComparison().isEqualTo(sampleCompanyResponseWithActiveVacancies(count));
     }
 
     @Test
-    @DisplayName("toResponse - should return 0 active vacancies when company has no vacancies")
-    void givenCompanyWithoutVacancies_toResponse_shouldReturnZeroActiveVacancies() {
+    @DisplayName("toResponse - should default activeVacanciesCount to 0 when count not provided")
+    void givenCompany_toResponse_shouldDefaultActiveVacanciesCountToZero() {
         Company company = sampleCompany();
-        company.setVacancies(null);
 
         CompanyResponse response = mapper.toResponse(company);
 
