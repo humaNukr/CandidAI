@@ -106,13 +106,13 @@ class GlobalExceptionHandlerTest {
     @Test
     @DisplayName("handleIllegalArgument should return 400 ProblemDetail with correct fields")
     void givenIllegalArgumentException_handleIllegalArgument_shouldReturn400ProblemDetail() {
-        IllegalArgumentException ex = new IllegalArgumentException("Cannot upload empty file");
+        IllegalArgumentException ex = new IllegalArgumentException("Filter error");
 
         ProblemDetail problem = handler.handleIllegalArgument(ex);
 
         assertThat(problem.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST.value());
         assertThat(problem.getTitle()).isEqualTo("Bad Request");
-        assertThat(problem.getDetail()).isEqualTo("Cannot upload empty file");
+        assertThat(problem.getDetail()).isEqualTo("Filter error");
         assertThat(problem.getType()).isEqualTo(URI.create("https://candidai.ukma.edu.ua/errors/bad-request"));
         assertThat(problem.getProperties()).containsKey("timestamp");
     }
