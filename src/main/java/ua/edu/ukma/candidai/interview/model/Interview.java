@@ -11,7 +11,6 @@ import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 import lombok.ToString;
 import ua.edu.ukma.candidai.common.exception.InvalidStateTransitionException;
 
@@ -21,7 +20,6 @@ import java.util.UUID;
 @Entity
 @Table(name = "interviews")
 @Getter
-@Setter
 @ToString
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @Builder
@@ -110,6 +108,7 @@ public class Interview {
             Instant newScheduledAt,
             Integer newDurationMinutes,
             String newMeetingLink,
+            String reason,
             Instant now
     ) {
         if (this.status.isTerminal()) {
@@ -120,13 +119,21 @@ public class Interview {
         if (newScheduledAt.isBefore(now)) {
             throw new IllegalArgumentException("New interview time cannot be in the past");
         }
+        if (newDurationMinutes != null && newDurationMinutes <= 0) {
+            throw new IllegalArgumentException("Interview duration must be greater than zero");
+        }
 
         this.scheduledAt = newScheduledAt;
-        if (newDurationMinutes != null && newDurationMinutes > 0) {
+        if (newDurationMinutes != null) {
             this.durationMinutes = newDurationMinutes;
         }
         if (newMeetingLink != null && !newMeetingLink.isBlank()) {
             this.meetingLink = newMeetingLink;
+        }
+        if (reason != null && !reason.isBlank()) {
+            this.notes = (this.notes != null && !this.notes.isBlank())
+                    ? this.notes + "\nReschedule reason: " + reason
+                    : "Reschedule reason: " + reason;
         }
         this.status = InterviewStatus.RESCHEDULED;
         this.updatedAt = now;

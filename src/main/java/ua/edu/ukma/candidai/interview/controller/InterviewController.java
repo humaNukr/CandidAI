@@ -21,7 +21,9 @@ import ua.edu.ukma.candidai.interview.service.InterviewService;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 @RestController
 @RequestMapping("/api/v1/interviews")
@@ -53,16 +55,28 @@ public class InterviewController {
             @RequestParam(required = false) UUID interviewerId,
             @RequestParam(required = false) InterviewStatus status
     ) {
+        long filterCount = Stream.of(applicationId, interviewerId, status)
+                .filter(Objects::nonNull)
+                .count();
+
+        if (filterCount == 0) {
+            throw new IllegalArgumentException(
+                    "At least one filter parameter must be provided: applicationId, interviewerId, or status"
+            );
+        }
+        if (filterCount > 1) {
+            throw new IllegalArgumentException(
+                    "Only one filter parameter can be specified at a time: applicationId, interviewerId, or status"
+            );
+        }
+
         if (applicationId != null) {
             return ResponseEntity.ok(interviewService.getInterviewsByApplicationId(applicationId));
         }
         if (interviewerId != null) {
             return ResponseEntity.ok(interviewService.getInterviewsByInterviewerId(interviewerId));
         }
-        if (status != null) {
-            return ResponseEntity.ok(interviewService.getInterviewsByStatus(status));
-        }
-        return ResponseEntity.ok(List.of());
+        return ResponseEntity.ok(interviewService.getInterviewsByStatus(status));
     }
 
     @PatchMapping("/{id}/reschedule")

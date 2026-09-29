@@ -139,6 +139,30 @@ class InterviewControllerTest {
     }
 
     @Test
+    @DisplayName("GET /api/v1/interviews - should return 400 Bad Request when no filter provided")
+    void givenNoParams_getInterviews_shouldReturn400BadRequest() throws Exception {
+        mockMvc.perform(get(BASE_URL))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.detail").value(
+                        "At least one filter parameter must be provided: applicationId, interviewerId, or status"
+                ));
+    }
+
+    @Test
+    @DisplayName("GET /api/v1/interviews - should return 400 Bad Request when multiple filters provided")
+    void givenMultipleParams_getInterviews_shouldReturn400BadRequest() throws Exception {
+        mockMvc.perform(get(BASE_URL)
+                        .param("applicationId", UUID.randomUUID().toString())
+                        .param("status", "SCHEDULED"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.detail").value(
+                        "Only one filter parameter can be specified at a time: applicationId, interviewerId, or status"
+                ));
+    }
+
+    @Test
     @DisplayName("GET /api/v1/interviews?applicationId=... - should return 200 Ok with list")
     void givenApplicationIdParam_getInterviews_shouldReturnList() throws Exception {
         UUID applicationId = UUID.randomUUID();
@@ -152,6 +176,37 @@ class InterviewControllerTest {
                 .andExpect(jsonPath("$[0].status").value("SCHEDULED"));
 
         verify(interviewService).getInterviewsByApplicationId(applicationId);
+    }
+
+    @Test
+    @DisplayName("GET /api/v1/interviews?interviewerId=... - should return 200 Ok with list")
+    void givenInterviewerIdParam_getInterviews_shouldReturnList() throws Exception {
+        UUID interviewerId = UUID.randomUUID();
+        InterviewResponse response = createTestResponse(UUID.randomUUID(), InterviewStatus.SCHEDULED);
+
+        when(interviewService.getInterviewsByInterviewerId(interviewerId)).thenReturn(List.of(response));
+
+        mockMvc.perform(get(BASE_URL).param("interviewerId", interviewerId.toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].status").value("SCHEDULED"));
+
+        verify(interviewService).getInterviewsByInterviewerId(interviewerId);
+    }
+
+    @Test
+    @DisplayName("GET /api/v1/interviews?status=... - should return 200 Ok with list")
+    void givenStatusParam_getInterviews_shouldReturnList() throws Exception {
+        InterviewResponse response = createTestResponse(UUID.randomUUID(), InterviewStatus.SCHEDULED);
+
+        when(interviewService.getInterviewsByStatus(InterviewStatus.SCHEDULED)).thenReturn(List.of(response));
+
+        mockMvc.perform(get(BASE_URL).param("status", "SCHEDULED"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].status").value("SCHEDULED"));
+
+        verify(interviewService).getInterviewsByStatus(InterviewStatus.SCHEDULED);
     }
 
     @Test

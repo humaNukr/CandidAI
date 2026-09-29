@@ -5,7 +5,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ua.edu.ukma.candidai.common.exception.InvalidStateTransitionException;
 import ua.edu.ukma.candidai.common.exception.ResourceNotFoundException;
+import ua.edu.ukma.candidai.common.util.CommonGenerator;
 import ua.edu.ukma.candidai.interview.dto.CancelInterviewRequest;
 import ua.edu.ukma.candidai.interview.dto.InterviewResponse;
 import ua.edu.ukma.candidai.interview.dto.RescheduleInterviewRequest;
@@ -35,6 +37,7 @@ public class InterviewServiceImpl implements InterviewService {
     private final InterviewRepository interviewRepository;
     private final RecruitmentApi recruitmentApi;
     private final ApplicationEventPublisher eventPublisher;
+    private final CommonGenerator commonGenerator;
 
     @Override
     @Transactional
@@ -44,13 +47,30 @@ public class InterviewServiceImpl implements InterviewService {
 
         ApplicationDetails application = recruitmentApi.getApplication(request.applicationId());
 
-        Instant now = Instant.now();
+        if (application.status() == ApplicationStatus.REJECTED || application.status() == ApplicationStatus.HIRED) {
+            throw new InvalidStateTransitionException(
+                    "Cannot schedule interview for application in terminal status: " + application.status()
+            );
+        }
+        if (application.status() == ApplicationStatus.APPLIED) {
+            throw new InvalidStateTransitionException(
+                    "Cannot schedule interview for application in APPLIED status. Application must pass screening first"
+            );
+        }
+        if (application.status() != ApplicationStatus.SCREENING
+                && application.status() != ApplicationStatus.INTERVIEW) {
+            throw new InvalidStateTransitionException(
+                    "Cannot schedule interview for application in status: " + application.status()
+            );
+        }
+
+        Instant now = commonGenerator.now();
         int duration = (request.durationMinutes() != null && request.durationMinutes() > 0)
                 ? request.durationMinutes()
                 : DEFAULT_DURATION_MINUTES;
 
         Interview interview = Interview.create(
-                UUID.randomUUID(),
+                commonGenerator.uuid(),
                 request.applicationId(),
                 request.interviewerId(),
                 request.interviewerName(),
@@ -64,7 +84,7 @@ public class InterviewServiceImpl implements InterviewService {
 
         Interview saved = interviewRepository.save(interview);
 
-        if (application.status() == ApplicationStatus.APPLIED || application.status() == ApplicationStatus.SCREENING) {
+        if (application.status() == ApplicationStatus.SCREENING) {
             recruitmentApi.updateStatus(
                     request.applicationId(),
                     ApplicationStatus.INTERVIEW,
@@ -125,9 +145,15 @@ public class InterviewServiceImpl implements InterviewService {
         log.info("Rescheduling interview {} to new time {}", id, request.newScheduledAt());
 
         Interview interview = findInterviewOrThrow(id);
-        Instant now = Instant.now();
+        Instant now = commonGenerator.now();
 
-        interview.reschedule(request.newScheduledAt(), request.durationMinutes(), request.meetingLink(), now);
+        interview.reschedule(
+                request.newScheduledAt(),
+                request.durationMinutes(),
+                request.meetingLink(),
+                request.reason(),
+                now
+        );
         Interview updated = interviewRepository.save(interview);
 
         eventPublisher.publishEvent(new InterviewRescheduledEvent(
@@ -135,7 +161,8 @@ public class InterviewServiceImpl implements InterviewService {
                 updated.getApplicationId(),
                 updated.getScheduledAt(),
                 updated.getDurationMinutes(),
-                updated.getMeetingLink()
+                updated.getMeetingLink(),
+                request.reason()
         ));
 
         return InterviewResponse.from(updated);
@@ -147,7 +174,7 @@ public class InterviewServiceImpl implements InterviewService {
         log.info("Cancelling interview {} with reason: {}", id, request.reason());
 
         Interview interview = findInterviewOrThrow(id);
-        Instant now = Instant.now();
+        Instant now = commonGenerator.now();
 
         interview.cancel(request.reason(), now);
         Interview updated = interviewRepository.save(interview);
@@ -167,7 +194,7 @@ public class InterviewServiceImpl implements InterviewService {
         log.info("Completing interview {}", id);
 
         Interview interview = findInterviewOrThrow(id);
-        Instant now = Instant.now();
+        Instant now = commonGenerator.now();
 
         interview.complete(now);
         Interview updated = interviewRepository.save(interview);

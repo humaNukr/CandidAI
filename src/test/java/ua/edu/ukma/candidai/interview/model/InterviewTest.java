@@ -107,12 +107,16 @@ class InterviewTest {
         Instant newTime = scheduledTime.plus(2, ChronoUnit.DAYS);
         Instant rescheduleActionTime = now.plus(1, ChronoUnit.HOURS);
 
-        interview.reschedule(newTime, 90, "https://meet.google.com/new-link", rescheduleActionTime);
+        interview.reschedule(
+                newTime, 90, "https://meet.google.com/new-link",
+                "Candidate requested later time", rescheduleActionTime
+        );
 
         assertThat(interview.getStatus()).isEqualTo(InterviewStatus.RESCHEDULED);
         assertThat(interview.getScheduledAt()).isEqualTo(newTime);
         assertThat(interview.getDurationMinutes()).isEqualTo(90);
         assertThat(interview.getMeetingLink()).isEqualTo("https://meet.google.com/new-link");
+        assertThat(interview.getNotes()).contains("Reschedule reason: Candidate requested later time");
         assertThat(interview.getUpdatedAt()).isEqualTo(rescheduleActionTime);
     }
 
@@ -124,14 +128,14 @@ class InterviewTest {
 
         Instant newTime = scheduledTime.plus(1, ChronoUnit.DAYS);
 
-        assertThatThrownBy(() -> completedInterview.reschedule(newTime, 60, null, now))
+        assertThatThrownBy(() -> completedInterview.reschedule(newTime, 60, null, null, now))
                 .isInstanceOf(InvalidStateTransitionException.class)
                 .hasMessageContaining("Cannot reschedule interview with terminal status: COMPLETED");
 
         Interview cancelledInterview = createDefaultInterview();
         cancelledInterview.cancel("Candidate declined", now);
 
-        assertThatThrownBy(() -> cancelledInterview.reschedule(newTime, 60, null, now))
+        assertThatThrownBy(() -> cancelledInterview.reschedule(newTime, 60, null, null, now))
                 .isInstanceOf(InvalidStateTransitionException.class)
                 .hasMessageContaining("Cannot reschedule interview with terminal status: CANCELLED");
     }
@@ -143,9 +147,35 @@ class InterviewTest {
         Instant actionTime = now.plus(2, ChronoUnit.HOURS);
         Instant pastTime = now.plus(1, ChronoUnit.HOURS); // Before actionTime
 
-        assertThatThrownBy(() -> interview.reschedule(pastTime, 60, null, actionTime))
+        assertThatThrownBy(() -> interview.reschedule(pastTime, 60, null, null, actionTime))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("New interview time cannot be in the past");
+    }
+
+    @Test
+    @DisplayName("reschedule should throw IllegalArgumentException when duration is zero or negative")
+    void givenZeroOrNegativeDuration_reschedule_shouldThrowIllegalArgumentException() {
+        Interview interview = createDefaultInterview();
+        Instant newTime = scheduledTime.plus(1, ChronoUnit.DAYS);
+
+        assertThatThrownBy(() -> interview.reschedule(newTime, 0, null, null, now))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Interview duration must be greater than zero");
+
+        assertThatThrownBy(() -> interview.reschedule(newTime, -10, null, null, now))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Interview duration must be greater than zero");
+    }
+
+    @Test
+    @DisplayName("reschedule should append reschedule reason to notes when reason is provided")
+    void givenReason_reschedule_shouldAppendReasonToNotes() {
+        Interview interview = createDefaultInterview();
+        Instant newTime = scheduledTime.plus(1, ChronoUnit.DAYS);
+
+        interview.reschedule(newTime, 45, null, "Interviewer sick", now);
+
+        assertThat(interview.getNotes()).contains("Reschedule reason: Interviewer sick");
     }
 
     @Test

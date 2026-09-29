@@ -7,9 +7,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
+import ua.edu.ukma.candidai.common.exception.InvalidStateTransitionException;
 import ua.edu.ukma.candidai.common.exception.ResourceNotFoundException;
+import ua.edu.ukma.candidai.common.util.CommonGenerator;
 import ua.edu.ukma.candidai.interview.dto.CancelInterviewRequest;
 import ua.edu.ukma.candidai.interview.dto.InterviewResponse;
 import ua.edu.ukma.candidai.interview.dto.RescheduleInterviewRequest;
@@ -52,6 +55,9 @@ class InterviewServiceImplTest {
     @Mock
     private ApplicationEventPublisher eventPublisher;
 
+    @Spy
+    private CommonGenerator commonGenerator = new CommonGenerator();
+
     @InjectMocks
     private InterviewServiceImpl interviewService;
 
@@ -85,7 +91,7 @@ class InterviewServiceImplTest {
         ApplicationDetails appDetails = new ApplicationDetails(
                 applicationId, UUID.randomUUID(), "Alice Candidate",
                 "alice@example.com", "+380501112233", "resume.pdf",
-                ApplicationStatus.APPLIED, "Good match"
+                ApplicationStatus.SCREENING, "Good match"
         );
 
         when(recruitmentApi.getApplication(applicationId)).thenReturn(appDetails);
@@ -106,6 +112,76 @@ class InterviewServiceImplTest {
         verify(eventPublisher).publishEvent(eventCaptor.capture());
         assertThat(eventCaptor.getValue().applicationId()).isEqualTo(applicationId);
         assertThat(eventCaptor.getValue().interviewerName()).isEqualTo("John Interviewer");
+    }
+
+    @Test
+    @DisplayName("scheduleInterview should throw InvalidStateTransitionException when application in APPLIED status")
+    void givenAppliedApplication_scheduleInterview_shouldThrowInvalidStateTransitionException() {
+        ScheduleInterviewRequest request = new ScheduleInterviewRequest(
+                applicationId, interviewerId, "John", InterviewType.HR_SCREENING,
+                scheduledTime, 30, null, null
+        );
+        ApplicationDetails appDetails = new ApplicationDetails(
+                applicationId, UUID.randomUUID(), "Alice Candidate",
+                "alice@example.com", "+380501112233", "resume.pdf",
+                ApplicationStatus.APPLIED, "Good match"
+        );
+
+        when(recruitmentApi.getApplication(applicationId)).thenReturn(appDetails);
+
+        assertThatThrownBy(() -> interviewService.scheduleInterview(request))
+                .isInstanceOf(InvalidStateTransitionException.class)
+                .hasMessageContaining("Cannot schedule interview for application in APPLIED status");
+
+        verify(interviewRepository, never()).save(any());
+        verify(eventPublisher, never()).publishEvent(any());
+    }
+
+    @Test
+    @DisplayName("scheduleInterview should throw InvalidStateTransitionException when application in terminal status")
+    void givenTerminalApplication_scheduleInterview_shouldThrowInvalidStateTransitionException() {
+        ScheduleInterviewRequest request = new ScheduleInterviewRequest(
+                applicationId, interviewerId, "John", InterviewType.HR_SCREENING,
+                scheduledTime, 30, null, null
+        );
+        ApplicationDetails appDetails = new ApplicationDetails(
+                applicationId, UUID.randomUUID(), "Alice Candidate",
+                "alice@example.com", "+380501112233", "resume.pdf",
+                ApplicationStatus.REJECTED, "Rejected"
+        );
+
+        when(recruitmentApi.getApplication(applicationId)).thenReturn(appDetails);
+
+        assertThatThrownBy(() -> interviewService.scheduleInterview(request))
+                .isInstanceOf(InvalidStateTransitionException.class)
+                .hasMessageContaining("Cannot schedule interview for application in terminal status");
+
+        verify(interviewRepository, never()).save(any());
+        verify(eventPublisher, never()).publishEvent(any());
+    }
+
+    @Test
+    @DisplayName("scheduleInterview should succeed without status update when application already in INTERVIEW status")
+    void givenInterviewStatusApplication_scheduleInterview_shouldScheduleWithoutStatusUpdate() {
+        ScheduleInterviewRequest request = new ScheduleInterviewRequest(
+                applicationId, interviewerId, "John", InterviewType.TECHNICAL,
+                scheduledTime, 60, null, null
+        );
+        ApplicationDetails appDetails = new ApplicationDetails(
+                applicationId, UUID.randomUUID(), "Alice Candidate",
+                "alice@example.com", "+380501112233", "resume.pdf",
+                ApplicationStatus.INTERVIEW, "In interview"
+        );
+
+        when(recruitmentApi.getApplication(applicationId)).thenReturn(appDetails);
+        when(interviewRepository.save(any(Interview.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        InterviewResponse response = interviewService.scheduleInterview(request);
+
+        assertThat(response.status()).isEqualTo(InterviewStatus.SCHEDULED);
+        verify(recruitmentApi, never()).updateStatus(any(), any(), any());
+        verify(interviewRepository).save(any(Interview.class));
+        verify(eventPublisher).publishEvent(any(InterviewScheduledEvent.class));
     }
 
     @Test
@@ -161,6 +237,30 @@ class InterviewServiceImplTest {
     }
 
     @Test
+    @DisplayName("getInterviewsByInterviewerId should return mapped list")
+    void givenInterviewerId_getInterviewsByInterviewerId_shouldReturnList() {
+        Interview interview = createTestInterview(InterviewStatus.SCHEDULED);
+        when(interviewRepository.findByInterviewerId(interviewerId)).thenReturn(List.of(interview));
+
+        List<InterviewResponse> responses = interviewService.getInterviewsByInterviewerId(interviewerId);
+
+        assertThat(responses).hasSize(1);
+        assertThat(responses.get(0).interviewerId()).isEqualTo(interviewerId);
+    }
+
+    @Test
+    @DisplayName("getInterviewsByStatus should return mapped list")
+    void givenStatus_getInterviewsByStatus_shouldReturnList() {
+        Interview interview = createTestInterview(InterviewStatus.SCHEDULED);
+        when(interviewRepository.findByStatus(InterviewStatus.SCHEDULED)).thenReturn(List.of(interview));
+
+        List<InterviewResponse> responses = interviewService.getInterviewsByStatus(InterviewStatus.SCHEDULED);
+
+        assertThat(responses).hasSize(1);
+        assertThat(responses.get(0).status()).isEqualTo(InterviewStatus.SCHEDULED);
+    }
+
+    @Test
     @DisplayName("rescheduleInterview should update time and publish InterviewRescheduledEvent")
     void givenValidRequest_rescheduleInterview_shouldUpdateAndPublishEvent() {
         Interview interview = createTestInterview(InterviewStatus.SCHEDULED);
@@ -183,6 +283,7 @@ class InterviewServiceImplTest {
         verify(eventPublisher).publishEvent(eventCaptor.capture());
         assertThat(eventCaptor.getValue().interviewId()).isEqualTo(interviewId);
         assertThat(eventCaptor.getValue().newScheduledAt()).isEqualTo(newTime);
+        assertThat(eventCaptor.getValue().reason()).isEqualTo("Rescheduling reason");
     }
 
     @Test

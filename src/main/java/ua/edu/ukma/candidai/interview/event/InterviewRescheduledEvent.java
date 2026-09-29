@@ -8,6 +8,7 @@ public record InterviewRescheduledEvent(
         UUID applicationId,
         Instant newScheduledAt,
         int durationMinutes,
-        String meetingLink
+        String meetingLink,
+        String reason
 ) {
 }
