@@ -18,4 +18,6 @@ public interface VacancyRepository {
     Page<Vacancy> findAll(VacancyStatus status, JobCategory category, Pageable pageable);
 
     boolean existsActiveByAuthorIdAndTitle(UUID authorId, String title);
+
+    long countByCompanyIdAndStatus(UUID companyId, VacancyStatus status);
 }

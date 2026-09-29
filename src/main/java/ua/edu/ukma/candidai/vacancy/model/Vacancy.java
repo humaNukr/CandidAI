@@ -1,5 +1,12 @@
 package ua.edu.ukma.candidai.vacancy.model;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
@@ -15,6 +22,8 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
+@Entity
+@Table(name = "vacancies")
 @Getter
 @Setter
 @ToString
@@ -24,37 +33,71 @@ import java.util.UUID;
 @AllArgsConstructor
 public class Vacancy {
 
+    @Id
     @EqualsAndHashCode.Include
     private UUID id;
+
     private UUID authorId;
+
     private UUID assignedRecruiterId;
+
+    @Column(name = "company_id", nullable = false)
     private UUID companyId;
+
     private String title;
+
+    @Enumerated(EnumType.STRING)
     private JobCategory category;
+
     private String specialization;
+
     private String seniorityLevel;
+
     private Integer minYearsOfExperience;
+
     private String description;
+
+    @Transient
     private List<String> requiredSkills;
+
+    @Transient
     private List<String> preferredSkills;
+
+    @Enumerated(EnumType.STRING)
     private EnglishLevel minEnglishLevel;
+
     private BigDecimal salaryMin;
+
     private BigDecimal salaryMax;
+
     private String currency;
+
+    @Enumerated(EnumType.STRING)
     private EmploymentType employmentType;
+
+    @Enumerated(EnumType.STRING)
     private LocationType locationType;
+
     private String location;
+
+    @Enumerated(EnumType.STRING)
     private VacancyStatus status;
+
     private boolean deleted;
+
     private Instant deletedAt;
+
     private Instant publishedAt;
+
     private Instant expiresAt;
+
     private Instant createdAt;
+
     private Instant updatedAt;
 
     public static Vacancy create(CreateVacancyRequest request, UUID id, Instant now) {
         VacancyStatus initialStatus = request.status() != null ? request.status() : VacancyStatus.OPEN;
-        if (initialStatus != VacancyStatus.DRAFT && initialStatus != VacancyStatus.OPEN) {
+        if (!initialStatus.isInitial()) {
             throw new InvalidStateTransitionException(
                     "Initial vacancy status must be DRAFT or OPEN, got: " + initialStatus
             );
