@@ -19,7 +19,7 @@ repositories {
     mavenCentral()
 }
 
-val springModulithVersion = "1.3.2"
+val springModulithVersion = "2.1.1"
 val mapstructVersion = "1.6.3"
 val lombokMapstructBindingVersion = "0.2.0"
 

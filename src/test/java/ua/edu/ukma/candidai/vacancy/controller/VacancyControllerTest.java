@@ -234,7 +234,7 @@ class VacancyControllerTest {
         MvcResult result = mockMvc.perform(patch(BASE_URL + "/" + DEFAULT_ID + "/status")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isUnprocessableEntity())
+                .andExpect(status().isUnprocessableContent())
                 .andReturn();
 
         ProblemDetail actual = parseProblemDetail(objectMapper, result);
