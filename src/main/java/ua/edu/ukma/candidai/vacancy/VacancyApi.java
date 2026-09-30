@@ -11,4 +11,6 @@ public interface VacancyApi {
     JobCategory getVacancyCategory(UUID vacancyId);
 
     VacancyDetails getVacancyDetails(UUID vacancyId);
+ 
+    int countActiveVacanciesByCompanyId(UUID companyId);
 }

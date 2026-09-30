@@ -9,23 +9,27 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.config.EnableSpringDataWebSupport;
 import org.springframework.http.MediaType;
+import org.springframework.http.ProblemDetail;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import tools.jackson.databind.ObjectMapper;
 import ua.edu.ukma.candidai.common.exception.DuplicateResourceException;
 import ua.edu.ukma.candidai.common.exception.InvalidStateTransitionException;
 import ua.edu.ukma.candidai.common.exception.ResourceNotFoundException;
-import ua.edu.ukma.candidai.vacancy.model.JobCategory;
-import ua.edu.ukma.candidai.vacancy.model.VacancyStatus;
 import ua.edu.ukma.candidai.vacancy.dto.request.CreateVacancyRequest;
 import ua.edu.ukma.candidai.vacancy.dto.request.UpdateVacancyStatusRequest;
 import ua.edu.ukma.candidai.vacancy.dto.response.VacancyResponse;
+import ua.edu.ukma.candidai.vacancy.model.JobCategory;
+import ua.edu.ukma.candidai.vacancy.model.VacancyStatus;
 import ua.edu.ukma.candidai.vacancy.service.VacancyService;
 
 import java.math.BigDecimal;
+import java.net.URI;
 import java.util.List;
+import java.util.Map;
 
-import static org.hamcrest.Matchers.containsString;
+import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -49,16 +53,18 @@ class VacancyControllerTest {
     void givenValidRequest_createVacancy_shouldReturn201Created() throws Exception {
         CreateVacancyRequest request = validCreateVacancyRequest();
         VacancyResponse expectedResponse = aVacancyResponse();
+
         when(vacancyService.createVacancy(request)).thenReturn(expectedResponse);
 
-        mockMvc.perform(post(BASE_URL)
+        MvcResult result = mockMvc.perform(post(BASE_URL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
-                .andExpect(header().string("Location", containsString(BASE_URL)))
-                .andExpect(content().json(objectMapper.writeValueAsString(expectedResponse)));
+                .andExpect(header().string("Location", "http://localhost" + BASE_URL + "/" + expectedResponse.id()))
+                .andReturn();
 
-        verify(vacancyService).createVacancy(request);
+        VacancyResponse actual = parseResponse(objectMapper, result, VacancyResponse.class);
+        assertThat(actual).usingRecursiveComparison().isEqualTo(expectedResponse);
     }
 
     @Test
@@ -66,12 +72,17 @@ class VacancyControllerTest {
     void givenBlankTitle_createVacancy_shouldReturn400BadRequest() throws Exception {
         CreateVacancyRequest invalidRequest = aCreateVacancyRequest().title("").build();
 
-        mockMvc.perform(post(BASE_URL)
+        MvcResult result = mockMvc.perform(post(BASE_URL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(invalidRequest)))
                 .andExpect(status().isBadRequest())
-                .andExpect(content().json(VALIDATION_ERROR_JSON))
-                .andExpect(jsonPath("$.errors.title").exists());
+                .andReturn();
+
+        ProblemDetail actual = parseProblemDetail(objectMapper, result);
+        assertThat(actual.getStatus()).isEqualTo(400);
+        assertThat(actual.getTitle()).isEqualTo("Validation Error");
+        assertThat(actual.getType()).isEqualTo(URI.create("https://candidai.ukma.edu.ua/errors/validation"));
+        assertThat(extractErrors(actual)).containsKey("title");
     }
 
     @Test
@@ -81,65 +92,84 @@ class VacancyControllerTest {
                 .salaryMin(BigDecimal.valueOf(6000))
                 .salaryMax(BigDecimal.valueOf(3000))
                 .build();
+        ProblemDetail expected = expectedValidationProblemDetail(
+                Map.of("salaryMin", "Minimum salary cannot be greater than maximum salary")
+        );
 
-        mockMvc.perform(post(BASE_URL)
+        MvcResult result = mockMvc.perform(post(BASE_URL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(invalidRequest)))
                 .andExpect(status().isBadRequest())
-                .andExpect(content().json(INVALID_SALARY_RANGE_ERROR_JSON));
+                .andReturn();
+
+        ProblemDetail actual = parseProblemDetail(objectMapper, result);
+        assertThat(actual).usingRecursiveComparison().ignoringFields("properties.timestamp").isEqualTo(expected);
     }
 
     @Test
     @DisplayName("POST /api/v1/vacancies - should return 400 ProblemDetail when unknown property is provided")
     void givenUnknownProperty_createVacancy_shouldReturn400BadRequest() throws Exception {
-        mockMvc.perform(post(BASE_URL)
+        ProblemDetail expected = expectedJsonParsingProblemDetail();
+
+        MvcResult result = mockMvc.perform(post(BASE_URL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(JSON_WITH_UNKNOWN_PROPERTY))
                 .andExpect(status().isBadRequest())
-                .andExpect(content().json(JSON_PARSING_ERROR_JSON));
+                .andReturn();
+
+        ProblemDetail actual = parseProblemDetail(objectMapper, result);
+        assertThat(actual).usingRecursiveComparison().ignoringFields("properties.timestamp").isEqualTo(expected);
     }
 
     @Test
     @DisplayName("GET /api/v1/vacancies/{id} - should return 200 and vacancy when exists")
     void givenExistingId_getVacancyById_shouldReturn200Ok() throws Exception {
         VacancyResponse expectedResponse = aVacancyResponse();
+
         when(vacancyService.getVacancyById(DEFAULT_ID)).thenReturn(expectedResponse);
 
-        mockMvc.perform(get(BASE_URL + "/" + DEFAULT_ID))
+        MvcResult result = mockMvc.perform(get(BASE_URL + "/" + DEFAULT_ID))
                 .andExpect(status().isOk())
-                .andExpect(content().json(objectMapper.writeValueAsString(expectedResponse)));
+                .andReturn();
 
-        verify(vacancyService).getVacancyById(DEFAULT_ID);
+        VacancyResponse actual = parseResponse(objectMapper, result, VacancyResponse.class);
+        assertThat(actual).usingRecursiveComparison().isEqualTo(expectedResponse);
     }
 
     @Test
     @DisplayName("GET /api/v1/vacancies/{id} - should return 404 ProblemDetail when vacancy not found")
     void givenNonExistentId_getVacancyById_shouldReturn404NotFound() throws Exception {
+        ProblemDetail expected = expectedNotFoundProblemDetail(NON_EXISTENT_ID);
+
         when(vacancyService.getVacancyById(NON_EXISTENT_ID))
                 .thenThrow(new ResourceNotFoundException("Vacancy not found with id: " + NON_EXISTENT_ID));
 
-        mockMvc.perform(get(BASE_URL + "/" + NON_EXISTENT_ID))
+        MvcResult result = mockMvc.perform(get(BASE_URL + "/" + NON_EXISTENT_ID))
                 .andExpect(status().isNotFound())
-                .andExpect(content().json(notFoundProblemDetailJson(NON_EXISTENT_ID)));
+                .andReturn();
 
-        verify(vacancyService).getVacancyById(NON_EXISTENT_ID);
+        ProblemDetail actual = parseProblemDetail(objectMapper, result);
+        assertThat(actual).usingRecursiveComparison().ignoringFields("properties.timestamp").isEqualTo(expected);
     }
 
     @Test
     @DisplayName("GET /api/v1/vacancies - should return 200 with paged content")
     void givenValidParams_getAllVacancies_shouldReturn200OkWithPagedContent() throws Exception {
         PageRequest pageable = PageRequest.of(0, 20, Sort.by(Sort.Direction.DESC, "createdAt"));
-        PageImpl<VacancyResponse> expectedPage = new PageImpl<>(List.of(aVacancyResponse()));
+        VacancyResponse expectedResponse = aVacancyResponse();
+        PageImpl<VacancyResponse> expectedPage = new PageImpl<>(List.of(expectedResponse));
+
         when(vacancyService.getAllVacancies(VacancyStatus.OPEN, JobCategory.ENGINEERING, pageable))
                 .thenReturn(expectedPage);
 
-        mockMvc.perform(get(BASE_URL)
+        MvcResult result = mockMvc.perform(get(BASE_URL)
                         .param("status", "OPEN")
                         .param("category", "ENGINEERING"))
                 .andExpect(status().isOk())
-                .andExpect(content().json(objectMapper.writeValueAsString(expectedPage)));
+                .andReturn();
 
-        verify(vacancyService).getAllVacancies(VacancyStatus.OPEN, JobCategory.ENGINEERING, pageable);
+        List<VacancyResponse> actual = parsePagedContent(objectMapper, result, VacancyResponse.class);
+        assertThat(actual).usingRecursiveComparison().isEqualTo(List.of(expectedResponse));
     }
 
     @Test
@@ -147,15 +177,17 @@ class VacancyControllerTest {
     void givenValidStatusUpdate_updateVacancyStatus_shouldReturn200Ok() throws Exception {
         UpdateVacancyStatusRequest request = validUpdateVacancyStatusRequest();
         VacancyResponse expectedResponse = aVacancyResponse();
+
         when(vacancyService.updateVacancyStatus(DEFAULT_ID, request)).thenReturn(expectedResponse);
 
-        mockMvc.perform(patch(BASE_URL + "/" + DEFAULT_ID + "/status")
+        MvcResult result = mockMvc.perform(patch(BASE_URL + "/" + DEFAULT_ID + "/status")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
-                .andExpect(content().json(objectMapper.writeValueAsString(expectedResponse)));
+                .andReturn();
 
-        verify(vacancyService).updateVacancyStatus(DEFAULT_ID, request);
+        VacancyResponse actual = parseResponse(objectMapper, result, VacancyResponse.class);
+        assertThat(actual).usingRecursiveComparison().isEqualTo(expectedResponse);
     }
 
     @Test
@@ -173,35 +205,39 @@ class VacancyControllerTest {
     @DisplayName("POST /api/v1/vacancies - duplicate vacancy should return 409 Conflict with ProblemDetail")
     void givenDuplicateVacancy_createVacancy_shouldReturn409ConflictWithProblemDetail() throws Exception {
         CreateVacancyRequest request = validCreateVacancyRequest();
-        when(vacancyService.createVacancy(any(CreateVacancyRequest.class)))
-                .thenThrow(new DuplicateResourceException("Vacancy already exists with title: " + request.title()));
+        String message = "Vacancy already exists with title: " + request.title();
+        ProblemDetail expected = expectedConflictProblemDetail(message);
 
-        mockMvc.perform(post(BASE_URL)
+        when(vacancyService.createVacancy(any(CreateVacancyRequest.class)))
+                .thenThrow(new DuplicateResourceException(message));
+
+        MvcResult result = mockMvc.perform(post(BASE_URL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.status").value(409))
-                .andExpect(jsonPath("$.title").value("Resource Conflict"))
-                .andExpect(jsonPath("$.detail").value("Vacancy already exists with title: " + request.title()))
-                .andExpect(jsonPath("$.type").value("https://candidai.ukma.edu.ua/errors/conflict"))
-                .andExpect(jsonPath("$.timestamp").isNotEmpty());
+                .andReturn();
+
+        ProblemDetail actual = parseProblemDetail(objectMapper, result);
+        assertThat(actual).usingRecursiveComparison().ignoringFields("properties.timestamp").isEqualTo(expected);
     }
 
     @Test
     @DisplayName("PATCH /api/v1/vacancies/{id}/status - invalid transition should return 422 with ProblemDetail")
     void givenInvalidTransition_updateVacancyStatus_shouldReturn422UnprocessableWithProblemDetail() throws Exception {
         UpdateVacancyStatusRequest request = validUpdateVacancyStatusRequest();
-        when(vacancyService.updateVacancyStatus(eq(DEFAULT_ID), any(UpdateVacancyStatusRequest.class)))
-                .thenThrow(new InvalidStateTransitionException("Cannot transition from CLOSED to DRAFT"));
+        String message = "Cannot transition from CLOSED to DRAFT";
+        ProblemDetail expected = expectedInvalidStateTransitionProblemDetail(message);
 
-        mockMvc.perform(patch(BASE_URL + "/" + DEFAULT_ID + "/status")
+        when(vacancyService.updateVacancyStatus(eq(DEFAULT_ID), any(UpdateVacancyStatusRequest.class)))
+                .thenThrow(new InvalidStateTransitionException(message));
+
+        MvcResult result = mockMvc.perform(patch(BASE_URL + "/" + DEFAULT_ID + "/status")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isUnprocessableEntity())
-                .andExpect(jsonPath("$.status").value(422))
-                .andExpect(jsonPath("$.title").value("Invalid State Transition"))
-                .andExpect(jsonPath("$.detail").value("Cannot transition from CLOSED to DRAFT"))
-                .andExpect(jsonPath("$.type").value("https://candidai.ukma.edu.ua/errors/invalid-state-transition"))
-                .andExpect(jsonPath("$.timestamp").isNotEmpty());
+                .andExpect(status().isUnprocessableContent())
+                .andReturn();
+
+        ProblemDetail actual = parseProblemDetail(objectMapper, result);
+        assertThat(actual).usingRecursiveComparison().ignoringFields("properties.timestamp").isEqualTo(expected);
     }
 }

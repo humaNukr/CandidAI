@@ -69,8 +69,8 @@ public class TelegramPollingService {
             offsetHolder.setOffset(update.path("update_id").asLong() + 1);
 
             JsonNode message = update.path("message");
-            String chatId = message.path("chat").path("id").asText();
-            String text = message.path("text").asText("");
+            String chatId = message.path("chat").path("id").asString();
+            String text = message.path("text").asString("");
             if (!chatId.isBlank()) {
                 commandHandler.handleMessage(chatId, text);
             }
