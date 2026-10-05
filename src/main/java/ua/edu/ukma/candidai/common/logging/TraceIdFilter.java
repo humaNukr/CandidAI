@@ -22,6 +22,12 @@ public class TraceIdFilter extends OncePerRequestFilter {
     public static final String TRACE_ID_HEADER = "X-Trace-Id";
     public static final String ALT_TRACE_ID_HEADER = "X-Request-ID";
     public static final String TRACE_ID_MDC_KEY = "traceId";
+    private static final int MAX_TRACE_ID_LENGTH = 64;
+
+    @Override
+    protected boolean shouldNotFilterAsyncDispatch() {
+        return false;
+    }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -42,16 +48,33 @@ public class TraceIdFilter extends OncePerRequestFilter {
     }
 
     private String resolveTraceId(HttpServletRequest request) {
-        String traceId = request.getHeader(TRACE_ID_HEADER);
-        if (traceId != null && !traceId.isBlank()) {
+        String traceId = sanitizeTraceId(request.getHeader(TRACE_ID_HEADER));
+        if (traceId != null) {
             return traceId;
         }
 
-        String altTraceId = request.getHeader(ALT_TRACE_ID_HEADER);
-        if (altTraceId != null && !altTraceId.isBlank()) {
+        String altTraceId = sanitizeTraceId(request.getHeader(ALT_TRACE_ID_HEADER));
+        if (altTraceId != null) {
             return altTraceId;
         }
 
         return UUID.randomUUID().toString();
+    }
+
+    private String sanitizeTraceId(String rawHeader) {
+        if (rawHeader == null || rawHeader.isBlank()) {
+            return null;
+        }
+
+        String sanitized = rawHeader.replaceAll("[^a-zA-Z0-9_-]", "").trim();
+        if (sanitized.isEmpty()) {
+            return null;
+        }
+
+        if (sanitized.length() > MAX_TRACE_ID_LENGTH) {
+            return sanitized.substring(0, MAX_TRACE_ID_LENGTH);
+        }
+
+        return sanitized;
     }
 }

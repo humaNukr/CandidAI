@@ -35,6 +35,50 @@ class MaskingMessageConverterTest {
     }
 
     @Test
+    @DisplayName("mask - should redact multi-word passphrases with spaces in JSON")
+    void givenJsonWithMultiWordPassphrase_mask_shouldRedactEntirePassphrase() {
+        String input = "{\"password\": \"secret pass 2026\", \"secret\": \"correct horse battery staple\"}";
+        String expected = "{\"password\": \"***\", \"secret\": \"***\"}";
+
+        String actual = converter.mask(input);
+
+        assertThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    @DisplayName("mask - should redact multi-word passphrase with escaped quotes and special characters")
+    void givenPassphraseWithEscapedQuotes_mask_shouldRedactProperly() {
+        String input = "{\"password\": \"p@$$w0rd with \\\"quotes\\\" and spaces!#$\", \"role\": \"USER\"}";
+        String expected = "{\"password\": \"***\", \"role\": \"USER\"}";
+
+        String actual = converter.mask(input);
+
+        assertThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    @DisplayName("mask - should redact single-quoted passphrase with spaces")
+    void givenSingleQuotedPassphrase_mask_shouldRedactEntirePassphrase() {
+        String input = "'secret': 'multi-word single quoted passphrase', 'status': 'OK'";
+        String expected = "'secret': '***', 'status': 'OK'";
+
+        String actual = converter.mask(input);
+
+        assertThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    @DisplayName("mask - should redact empty password in JSON")
+    void givenEmptyPasswordInJson_mask_shouldRedactGracefully() {
+        String input = "{\"password\": \"\", \"username\": \"admin\"}";
+        String expected = "{\"password\": \"***\", \"username\": \"admin\"}";
+
+        String actual = converter.mask(input);
+
+        assertThat(actual).isEqualTo(expected);
+    }
+
+    @Test
     @DisplayName("mask - should redact apiKey, token, and secret")
     void givenMessageWithSecretAndToken_mask_shouldRedactBoth() {
         String input = "Credentials: apiKey: secret-api-key-999, token: eyJhbGciOiJIUzI1NiJ9, secret: superSecret";
