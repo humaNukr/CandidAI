@@ -1,3 +1,7 @@
 databaseChangeLog:
-  - includeAll:
-      path: db/changelog/changeset/
+  - include:
+      file: db/changelog/changeset/V20260927_104600_setup_tables.sql
+  - include:
+      file: db/changelog/changeset/V20260928_170000_create_interviews_table.sql
+  - include:
+      file: db/changelog/changeset/V20261005_100000_seed_e2e_data.sql

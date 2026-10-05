@@ -26,7 +26,7 @@ jobs:
         ports:
           - 5432:5432
         options: >-
-          --health-cmd pg_isready
+          --health-cmd "pg_isready -U candidai_user -d candidai"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -70,8 +70,14 @@ jobs:
           DB_URL: jdbc:postgresql://localhost:5432/candidai
           DB_USERNAME: candidai_user
           DB_PASSWORD: secret
+          SPRING_JPA_HIBERNATE_DDL_AUTO: update
         run: |
-          nohup java -jar build/libs/*.jar > spring-boot.log 2>&1 &
+          nohup java \
+            -Dspring.datasource.url=jdbc:postgresql://localhost:5432/candidai \
+            -Dspring.datasource.username=candidai_user \
+            -Dspring.datasource.password=secret \
+            -Dspring.jpa.hibernate.ddl-auto=update \
+            -jar build/libs/*.jar > spring-boot.log 2>&1 &
           echo "SPRING_PID=$!" >> $GITHUB_ENV
 
       - name: Wait for API to become ready

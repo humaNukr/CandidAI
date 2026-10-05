@@ -72,7 +72,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"authorId\": \"{{testAuthorId}}\",\n  \"title\": \"Senior Java Developer (E2E Test)\",\n  \"category\": \"ENGINEERING\",\n  \"specialization\": \"Java / Spring Boot\",\n  \"seniorityLevel\": \"Senior\",\n  \"minYearsOfExperience\": 5,\n  \"description\": \"Comprehensive automated testing vacancy created by Newman E2E suite.\",\n  \"requiredSkills\": [\"Java 25\", \"Spring Boot\", \"PostgreSQL\"],\n  \"preferredSkills\": [\"Docker\", \"Kubernetes\"],\n  \"minEnglishLevel\": \"B2\",\n  \"salaryMin\": 4500.00,\n  \"salaryMax\": 6500.00,\n  \"currency\": \"USD\",\n  \"employmentType\": \"FULL_TIME\",\n  \"locationType\": \"REMOTE\",\n  \"location\": \"Kyiv, Ukraine\",\n  \"expiresAt\": \"2026-12-31T23:59:59Z\"\n}"
+          "raw": "{\n  \"companyId\": \"{{testCompanyId}}\",\n  \"authorId\": \"{{testAuthorId}}\",\n  \"title\": \"Senior Java Developer (E2E Test)\",\n  \"category\": \"ENGINEERING\",\n  \"specialization\": \"Java / Spring Boot\",\n  \"seniorityLevel\": \"Senior\",\n  \"minYearsOfExperience\": 5,\n  \"description\": \"Comprehensive automated testing vacancy created by Newman E2E suite.\",\n  \"requiredSkills\": [\"Java 25\", \"Spring Boot\", \"PostgreSQL\"],\n  \"preferredSkills\": [\"Docker\", \"Kubernetes\"],\n  \"minEnglishLevel\": \"B2\",\n  \"salaryMin\": 4500.00,\n  \"salaryMax\": 6500.00,\n  \"currency\": \"USD\",\n  \"employmentType\": \"FULL_TIME\",\n  \"locationType\": \"REMOTE\",\n  \"location\": \"Kyiv, Ukraine\",\n  \"expiresAt\": \"2026-12-31T23:59:59Z\"\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/api/v1/vacancies",

@@ -21,6 +21,12 @@
       "enabled": true
     },
     {
+      "key": "testCompanyId",
+      "value": "c0000000-0000-0000-0000-000000000003",
+      "type": "default",
+      "enabled": true
+    },
+    {
       "key": "candidateEmail",
       "value": "newman.test.candidate@example.com",
       "type": "default",
