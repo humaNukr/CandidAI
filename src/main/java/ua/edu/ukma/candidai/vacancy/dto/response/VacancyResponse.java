@@ -1,5 +1,6 @@
 package ua.edu.ukma.candidai.vacancy.dto.response;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import ua.edu.ukma.candidai.vacancy.model.EmploymentType;
 import ua.edu.ukma.candidai.vacancy.model.EnglishLevel;
 import ua.edu.ukma.candidai.vacancy.model.JobCategory;
@@ -11,7 +12,9 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
+@Schema(description = "Vacancy details response payload")
 public record VacancyResponse(
+        @Schema(description = "Unique vacancy ID", example = "550e8400-e29b-41d4-a716-446655440000")
         UUID id,
         UUID authorId,
         UUID assignedRecruiterId,
