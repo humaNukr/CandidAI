@@ -1,0 +1,315 @@
+{
+  "info": {
+    "_postman_id": "candidai-e2e-collection-001",
+    "name": "CandidAI E2E API Tests",
+    "description": "End-to-end integration test collection for CandidAI candidate screening workflow",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. GET /v3/api-docs - Verify OpenAPI 3.1 Spec",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/v3/api-docs",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "v3",
+            "api-docs"
+          ]
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status code is 200 OK\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"OpenAPI version starts with 3.\", function () {",
+              "    var json = pm.response.json();",
+              "    pm.expect(json).to.have.property(\"openapi\");",
+              "    pm.expect(json.openapi).to.match(/^3\\./);",
+              "});",
+              "",
+              "pm.test(\"API metadata contains title and version\", function () {",
+              "    var json = pm.response.json();",
+              "    pm.expect(json.info.title).to.eql(\"CandidAI API\");",
+              "    pm.expect(json.info.version).to.eql(\"v1.0\");",
+              "});",
+              "",
+              "pm.test(\"API paths contain key domain resources\", function () {",
+              "    var paths = pm.response.json().paths;",
+              "    pm.expect(paths).to.have.property(\"/api/v1/vacancies\");",
+              "    pm.expect(paths).to.have.property(\"/api/v1/applications\");",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. POST /api/v1/vacancies - Create Vacancy",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"companyId\": \"{{testCompanyId}}\",\n  \"authorId\": \"{{testAuthorId}}\",\n  \"title\": \"Senior Java Developer (E2E Test)\",\n  \"category\": \"ENGINEERING\",\n  \"specialization\": \"Java / Spring Boot\",\n  \"seniorityLevel\": \"Senior\",\n  \"minYearsOfExperience\": 5,\n  \"description\": \"Comprehensive automated testing vacancy created by Newman E2E suite.\",\n  \"requiredSkills\": [\"Java 25\", \"Spring Boot\", \"PostgreSQL\"],\n  \"preferredSkills\": [\"Docker\", \"Kubernetes\"],\n  \"minEnglishLevel\": \"B2\",\n  \"salaryMin\": 4500.00,\n  \"salaryMax\": 6500.00,\n  \"currency\": \"USD\",\n  \"employmentType\": \"FULL_TIME\",\n  \"locationType\": \"REMOTE\",\n  \"location\": \"Kyiv, Ukraine\",\n  \"expiresAt\": \"2026-12-31T23:59:59Z\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/vacancies",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "vacancies"
+          ]
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status code is 201 Created\", function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "",
+              "pm.test(\"Vacancy has valid ID and title\", function () {",
+              "    var json = pm.response.json();",
+              "    pm.expect(json).to.have.property(\"id\");",
+              "    pm.expect(json.id).to.be.a(\"string\");",
+              "    pm.expect(json.title).to.eql(\"Senior Java Developer (E2E Test)\");",
+              "    pm.environment.set(\"vacancyId\", json.id);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. POST /api/v1/applications - Submit Candidate Application",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"vacancyId\": \"{{vacancyId}}\",\n  \"candidateId\": \"{{testCandidateId}}\",\n  \"candidateName\": \"Jane Doe E2E\",\n  \"email\": \"{{candidateEmail}}\",\n  \"phone\": \"+380501234567\",\n  \"resumeUrl\": \"https://storage.candidai.ukma.edu.ua/resumes/jane_doe_e2e.pdf\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/applications",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "applications"
+          ]
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status code is 201 Created\", function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "",
+              "pm.test(\"Application status is APPLIED\", function () {",
+              "    var json = pm.response.json();",
+              "    pm.expect(json).to.have.property(\"id\");",
+              "    pm.expect(json.status).to.eql(\"APPLIED\");",
+              "    pm.expect(json.email).to.eql(pm.environment.get(\"candidateEmail\"));",
+              "    pm.environment.set(\"applicationId\", json.id);",
+              "});",
+              "",
+              "pm.test(\"Contains X-Trace-Id header if trace filter is present\", function () {",
+              "    var traceId = pm.response.headers.get(\"X-Trace-Id\");",
+              "    if (traceId) {",
+              "        pm.expect(traceId).to.be.a(\"string\").and.not.empty;",
+              "    } else {",
+              "        pm.expect(true).to.be.true;",
+              "    }",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. GET /api/v1/applications/{{applicationId}} - Get Application by ID",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/applications/{{applicationId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "applications",
+            "{{applicationId}}"
+          ]
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status code is 200 OK\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"Application fields match environment\", function () {",
+              "    var json = pm.response.json();",
+              "    pm.expect(json.id).to.eql(pm.environment.get(\"applicationId\"));",
+              "    pm.expect(json.vacancyId).to.eql(pm.environment.get(\"vacancyId\"));",
+              "    pm.expect(json.email).to.eql(pm.environment.get(\"candidateEmail\"));",
+              "    pm.expect(json.status).to.eql(\"APPLIED\");",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. POST /api/v1/applications/{{applicationId}}/screening - Trigger AI Screening",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/applications/{{applicationId}}/screening",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "applications",
+            "{{applicationId}}",
+            "screening"
+          ]
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status code is 200 OK\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"Screening report contains valid matchingScore and status\", function () {",
+              "    var json = pm.response.json();",
+              "    pm.expect(json).to.have.property(\"status\");",
+              "    pm.expect([\"COMPLETED\", \"IN_PROGRESS\", \"FAILED\"]).to.include(json.status);",
+              "    if (json.matchingScore !== null && json.matchingScore !== undefined) {",
+              "        pm.expect(json.matchingScore).to.be.a(\"number\");",
+              "        pm.expect(json.matchingScore).to.be.at.least(0).and.at.most(100);",
+              "    }",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. POST /api/v1/applications - Duplicate Application Negative Scenario",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"vacancyId\": \"{{vacancyId}}\",\n  \"candidateId\": \"{{testCandidateId}}\",\n  \"candidateName\": \"Jane Doe Duplicate\",\n  \"email\": \"{{candidateEmail}}\",\n  \"phone\": \"+380501234567\",\n  \"resumeUrl\": \"https://storage.candidai.ukma.edu.ua/resumes/jane_doe_e2e.pdf\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/applications",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "applications"
+          ]
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status code is 409 Conflict\", function () {",
+              "    pm.response.to.have.status(409);",
+              "});",
+              "",
+              "pm.test(\"ProblemDetail contains conflict information\", function () {",
+              "    var json = pm.response.json();",
+              "    pm.expect(json.status).to.eql(409);",
+              "    pm.expect(json.title).to.eql(\"Resource Conflict\");",
+              "    pm.expect(json).to.have.property(\"detail\");",
+              "    pm.expect(json.detail).to.include(pm.environment.get(\"candidateEmail\"));",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
