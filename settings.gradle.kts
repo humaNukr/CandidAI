@@ -1,1 +1,2 @@
-rootProject.name = "CandidAI"
+rootProject.name = "candidai"
+include("candidai-spring-boot-starter")

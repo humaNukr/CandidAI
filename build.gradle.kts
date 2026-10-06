@@ -11,7 +11,7 @@ version = "0.0.1-SNAPSHOT"
 
 java {
     toolchain {
-        languageVersion = JavaLanguageVersion.of(25)
+        languageVersion = JavaLanguageVersion.of(21)
     }
 }
 
@@ -24,6 +24,7 @@ val mapstructVersion = "1.6.3"
 val lombokMapstructBindingVersion = "0.2.0"
 
 dependencies {
+    implementation(project(":candidai-spring-boot-starter"))
     implementation(platform("org.springframework.modulith:spring-modulith-bom:$springModulithVersion"))
     implementation("org.springframework.boot:spring-boot-starter-webmvc")
     implementation("org.springframework.boot:spring-boot-starter-validation")
