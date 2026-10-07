@@ -1,6 +1,7 @@
 package ua.edu.ukma.candidai.vacancy.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import ua.edu.ukma.candidai.common.exception.ResourceNotFoundException;
 import ua.edu.ukma.candidai.vacancy.VacancyApi;
@@ -12,6 +13,7 @@ import ua.edu.ukma.candidai.vacancy.repository.VacancyRepository;
 
 import java.util.UUID;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 class VacancyApiImpl implements VacancyApi {
@@ -25,6 +27,7 @@ class VacancyApiImpl implements VacancyApi {
             VacancyResponse vacancy = vacancyService.getVacancyById(vacancyId);
             return vacancy.status() == VacancyStatus.OPEN;
         } catch (ResourceNotFoundException e) {
+            log.debug("Vacancy {} not found when checking if open: {}", vacancyId, e.getMessage());
             return false;
         }
     }

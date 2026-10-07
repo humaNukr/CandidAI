@@ -42,8 +42,7 @@ public class DefaultResumeContentExtractor implements ResumeContentExtractor {
             String contentType = determineContentType(fileName);
             return parseResource(resource, contentType);
         } catch (Exception ex) {
-            log.warn("Could not parse file from storage '{}': {}. Using fallback summary.",
-                    fileName, ex.getMessage());
+            log.warn("Could not parse file from storage '{}'. Using fallback summary.", fileName, ex);
             return null;
         }
     }

@@ -1,10 +1,17 @@
 package ua.edu.ukma.candidai.assessment.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -19,6 +26,7 @@ import ua.edu.ukma.candidai.common.storage.FileStorageService;
 
 import java.io.IOException;
 
+@Tag(name = "Assessments", description = "AI Candidate resume screening and assessment operations")
 @Slf4j
 @RestController
 @RequestMapping("/api/v1/resumes")
@@ -31,6 +39,12 @@ public class ResumeController {
     private final FileStorageService fileStorageService;
     private final ResumeParsingService resumeParsingService;
 
+    @Operation(summary = "Upload candidate resume", description = "Uploads and parses PDF/DOCX resume file")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Resume uploaded and parsed successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid file or exceeds 10MB limit",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+    })
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<UploadResumeResponse> uploadResume(@RequestParam("file") MultipartFile file)
             throws IOException {
@@ -64,6 +78,12 @@ public class ResumeController {
         return ResponseEntity.ok(response);
     }
 
+    @Operation(summary = "Download candidate resume", description = "Downloads stored candidate resume file")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "File downloaded successfully"),
+            @ApiResponse(responseCode = "404", description = "File not found",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+    })
     @GetMapping("/download/{fileName}")
     public ResponseEntity<Resource> downloadResume(@PathVariable String fileName) {
         log.info("Received resume download request for file: {}", fileName);

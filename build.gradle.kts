@@ -24,6 +24,7 @@ val mapstructVersion = "1.6.3"
 val lombokMapstructBindingVersion = "0.2.0"
 
 dependencies {
+    implementation(project(":candidai-spring-boot-starter"))
     implementation(platform("org.springframework.modulith:spring-modulith-bom:$springModulithVersion"))
     implementation("org.springframework.boot:spring-boot-starter-webmvc")
     implementation("org.springframework.boot:spring-boot-starter-validation")
@@ -33,6 +34,7 @@ dependencies {
     implementation("org.springframework.modulith:spring-modulith-starter-core")
     implementation("org.springframework.modulith:spring-modulith-events-api")
     implementation("org.mapstruct:mapstruct:$mapstructVersion")
+    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.1.1")
 
     implementation("org.apache.pdfbox:pdfbox:3.0.4")
     implementation("org.apache.poi:poi-ooxml:5.3.0")
@@ -96,4 +98,15 @@ tasks.jacocoTestReport {
         xml.required = true
         html.required = true
     }
+}
+
+tasks.register<Exec>("runNewman") {
+    group = "verification"
+    description = "Runs Postman E2E API tests via Newman CLI"
+    commandLine(
+        "npx", "newman", "run", "postman/candidai_collection.json",
+        "-e", "postman/candidai_env.json",
+        "--reporters", "cli,junit",
+        "--reporter-junit-export", "build/reports/newman/report.xml"
+    )
 }
