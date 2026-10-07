@@ -70,7 +70,7 @@ public class LocalFileStorageService implements FileStorageService {
             }
             throw new ResourceNotFoundException("File not found or not readable: " + fileName);
         } catch (MalformedURLException ex) {
-            throw new ResourceNotFoundException("File not found: " + fileName);
+            throw new ResourceNotFoundException("File not found: " + fileName, ex);
         }
     }
 
