@@ -41,7 +41,7 @@ public class TelegramCommandHandler {
             userApi.linkTelegramChatId(userId, chatId);
             botClient.sendMessage(chatId, SUCCESS_MESSAGE, PARSE_MODE_HTML);
         } catch (ResourceNotFoundException e) {
-            log.warn("User not found when linking Telegram chat id for user ID {}: {}", userId, e.getMessage());
+            log.warn("User not found when linking Telegram chat id for user ID {}", userId, e);
             botClient.sendMessage(chatId, USER_NOT_FOUND_MESSAGE, PARSE_MODE_HTML);
         }
     }
