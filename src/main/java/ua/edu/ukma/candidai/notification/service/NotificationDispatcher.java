@@ -64,7 +64,7 @@ public class NotificationDispatcher {
             log.info("[NOTIFICATION] Sent {} to recipient {}", sender.getChannel(),
                     profile.userId() != null ? profile.userId() : profile.email());
         } catch (Exception e) {
-            log.error("Failed to send notification via {}: {}", sender.getChannel(), e.getMessage());
+            log.error("Failed to send notification via {}: {}", sender.getChannel(), e.getMessage(), e);
             Notification failedRecord = notification.markFailed(e.getMessage());
             notificationRepository.save(failedRecord);
         }

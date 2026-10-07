@@ -1,0 +1,117 @@
+name: Newman E2E API Tests
+
+on:
+  push:
+    branches: [ main, CA-0003, 'feat/CA-0003-*', 'feat/**' ]
+  pull_request:
+    branches: [ main, CA-0003 ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  checks: write
+
+jobs:
+  api-tests:
+    name: Newman E2E Tests
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: candidai
+          POSTGRES_USER: candidai_user
+          POSTGRES_PASSWORD: secret
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U candidai_user -d candidai"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '25'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Newman CLI
+        run: npm install -g newman
+
+      - name: Cache Gradle packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Build executable JAR
+        run: ./gradlew bootJar -x test
+
+      - name: Start Spring Boot Application in Background
+        env:
+          DB_URL: jdbc:postgresql://localhost:5432/candidai
+          DB_USERNAME: candidai_user
+          DB_PASSWORD: secret
+          SPRING_JPA_HIBERNATE_DDL_AUTO: update
+        run: |
+          nohup java \
+            -Dspring.datasource.url=jdbc:postgresql://localhost:5432/candidai \
+            -Dspring.datasource.username=candidai_user \
+            -Dspring.datasource.password=secret \
+            -Dspring.jpa.hibernate.ddl-auto=update \
+            -jar build/libs/*.jar > spring-boot.log 2>&1 &
+          echo "SPRING_PID=$!" >> $GITHUB_ENV
+
+      - name: Wait for API to become ready
+        run: |
+          echo "Waiting for Spring Boot to start..."
+          for i in {1..30}; do
+            if curl -s http://localhost:8080/v3/api-docs > /dev/null; then
+              echo "CandidAI API is ready!"
+              exit 0
+            fi
+            echo "Attempt $i/30: Server not yet ready, sleeping 2s..."
+            sleep 2
+          done
+          echo "Timeout waiting for server to start"
+          cat spring-boot.log
+          exit 1
+
+      - name: Run Newman E2E Tests
+        run: |
+          mkdir -p build/reports/newman
+          newman run postman/candidai_collection.json \
+            -e postman/candidai_env.json \
+            --reporters cli,junit \
+            --reporter-junit-export build/reports/newman/report.xml
+
+      - name: Print Application Logs on Failure
+        if: failure()
+        run: |
+          echo "=== Spring Boot Application Logs ==="
+          cat spring-boot.log
+
+      - name: Upload Newman Test Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: newman-test-report
+          path: build/reports/newman/
