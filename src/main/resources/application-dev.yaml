@@ -1,0 +1,13 @@
+candidai:
+  starter:
+    enabled: true
+    environment: dev
+    response:
+      service-name: CandidAI-Dev
+      include-execution-time: true
+      include-environment: true
+
+logging:
+  level:
+    root: INFO
+    ua.edu.ukma.candidai: DEBUG

@@ -36,6 +36,13 @@ springdoc:
     tags-sorter: alpha
 
 candidai:
+  starter:
+    enabled: true
+    environment: default
+    response:
+      service-name: CandidAI
+      include-execution-time: true
+      include-environment: true
   gemini:
     api-key: ${GEMINI_API_KEY:}
     model: ${GEMINI_MODEL:gemini-3.5-flash-lite}

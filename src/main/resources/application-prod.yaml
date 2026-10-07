@@ -1,0 +1,13 @@
+candidai:
+  starter:
+    enabled: true
+    environment: prod
+    response:
+      service-name: CandidAI
+      include-execution-time: false
+      include-environment: false
+
+logging:
+  level:
+    root: WARN
+    ua.edu.ukma.candidai: INFO
