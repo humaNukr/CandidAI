@@ -34,7 +34,7 @@ class OpenApiDocumentationTest {
 
     @Test
     @DisplayName("apiDocs - should return valid OpenAPI 3.1 documentation with title, paths, and security")
-    void givenSpringDocEnabled_whenGetApiDocs_shouldReturnOpenApiSpec() throws Exception {
+    void givenSpringDocEnabled_getApiDocs_shouldReturnOpenApiSpec() throws Exception {
         mockMvc.perform(get("/v3/api-docs"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
@@ -46,12 +46,14 @@ class OpenApiDocumentationTest {
                 .andExpect(jsonPath("$.paths['/api/v1/applications/{id}/screening']").exists())
                 .andExpect(jsonPath("$.paths['/api/v1/interviews']").exists())
                 .andExpect(jsonPath("$.paths['/api/v1/users']").exists())
+                .andExpect(jsonPath("$.paths['/api/v1/companies']").exists())
+                .andExpect(jsonPath("$.paths['/api/v1/resumes/upload']").exists())
                 .andExpect(jsonPath("$.components.securitySchemes['Bearer Auth']").exists());
     }
 
     @Test
     @DisplayName("swaggerUi - should provide Swagger UI html redirect or page")
-    void givenSpringDocEnabled_whenGetSwaggerUi_shouldBeAccessible() throws Exception {
+    void givenSpringDocEnabled_getSwaggerUi_shouldBeAccessible() throws Exception {
         mockMvc.perform(get("/swagger-ui.html"))
                 .andExpect(status().is3xxRedirection());
     }

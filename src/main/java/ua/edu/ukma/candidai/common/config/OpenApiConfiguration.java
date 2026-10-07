@@ -36,7 +36,8 @@ import org.springframework.context.annotation.Configuration;
                 @Tag(name = "Applications", description = "Candidate application submission and lifecycle management"),
                 @Tag(name = "Assessments", description = "AI Candidate resume screening and assessment operations"),
                 @Tag(name = "Interviews", description = "Interview scheduling and candidate feedback coordination"),
-                @Tag(name = "Users", description = "User, recruiter, and candidate account management")
+                @Tag(name = "Users", description = "User, recruiter, and candidate account management"),
+                @Tag(name = "Companies", description = "Operations related to company profiles and organizations")
         },
         security = {
                 @SecurityRequirement(name = "Bearer Auth")
