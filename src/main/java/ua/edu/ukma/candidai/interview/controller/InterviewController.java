@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -48,6 +49,7 @@ public class InterviewController {
             @ApiResponse(responseCode = "404", description = "Application not found",
                     content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     })
+    @PreAuthorize("hasAnyRole('TECH_LEAD', 'RECRUITER', 'ADMIN')")
     @PostMapping
     public ResponseEntity<InterviewResponse> scheduleInterview(
             @RequestBody @Valid ScheduleInterviewRequest request
@@ -66,6 +68,7 @@ public class InterviewController {
             @ApiResponse(responseCode = "404", description = "Interview not found",
                     content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     })
+    @PreAuthorize("hasAnyRole('TECH_LEAD', 'RECRUITER', 'ADMIN')")
     @GetMapping("/{id}")
     public ResponseEntity<InterviewResponse> getInterviewById(@PathVariable UUID id) {
         return ResponseEntity.ok(interviewService.getInterviewById(id));
@@ -77,6 +80,7 @@ public class InterviewController {
             @ApiResponse(responseCode = "400", description = "Invalid filter parameters",
                     content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     })
+    @PreAuthorize("hasAnyRole('TECH_LEAD', 'RECRUITER', 'ADMIN')")
     @GetMapping
     public ResponseEntity<List<InterviewResponse>> getInterviews(
             @RequestParam(required = false) UUID applicationId,
@@ -117,6 +121,7 @@ public class InterviewController {
             @ApiResponse(responseCode = "422", description = "Invalid interview state transition",
                     content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     })
+    @PreAuthorize("hasAnyRole('TECH_LEAD', 'RECRUITER', 'ADMIN')")
     @PatchMapping("/{id}/reschedule")
     public ResponseEntity<InterviewResponse> rescheduleInterview(
             @PathVariable UUID id,
@@ -135,6 +140,7 @@ public class InterviewController {
             @ApiResponse(responseCode = "422", description = "Invalid interview state transition",
                     content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     })
+    @PreAuthorize("hasAnyRole('TECH_LEAD', 'RECRUITER', 'ADMIN')")
     @PatchMapping("/{id}/cancel")
     public ResponseEntity<InterviewResponse> cancelInterview(
             @PathVariable UUID id,
@@ -151,6 +157,7 @@ public class InterviewController {
             @ApiResponse(responseCode = "422", description = "Invalid interview state transition",
                     content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     })
+    @PreAuthorize("hasAnyRole('TECH_LEAD', 'RECRUITER', 'ADMIN')")
     @PatchMapping("/{id}/complete")
     public ResponseEntity<InterviewResponse> completeInterview(@PathVariable UUID id) {
         return ResponseEntity.ok(interviewService.completeInterview(id));

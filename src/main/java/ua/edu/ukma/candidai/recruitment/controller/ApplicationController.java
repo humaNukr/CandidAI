@@ -3,6 +3,7 @@ package ua.edu.ukma.candidai.recruitment.controller;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -50,6 +51,7 @@ public class ApplicationController {
             @ApiResponse(responseCode = "422", description = "Invalid state transition",
                     content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     })
+    @PreAuthorize("hasAnyRole('RECRUITER', 'ADMIN')")
     @PatchMapping("/{id}/status")
     public ApplicationResponse updateApplicationStatus(
             @PathVariable UUID id,
@@ -68,6 +70,7 @@ public class ApplicationController {
             @ApiResponse(responseCode = "422", description = "Application not in interview stage",
                     content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     })
+    @PreAuthorize("hasAnyRole('TECH_LEAD', 'RECRUITER', 'ADMIN')")
     @PostMapping("/{id}/feedbacks")
     public ResponseEntity<InterviewFeedbackResponse> submitFeedback(
             @PathVariable UUID id,
@@ -92,6 +95,7 @@ public class ApplicationController {
             @ApiResponse(responseCode = "409", description = "Candidate already applied to this vacancy",
                     content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     })
+    @PreAuthorize("hasRole('CANDIDATE')")
     @PostMapping
     public ResponseEntity<ApplicationResponse> applyForVacancy(
             @RequestBody @Valid ApplyForVacancyRequest request
@@ -106,6 +110,7 @@ public class ApplicationController {
 
     @Operation(summary = "Get applications", description = "Retrieves applications for a vacancy")
     @ApiResponse(responseCode = "200", description = "List of applications retrieved successfully")
+    @PreAuthorize("hasAnyRole('RECRUITER', 'ADMIN')")
     @GetMapping
     public List<ApplicationResponse> getApplications(
             @RequestParam(required = false) UUID vacancyId,
@@ -134,6 +139,7 @@ public class ApplicationController {
             @ApiResponse(responseCode = "404", description = "Application not found",
                     content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     })
+    @PreAuthorize("hasAnyRole('TECH_LEAD', 'RECRUITER', 'ADMIN')")
     @GetMapping("/{id}/feedbacks")
     public List<InterviewFeedbackResponse> getFeedbacks(@PathVariable UUID id) {
         return applicationService.getFeedbacks(id);
@@ -145,6 +151,7 @@ public class ApplicationController {
             @ApiResponse(responseCode = "404", description = "Application not found",
                     content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     })
+    @PreAuthorize("hasAnyRole('RECRUITER', 'ADMIN')")
     @GetMapping("/{id}/evaluation")
     public EvaluationResult getEvaluation(@PathVariable UUID id) {
         return applicationService.evaluateCandidate(id);

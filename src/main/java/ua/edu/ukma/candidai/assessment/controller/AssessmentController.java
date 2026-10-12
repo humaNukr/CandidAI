@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ProblemDetail;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -34,6 +35,7 @@ public class AssessmentController {
             @ApiResponse(responseCode = "404", description = "Screening result or application not found",
                     content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     })
+    @PreAuthorize("hasAnyRole('RECRUITER', 'ADMIN')")
     @GetMapping
     public AiScreeningResult getScreeningResult(@PathVariable UUID id) {
         log.info("Received request to fetch screening report for application: {}", id);
@@ -46,6 +48,7 @@ public class AssessmentController {
             @ApiResponse(responseCode = "404", description = "Application not found",
                     content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     })
+    @PreAuthorize("hasAnyRole('RECRUITER', 'ADMIN')")
     @PostMapping
     public AiScreeningResult triggerScreening(@PathVariable UUID id) {
         log.info("Received request to manually trigger screening for application: {}", id);
