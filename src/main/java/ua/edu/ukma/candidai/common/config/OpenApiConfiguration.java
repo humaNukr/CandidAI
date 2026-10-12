@@ -41,15 +41,15 @@ import org.springframework.context.annotation.Configuration;
                 @Tag(name = "Authentication", description = "User authentication and JWT token management")
         },
         security = {
-                @SecurityRequirement(name = "Bearer Auth")
+                @SecurityRequirement(name = "BearerAuth")
         }
 )
 @SecurityScheme(
-        name = "Bearer Auth",
+        name = "BearerAuth",
         type = SecuritySchemeType.HTTP,
         scheme = "bearer",
         bearerFormat = "JWT",
-        description = "JWT Bearer token authorization header"
+        description = "Введіть JWT токен, отриманий через /api/v1/auth/login"
 )
 public class OpenApiConfiguration {
 }
