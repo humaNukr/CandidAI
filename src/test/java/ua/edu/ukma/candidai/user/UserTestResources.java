@@ -159,4 +159,24 @@ public final class UserTestResources {
                 DEFAULT_TELEGRAM_CHAT_ID
         );
     }
+
+    public static UpdateUserRequest samplePartialUpdateUserRequest() {
+        return new UpdateUserRequest(
+                UPDATED_FULL_NAME,
+                null
+        );
+    }
+
+    public static User sampleUpdatedUser() {
+        return sampleUserBuilder()
+                .fullName(UPDATED_FULL_NAME)
+                .telegramChatId(UPDATED_TELEGRAM_CHAT_ID)
+                .build();
+    }
+
+    public static User sampleUserWithUpdatedFullName() {
+        return sampleUserBuilder()
+                .fullName(UPDATED_FULL_NAME)
+                .build();
+    }
 }

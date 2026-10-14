@@ -6,6 +6,10 @@ candidai:
       service-name: CandidAI-Dev
       include-execution-time: true
       include-environment: true
+  security:
+    jwt:
+      secret: candidai-super-secret-jwt-key-for-dev-environment-at-least-256-bits-long-hmac-sha!
+      expiration-minutes: 120
 
 logging:
   level:

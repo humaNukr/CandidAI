@@ -1,5 +1,7 @@
 package ua.edu.ukma.candidai.user.repository;
 
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
 import ua.edu.ukma.candidai.user.UserRole;
 import ua.edu.ukma.candidai.user.model.User;
 
@@ -7,19 +9,12 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-public interface UserRepository {
+@Repository
+public interface UserRepository extends JpaRepository<User, UUID> {
 
-    User save(User user);
+    Optional<User> findByEmailIgnoreCase(String email);
 
-    Optional<User> findById(UUID id);
-
-    Optional<User> findByEmail(String email);
-
-    boolean existsByEmail(String email);
-
-    void deleteById(UUID id);
+    boolean existsByEmailIgnoreCase(String email);
 
     List<User> findByRole(UserRole role);
-
-    List<User> findAll();
 }
