@@ -128,6 +128,7 @@ public class ApplicationController {
             @ApiResponse(responseCode = "404", description = "Application not found",
                     content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     })
+    @PreAuthorize("hasAnyRole('TECH_LEAD', 'RECRUITER', 'ADMIN')")
     @GetMapping("/{id}")
     public ApplicationResponse getApplicationById(@PathVariable UUID id) {
         return applicationService.getById(id);
