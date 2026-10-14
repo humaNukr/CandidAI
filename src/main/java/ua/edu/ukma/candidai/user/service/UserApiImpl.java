@@ -26,7 +26,7 @@ class UserApiImpl implements UserApi {
 
     @Override
     public Optional<UserNotificationProfile> getUserNotificationProfileByEmail(String email) {
-        return userRepository.findByEmail(email)
+        return userRepository.findByEmailIgnoreCase(email)
                 .map(userMapper::toNotificationProfile);
     }
 

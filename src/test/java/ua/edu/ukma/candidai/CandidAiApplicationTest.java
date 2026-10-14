@@ -10,7 +10,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest(properties = {
     "spring.liquibase.enabled=false",
-    "spring.jpa.hibernate.ddl-auto=none"
+    "spring.jpa.hibernate.ddl-auto=none",
+    "candidai.security.seed-data.enabled=false"
 })
 class CandidAiApplicationTest {
 
