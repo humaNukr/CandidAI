@@ -6,6 +6,10 @@ candidai:
       service-name: CandidAI
       include-execution-time: false
       include-environment: false
+  security:
+    jwt:
+      secret: ${JWT_SECRET:candidai-super-secret-jwt-key-for-prod-environment-at-least-256-bits-long-hmac-sha!}
+      expiration-minutes: 60
 
 logging:
   level:
