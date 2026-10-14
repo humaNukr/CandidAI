@@ -43,6 +43,18 @@
       "value": "",
       "type": "default",
       "enabled": true
+    },
+    {
+      "key": "jwtToken",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "candidateJwtToken",
+      "value": "",
+      "type": "default",
+      "enabled": true
     }
   ],
   "_postman_variable_scope": "environment",

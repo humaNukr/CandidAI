@@ -7,6 +7,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -49,6 +50,7 @@ public class VacancyController {
             @ApiResponse(responseCode = "400", description = "Validation error",
                     content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     })
+    @PreAuthorize("hasAnyRole('RECRUITER', 'ADMIN')")
     @PostMapping
     public ResponseEntity<VacancyResponse> createVacancy(@RequestBody @Valid CreateVacancyRequest request) {
         VacancyResponse created = vacancyService.createVacancy(request);
@@ -89,6 +91,7 @@ public class VacancyController {
             @ApiResponse(responseCode = "404", description = "Vacancy not found",
                     content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     })
+    @PreAuthorize("hasAnyRole('RECRUITER', 'ADMIN')")
     @PatchMapping("/{id}/status")
     public VacancyResponse updateVacancyStatus(
             @PathVariable UUID id,
@@ -103,6 +106,7 @@ public class VacancyController {
             @ApiResponse(responseCode = "404", description = "Vacancy not found",
                     content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     })
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteVacancy(@PathVariable UUID id) {
         vacancyService.deleteVacancy(id);
