@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -49,6 +50,7 @@ public class CompanyController {
             @ApiResponse(responseCode = "409", description = "Company with this name already exists",
                     content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     })
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public ResponseEntity<CompanyResponse> createCompany(@RequestBody @Valid CreateCompanyRequest request) {
@@ -88,6 +90,7 @@ public class CompanyController {
             @ApiResponse(responseCode = "409", description = "Company with updated name already exists",
                     content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     })
+    @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}")
     public CompanyResponse updateCompany(
             @PathVariable UUID id,
@@ -102,6 +105,7 @@ public class CompanyController {
             @ApiResponse(responseCode = "404", description = "Company not found",
                     content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     })
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteCompany(@PathVariable UUID id) {

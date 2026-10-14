@@ -13,6 +13,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -45,6 +46,7 @@ public class ResumeController {
             @ApiResponse(responseCode = "400", description = "Invalid file or exceeds 10MB limit",
                     content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     })
+    @PreAuthorize("hasAnyRole('CANDIDATE', 'RECRUITER', 'ADMIN')")
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<UploadResumeResponse> uploadResume(@RequestParam("file") MultipartFile file)
             throws IOException {
@@ -84,6 +86,7 @@ public class ResumeController {
             @ApiResponse(responseCode = "404", description = "File not found",
                     content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     })
+    @PreAuthorize("hasAnyRole('TECH_LEAD', 'RECRUITER', 'ADMIN')")
     @GetMapping("/download/{fileName}")
     public ResponseEntity<Resource> downloadResume(@PathVariable String fileName) {
         log.info("Received resume download request for file: {}", fileName);

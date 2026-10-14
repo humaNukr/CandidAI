@@ -13,19 +13,9 @@ import ua.edu.ukma.candidai.user.repository.UserRepository;
 
 import java.util.Optional;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.when;
-import static ua.edu.ukma.candidai.user.UserTestResources.DEFAULT_EMAIL;
-import static ua.edu.ukma.candidai.user.UserTestResources.DEFAULT_USER_ID;
-import static ua.edu.ukma.candidai.user.UserTestResources.NON_EXISTENT_USER_ID;
-import static ua.edu.ukma.candidai.user.UserTestResources.UPDATED_TELEGRAM_CHAT_ID;
-import static ua.edu.ukma.candidai.user.UserTestResources.expectedUserNotFoundMessage;
-import static ua.edu.ukma.candidai.user.UserTestResources.sampleUser;
-import static ua.edu.ukma.candidai.user.UserTestResources.sampleUserNotificationProfile;
-import static ua.edu.ukma.candidai.user.UserTestResources.sampleUserWithTelegramChatId;
+import static org.assertj.core.api.Assertions.*;
+import static org.mockito.Mockito.*;
+import static ua.edu.ukma.candidai.user.UserTestResources.*;
 
 @ExtendWith(MockitoExtension.class)
 class UserApiImplTest {
@@ -69,7 +59,7 @@ class UserApiImplTest {
         User user = sampleUser();
         UserNotificationProfile expectedProfile = sampleUserNotificationProfile();
 
-        when(userRepository.findByEmail(DEFAULT_EMAIL)).thenReturn(Optional.of(user));
+        when(userRepository.findByEmailIgnoreCase(DEFAULT_EMAIL)).thenReturn(Optional.of(user));
         when(userMapper.toNotificationProfile(user)).thenReturn(expectedProfile);
 
         Optional<UserNotificationProfile> result = userApi.getUserNotificationProfileByEmail(DEFAULT_EMAIL);
@@ -82,7 +72,7 @@ class UserApiImplTest {
     void givenNonExistentEmail_getUserNotificationProfileByEmail_shouldReturnEmpty() {
         String nonExistentEmail = "nonexistent@example.com";
 
-        when(userRepository.findByEmail(nonExistentEmail)).thenReturn(Optional.empty());
+        when(userRepository.findByEmailIgnoreCase(nonExistentEmail)).thenReturn(Optional.empty());
 
         Optional<UserNotificationProfile> result = userApi.getUserNotificationProfileByEmail(nonExistentEmail);
 

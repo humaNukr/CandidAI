@@ -25,7 +25,7 @@ class UserServiceImpl implements UserService {
 
     @Override
     public UserResponse createUser(CreateUserRequest request) {
-        if (userRepository.existsByEmail(request.email())) {
+        if (userRepository.existsByEmailIgnoreCase(request.email())) {
             throw new DuplicateResourceException("User with email " + request.email() + " already exists");
         }
 
@@ -67,12 +67,7 @@ class UserServiceImpl implements UserService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
 
-        if (request.fullName() != null) {
-            user.setFullName(request.fullName());
-        }
-        if (request.telegramChatId() != null) {
-            user.setTelegramChatId(request.telegramChatId());
-        }
+        userMapper.updateUserFromRequest(request, user);
 
         User updated = userRepository.save(user);
         return userMapper.toResponse(updated);

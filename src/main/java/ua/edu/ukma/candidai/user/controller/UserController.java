@@ -10,6 +10,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -45,6 +46,7 @@ public class UserController {
             @ApiResponse(responseCode = "409", description = "User with email already exists",
                     content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     })
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public UserResponse createUser(@Valid @RequestBody CreateUserRequest request) {
@@ -57,6 +59,7 @@ public class UserController {
             @ApiResponse(responseCode = "404", description = "User not found",
                     content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     })
+    @PreAuthorize("hasAnyRole('RECRUITER', 'ADMIN')")
     @GetMapping("/{id}")
     public UserResponse getUserById(@PathVariable UUID id) {
         return userService.getUserById(id);
@@ -64,6 +67,7 @@ public class UserController {
 
     @Operation(summary = "Get all users", description = "Retrieves users optionally filtered by role")
     @ApiResponse(responseCode = "200", description = "List of users retrieved")
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping
     public List<UserResponse> getAllUsers(@RequestParam(required = false) UserRole role) {
         return userService.getAllUsers(role);
@@ -77,6 +81,7 @@ public class UserController {
             @ApiResponse(responseCode = "404", description = "User not found",
                     content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     })
+    @PreAuthorize("hasRole('ADMIN')")
     @PatchMapping("/{id}")
     public UserResponse updateUser(
             @PathVariable UUID id,
@@ -91,6 +96,7 @@ public class UserController {
             @ApiResponse(responseCode = "404", description = "User not found",
                     content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     })
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteUser(@PathVariable UUID id) {
