@@ -43,6 +43,10 @@ candidai:
       service-name: CandidAI
       include-execution-time: true
       include-environment: true
+  security:
+    jwt:
+      secret: ${JWT_SECRET:candidai-super-secret-jwt-key-for-hmac-sha-256-which-is-at-least-256-bits-long!}
+      expiration-minutes: 60
   gemini:
     api-key: ${GEMINI_API_KEY:}
     model: ${GEMINI_MODEL:gemini-3.5-flash-lite}
