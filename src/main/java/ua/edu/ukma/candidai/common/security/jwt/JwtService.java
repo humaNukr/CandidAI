@@ -2,6 +2,7 @@ package ua.edu.ukma.candidai.common.security.jwt;
 
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -13,6 +14,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.List;
+import ua.edu.ukma.candidai.common.util.CommonGenerator;
 
 @Service
 public class JwtService {
@@ -22,10 +24,13 @@ public class JwtService {
 
     private final SecretKey signingKey;
     private final long expirationMinutes;
+    private final CommonGenerator commonGenerator;
 
+    @Autowired
     public JwtService(
             @Value("${candidai.security.jwt.secret}") String secret,
-            @Value("${candidai.security.jwt.expiration-minutes:60}") long expirationMinutes) {
+            @Value("${candidai.security.jwt.expiration-minutes:60}") long expirationMinutes,
+            CommonGenerator commonGenerator) {
         byte[] keyBytes = secret.getBytes(StandardCharsets.UTF_8);
         if (keyBytes.length < MIN_KEY_LENGTH_BYTES) {
             throw new IllegalArgumentException(
@@ -34,6 +39,11 @@ public class JwtService {
         }
         this.signingKey = Keys.hmacShaKeyFor(keyBytes);
         this.expirationMinutes = expirationMinutes;
+        this.commonGenerator = commonGenerator != null ? commonGenerator : new CommonGenerator();
+    }
+
+    public JwtService(String secret, long expirationMinutes) {
+        this(secret, expirationMinutes, new CommonGenerator());
     }
 
     public String generateToken(UserDetails userDetails) {
@@ -45,7 +55,7 @@ public class JwtService {
                 .map(GrantedAuthority::getAuthority)
                 .toList();
 
-        Instant now = Instant.now();
+        Instant now = commonGenerator.now();
         Instant expiry = now.plus(amount, unit);
 
         return Jwts.builder()

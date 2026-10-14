@@ -13,6 +13,7 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import tools.jackson.databind.ObjectMapper;
+import ua.edu.ukma.candidai.common.util.CommonGenerator;
 
 import java.io.IOException;
 
@@ -31,8 +32,9 @@ class ProblemDetailSecurityHandlersTest {
     @BeforeEach
     void setUp() {
         objectMapper = new ObjectMapper();
-        authenticationEntryPoint = new ProblemDetailAuthenticationEntryPoint(objectMapper);
-        accessDeniedHandler = new ProblemDetailAccessDeniedHandler(objectMapper);
+        CommonGenerator commonGenerator = new CommonGenerator();
+        authenticationEntryPoint = new ProblemDetailAuthenticationEntryPoint(objectMapper, commonGenerator);
+        accessDeniedHandler = new ProblemDetailAccessDeniedHandler(objectMapper, commonGenerator);
         MDC.put(MDC_TRACE_ID_KEY, TEST_TRACE_ID);
     }
 

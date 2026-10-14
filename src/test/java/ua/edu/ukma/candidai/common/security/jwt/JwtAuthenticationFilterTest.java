@@ -1,5 +1,7 @@
 package ua.edu.ukma.candidai.common.security.jwt;
 
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.MalformedJwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -10,14 +12,22 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpHeaders;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.web.AuthenticationEntryPoint;
 
-import static org.assertj.core.api.Assertions.*;
-import static org.mockito.Mockito.*;
-import static ua.edu.ukma.candidai.common.security.SecurityTestResources.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.argThat;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
+import static ua.edu.ukma.candidai.common.security.SecurityTestResources.TEST_EMAIL;
+import static ua.edu.ukma.candidai.common.security.SecurityTestResources.aTestUserDetails;
 
 @ExtendWith(MockitoExtension.class)
 class JwtAuthenticationFilterTest {
@@ -87,6 +97,46 @@ class JwtAuthenticationFilterTest {
         filter.doFilterInternal(request, response, filterChain);
 
         verify(authenticationEntryPoint).commence(eq(request), eq(response), any());
+        verify(filterChain, never()).doFilter(request, response);
+        assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
+    }
+
+    @Test
+    @DisplayName("doFilterInternal should invoke entrypoint when token is expired")
+    void givenExpiredToken_doFilterInternal_shouldInvokeEntryPointWithExpiredMessage() throws Exception {
+        String token = "expired-token";
+
+        when(request.getHeader(HttpHeaders.AUTHORIZATION)).thenReturn("Bearer " + token);
+        when(jwtValidatorService.extractUsername(token)).thenThrow(new ExpiredJwtException(null, null, "Expired"));
+
+        filter.doFilterInternal(request, response, filterChain);
+
+        verify(authenticationEntryPoint).commence(
+                eq(request),
+                eq(response),
+                argThat(ex -> ex instanceof BadCredentialsException
+                        && ex.getMessage().equals("JWT токен прострочено"))
+        );
+        verify(filterChain, never()).doFilter(request, response);
+        assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
+    }
+
+    @Test
+    @DisplayName("doFilterInternal should invoke entrypoint when token has invalid signature or structure")
+    void givenMalformedToken_doFilterInternal_shouldInvokeEntryPointWithMalformedMessage() throws Exception {
+        String token = "malformed-token";
+
+        when(request.getHeader(HttpHeaders.AUTHORIZATION)).thenReturn("Bearer " + token);
+        when(jwtValidatorService.extractUsername(token)).thenThrow(new MalformedJwtException("Malformed"));
+
+        filter.doFilterInternal(request, response, filterChain);
+
+        verify(authenticationEntryPoint).commence(
+                eq(request),
+                eq(response),
+                argThat(ex -> ex instanceof BadCredentialsException
+                        && ex.getMessage().equals("Недійсний підпис або структура JWT токена"))
+        );
         verify(filterChain, never()).doFilter(request, response);
         assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
     }

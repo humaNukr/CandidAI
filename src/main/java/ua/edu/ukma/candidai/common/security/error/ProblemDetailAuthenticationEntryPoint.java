@@ -2,6 +2,7 @@ package ua.edu.ukma.candidai.common.security.error;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.MDC;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -10,20 +11,18 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.ObjectMapper;
+import ua.edu.ukma.candidai.common.util.CommonGenerator;
 
 import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
-import java.time.Instant;
 
 @Component
+@RequiredArgsConstructor
 public class ProblemDetailAuthenticationEntryPoint implements AuthenticationEntryPoint {
 
     private final ObjectMapper objectMapper;
-
-    public ProblemDetailAuthenticationEntryPoint(ObjectMapper objectMapper) {
-        this.objectMapper = objectMapper;
-    }
+    private final CommonGenerator commonGenerator;
 
     @Override
     public void commence(HttpServletRequest request, HttpServletResponse response,
@@ -34,7 +33,7 @@ public class ProblemDetailAuthenticationEntryPoint implements AuthenticationEntr
         );
         problemDetail.setTitle("Автентифікація обов'язкова");
         problemDetail.setType(URI.create("https://candidai.ukma.edu.ua/errors/unauthorized"));
-        problemDetail.setProperty("timestamp", Instant.now().toString());
+        problemDetail.setProperty("timestamp", commonGenerator.now().toString());
         problemDetail.setProperty("path", request.getRequestURI());
 
         String traceId = MDC.get("traceId");

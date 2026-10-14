@@ -16,7 +16,9 @@ public class CorsConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
+        // Wildcard origin is used during development without FE; replace with explicit origins in production
         configuration.setAllowedOrigins(List.of("*"));
+        configuration.setAllowCredentials(false);
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "X-Trace-Id"));
         configuration.setExposedHeaders(List.of("X-Trace-Id", "Location"));

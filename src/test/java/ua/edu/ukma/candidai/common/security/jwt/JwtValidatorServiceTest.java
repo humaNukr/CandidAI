@@ -50,7 +50,7 @@ class JwtValidatorServiceTest {
     }
 
     @Test
-    @DisplayName("isTokenValid should return false for expired token")
+    @DisplayName("isTokenValid should return false and extractUsername should throw for expired token")
     void givenExpiredToken_isTokenValid_shouldReturnFalse() {
         UserDetails userDetails = aTestUserDetails();
         String expiredToken = jwtService.generateToken(userDetails, -5L, ChronoUnit.MINUTES);
@@ -58,11 +58,12 @@ class JwtValidatorServiceTest {
         boolean isValid = jwtValidatorService.isTokenValid(expiredToken, userDetails);
 
         assertThat(isValid).isFalse();
-        assertThat(jwtValidatorService.extractUsername(expiredToken)).isNull();
+        assertThatThrownBy(() -> jwtValidatorService.extractUsername(expiredToken))
+                .isInstanceOf(io.jsonwebtoken.ExpiredJwtException.class);
     }
 
     @Test
-    @DisplayName("isTokenValid should return false for token with tampered signature")
+    @DisplayName("isTokenValid should return false and extractUsername should throw for tampered token")
     void givenTamperedSignatureToken_isTokenValid_shouldReturnFalse() {
         UserDetails userDetails = aTestUserDetails();
         String tamperedToken = tamperedJwtService.generateToken(userDetails);
@@ -70,7 +71,8 @@ class JwtValidatorServiceTest {
         boolean isValid = jwtValidatorService.isTokenValid(tamperedToken, userDetails);
 
         assertThat(isValid).isFalse();
-        assertThat(jwtValidatorService.extractUsername(tamperedToken)).isNull();
+        assertThatThrownBy(() -> jwtValidatorService.extractUsername(tamperedToken))
+                .isInstanceOf(io.jsonwebtoken.JwtException.class);
     }
 
     @Test
