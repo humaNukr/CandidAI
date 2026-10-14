@@ -7,7 +7,9 @@ on:
     branches: [ '**' ]
   workflow_dispatch:
 
-
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -21,23 +23,23 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
       - name: Set up JDK 25
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: '25'
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.x'
 
       - name: Cache Gradle packages
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/.gradle/caches
@@ -49,11 +51,11 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Run checkstyle and tests with JaCoCo
-        run: ./gradlew checkstyleMain checkstyleTest test jacocoTestReport
+      - name: Run checkstyle, tests and build JAR
+        run: ./gradlew checkstyleMain checkstyleTest test jacocoTestReport bootJar
 
       - name: JaCoCo PR Coverage Comment
-        uses: madrapps/jacoco-report@v1.6.1
+        uses: madrapps/jacoco-report@v1.8.0
         if: github.event_name == 'pull_request' && hashFiles('build/reports/jacoco/test/jacocoTestReport.xml') != ''
         with:
           paths: ${{ github.workspace }}/build/reports/jacoco/test/jacocoTestReport.xml
@@ -71,10 +73,113 @@ jobs:
             --base-ref "${{ github.base_ref }}"
 
       - name: Upload JaCoCo and Checkstyle reports
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: always()
         with:
           name: verification-reports
           path: |
             build/reports/jacoco/
             build/reports/checkstyle/
+
+      - name: Upload executable JAR
+        uses: actions/upload-artifact@v5
+        with:
+          name: candidai-application-jar
+          path: build/libs/*.jar
+          if-no-files-found: error
+          retention-days: 1
+
+  api-tests:
+    name: Newman E2E Tests
+    needs: build
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: candidai
+          POSTGRES_USER: candidai_user
+          POSTGRES_PASSWORD: secret
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U candidai_user -d candidai"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '25'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+
+      - name: Install Newman CLI
+        run: npm install -g newman
+
+      - name: Download executable JAR
+        uses: actions/download-artifact@v5
+        with:
+          name: candidai-application-jar
+          path: build/libs
+
+      - name: Start Spring Boot Application in Background
+        env:
+          DB_URL: jdbc:postgresql://localhost:5432/candidai
+          DB_USERNAME: candidai_user
+          DB_PASSWORD: secret
+          SPRING_JPA_HIBERNATE_DDL_AUTO: update
+        run: |
+          nohup java \
+            -Dspring.datasource.url=jdbc:postgresql://localhost:5432/candidai \
+            -Dspring.datasource.username=candidai_user \
+            -Dspring.datasource.password=secret \
+            -Dspring.jpa.hibernate.ddl-auto=update \
+            -jar build/libs/*.jar > spring-boot.log 2>&1 &
+          echo "SPRING_PID=$!" >> $GITHUB_ENV
+
+      - name: Wait for API to become ready
+        run: |
+          echo "Waiting for Spring Boot to start..."
+          for i in {1..30}; do
+            if curl -s http://localhost:8080/v3/api-docs > /dev/null; then
+              echo "CandidAI API is ready!"
+              exit 0
+            fi
+            echo "Attempt $i/30: Server not yet ready, sleeping 2s..."
+            sleep 2
+          done
+          echo "Timeout waiting for server to start"
+          cat spring-boot.log
+          exit 1
+
+      - name: Run Newman E2E Tests
+        run: |
+          mkdir -p build/reports/newman
+          newman run postman/candidai_collection.json \
+            -e postman/candidai_env.json \
+            --reporters cli,junit \
+            --reporter-junit-export build/reports/newman/report.xml
+
+      - name: Print Application Logs on Failure
+        if: failure()
+        run: |
+          echo "=== Spring Boot Application Logs ==="
+          cat spring-boot.log
+
+      - name: Upload Newman Test Report
+        uses: actions/upload-artifact@v5
+        if: always()
+        with:
+          name: newman-test-report
+          path: build/reports/newman/
