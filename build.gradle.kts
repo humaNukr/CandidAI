@@ -30,6 +30,8 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.boot:spring-boot-starter-thymeleaf")
+    implementation("org.thymeleaf.extras:thymeleaf-extras-springsecurity6")
+    implementation("org.webjars:bootstrap:5.3.3")
     implementation("org.springframework.boot:spring-boot-starter-mail")
     implementation("org.springframework.data:spring-data-commons")
     implementation("org.springframework.modulith:spring-modulith-starter-core")
