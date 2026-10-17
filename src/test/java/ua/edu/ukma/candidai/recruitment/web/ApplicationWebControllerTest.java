@@ -12,6 +12,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import ua.edu.ukma.candidai.common.config.MethodSecurityConfiguration;
 import ua.edu.ukma.candidai.common.config.TestSecurityConfiguration;
 import ua.edu.ukma.candidai.common.exception.DuplicateResourceException;
+import ua.edu.ukma.candidai.common.exception.ResourceNotFoundException;
+import ua.edu.ukma.candidai.common.exception.WebExceptionAdvice;
 import ua.edu.ukma.candidai.recruitment.dto.model.ApplicationStatus;
 import ua.edu.ukma.candidai.recruitment.dto.request.ApplyForVacancyRequest;
 import ua.edu.ukma.candidai.recruitment.dto.response.ApplicationResponse;
@@ -39,7 +41,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
 @WebMvcTest(controllers = ApplicationWebController.class)
-@Import({MethodSecurityConfiguration.class, TestSecurityConfiguration.class})
+@Import({MethodSecurityConfiguration.class, TestSecurityConfiguration.class, WebExceptionAdvice.class})
 class ApplicationWebControllerTest {
 
     private static final UUID VACANCY_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
@@ -196,4 +198,29 @@ class ApplicationWebControllerTest {
         mockMvc.perform(get(APPLICATIONS_URL))
                 .andExpect(status().isForbidden());
     }
+
+    @Test
+    @DisplayName("showApplyForm - should return 404 Not Found when vacancy does not exist")
+    @WithMockUser(username = "candidate@candidai.com", roles = "CANDIDATE")
+    void givenNonExistentVacancy_showApplyForm_shouldReturn404() throws Exception {
+        when(vacancyApi.getVacancyDetails(VACANCY_ID))
+                .thenThrow(new ResourceNotFoundException("Vacancy not found"));
+
+        mockMvc.perform(get(APPLY_URL))
+                .andExpect(status().isNotFound())
+                .andExpect(view().name("error/404"));
+    }
+
+    @Test
+    @DisplayName("viewApplications - should return 404 Not Found when vacancy does not exist")
+    @WithMockUser(username = "techlead@candidai.com", roles = "TECH_LEAD")
+    void givenNonExistentVacancy_viewApplications_shouldReturn404() throws Exception {
+        when(vacancyApi.getVacancyDetails(VACANCY_ID))
+                .thenThrow(new ResourceNotFoundException("Vacancy not found"));
+
+        mockMvc.perform(get(APPLICATIONS_URL))
+                .andExpect(status().isNotFound())
+                .andExpect(view().name("error/404"));
+    }
 }
+

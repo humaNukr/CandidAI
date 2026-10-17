@@ -123,12 +123,8 @@ public class ApplicationWebController {
 
     private void populateVacancyDetails(UUID vacancyId, Model model) {
         model.addAttribute("vacancyId", vacancyId);
-        try {
-            VacancyDetails details = vacancyApi.getVacancyDetails(vacancyId);
-            model.addAttribute("vacancyTitle", details != null ? details.title() : "Вакансія");
-        } catch (Exception ex) {
-            log.debug("Could not resolve vacancy title for {}: {}", vacancyId, ex.getMessage());
-            model.addAttribute("vacancyTitle", "Вакансія");
-        }
+        VacancyDetails details = vacancyApi.getVacancyDetails(vacancyId);
+        model.addAttribute("vacancyTitle", details != null ? details.title() : "Вакансія");
     }
 }
+
