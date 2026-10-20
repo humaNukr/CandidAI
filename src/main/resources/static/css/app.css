@@ -1,0 +1,26 @@
+body {
+    background-color: #f8fafc;
+    color: #1e293b;
+    min-height: 100vh;
+}
+
+.table th {
+    background-color: #f1f5f9;
+}
+
+.card {
+    border-radius: 12px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.07);
+}
+
+.narrow {
+    max-width: 560px;
+}
+
+.badge-open {
+    background-color: #10b981;
+}
+
+.badge-closed {
+    background-color: #64748b;
+}

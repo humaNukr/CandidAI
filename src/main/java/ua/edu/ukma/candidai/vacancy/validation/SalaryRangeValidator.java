@@ -3,16 +3,18 @@ package ua.edu.ukma.candidai.vacancy.validation;
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
 import ua.edu.ukma.candidai.common.util.ValidationUtils;
-import ua.edu.ukma.candidai.vacancy.dto.request.CreateVacancyRequest;
 
 import java.math.BigDecimal;
 
-public class SalaryRangeValidator implements ConstraintValidator<ValidSalaryRange, CreateVacancyRequest> {
+public class SalaryRangeValidator implements ConstraintValidator<ValidSalaryRange, HasSalaryRange> {
 
     @Override
-    public boolean isValid(CreateVacancyRequest request, ConstraintValidatorContext context) {
-        BigDecimal salaryMin = request.salaryMin();
-        BigDecimal salaryMax = request.salaryMax();
+    public boolean isValid(HasSalaryRange value, ConstraintValidatorContext context) {
+        if (value == null) {
+            return true;
+        }
+        BigDecimal salaryMin = value.salaryMin();
+        BigDecimal salaryMax = value.salaryMax();
         if (salaryMin != null && salaryMax != null && salaryMin.compareTo(salaryMax) > 0) {
             ValidationUtils.addViolation(
                     "Minimum salary cannot be greater than maximum salary",
