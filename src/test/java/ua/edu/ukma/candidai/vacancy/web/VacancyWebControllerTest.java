@@ -188,6 +188,7 @@ class VacancyWebControllerTest {
         ArgumentCaptor<CreateVacancyRequest> captor = ArgumentCaptor.forClass(CreateVacancyRequest.class);
 
         mockMvc.perform(post(VACANCIES_URL)
+                        .cookie(new jakarta.servlet.http.Cookie("lang", "en"))
                         .with(csrf())
                         .param("title", VALID_FORM.title())
                         .param("category", VALID_FORM.category().name())
@@ -224,7 +225,7 @@ class VacancyWebControllerTest {
 
         mockMvc.perform(post(VACANCIES_URL)
                         .with(csrf())
-                        .locale(java.util.Locale.forLanguageTag("uk"))
+                        .cookie(new jakarta.servlet.http.Cookie("lang", "uk"))
                         .param("title", VALID_FORM.title())
                         .param("category", VALID_FORM.category().name())
                         .param("specialization", VALID_FORM.specialization())
