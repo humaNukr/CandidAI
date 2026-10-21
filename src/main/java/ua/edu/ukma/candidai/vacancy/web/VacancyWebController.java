@@ -3,6 +3,7 @@ package ua.edu.ukma.candidai.vacancy.web;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.MessageSource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -31,6 +32,7 @@ import ua.edu.ukma.candidai.vacancy.service.VacancyService;
 import ua.edu.ukma.candidai.vacancy.web.dto.CreateVacancyForm;
 import ua.edu.ukma.candidai.vacancy.web.model.VacancyView;
 
+import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -41,6 +43,7 @@ public class VacancyWebController {
 
     private final VacancyService vacancyService;
     private final UserApi userApi;
+    private final MessageSource messageSource;
 
     @GetMapping
     public String listVacancies(
@@ -84,6 +87,7 @@ public class VacancyWebController {
             Authentication authentication,
             HttpServletResponse response,
             RedirectAttributes redirectAttributes,
+            Locale locale,
             Model model
     ) {
         if (bindingResult.hasErrors()) {
@@ -96,10 +100,23 @@ public class VacancyWebController {
                 .map(Authentication::getName)
                 .flatMap(userApi::getUserNotificationProfileByEmail)
                 .map(UserNotificationProfile::userId)
-                .orElseGet(UUID::randomUUID);
+                .orElse(null);
+
+        if (authorId == null) {
+            bindingResult.reject("vacancies.author.notFound", "Recruiter profile not found");
+            response.setStatus(HttpStatus.UNPROCESSABLE_ENTITY.value());
+            populateReferenceData(model);
+            return "vacancies/create-form";
+        }
 
         vacancyService.createVacancy(form.toRequest(authorId));
-        redirectAttributes.addFlashAttribute("successMessage", "Vacancy successfully created!");
+        String successMessage = messageSource.getMessage(
+                "vacancies.flash.created",
+                null,
+                "Vacancy successfully created!",
+                locale
+        );
+        redirectAttributes.addFlashAttribute("successMessage", successMessage);
 
         return "redirect:/vacancies";
     }

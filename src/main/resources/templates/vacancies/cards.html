@@ -109,10 +109,12 @@
                             <a sec:authorize="hasRole('CANDIDATE')"
                                th:href="@{/vacancies/{id}/apply(id=${vac.id})}"
                                class="btn btn-sm btn-outline-success"
+                               th:id="'btn-apply-' + ${vac.id}"
                                th:text="#{vacancies.btn.apply}">Подати заявку</a>
                             <a sec:authorize="hasAnyRole('TECH_LEAD', 'RECRUITER', 'ADMIN')"
                                th:href="@{/vacancies/{id}/applications(id=${vac.id})}"
                                class="btn btn-sm btn-outline-info"
+                               th:id="'btn-applications-' + ${vac.id}"
                                th:text="#{vacancies.btn.applications}">Заявки</a>
                         </div>
                     </div>

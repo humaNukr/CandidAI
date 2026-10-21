@@ -17,6 +17,10 @@
             <form th:action="@{/vacancies}" th:object="${form}" method="post" id="create-vacancy-form">
                 <!-- th:action automatically renders hidden CSRF token -->
 
+                <div th:if="${#fields.hasGlobalErrors()}" class="alert alert-danger mb-4" role="alert">
+                    <div th:each="err : ${#fields.globalErrors()}" th:text="${err}">Загальна помилка</div>
+                </div>
+
                 <div class="mb-3">
                     <label for="title" class="form-label fw-semibold" th:text="#{vacancies.form.title}">Назва посади *</label>
                     <input type="text" id="title" th:field="*{title}" class="form-control"

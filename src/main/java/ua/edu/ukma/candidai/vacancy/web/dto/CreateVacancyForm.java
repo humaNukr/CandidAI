@@ -15,6 +15,7 @@ import ua.edu.ukma.candidai.vacancy.model.LocationType;
 import ua.edu.ukma.candidai.vacancy.model.VacancyStatus;
 import ua.edu.ukma.candidai.vacancy.validation.HasSalaryRange;
 import ua.edu.ukma.candidai.vacancy.validation.ValidSalaryRange;
+import ua.edu.ukma.candidai.vacancy.validation.ValidSkillsList;
 
 import java.math.BigDecimal;
 import java.util.Arrays;
@@ -50,6 +51,7 @@ public record CreateVacancyForm(
         String description,
 
         @NotBlank(message = "{vacancies.form.requiredSkills.required}")
+        @ValidSkillsList(message = "{vacancies.form.requiredSkills.required}")
         String requiredSkills,
 
         String preferredSkills,

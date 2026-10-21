@@ -216,6 +216,111 @@ class VacancyWebControllerTest {
     }
 
     @Test
+    @DisplayName("handleCreateVacancy - should redirect with Ukrainian flash message when uk locale is set")
+    @WithMockUser(username = RECRUITER_EMAIL, roles = "RECRUITER")
+    void givenUkrainianLocale_createVacancy_shouldRedirectWithUkrainianFlashMessage() throws Exception {
+        when(userApi.getUserNotificationProfileByEmail(RECRUITER_EMAIL))
+                .thenReturn(Optional.of(RECRUITER_PROFILE));
+
+        mockMvc.perform(post(VACANCIES_URL)
+                        .with(csrf())
+                        .locale(java.util.Locale.forLanguageTag("uk"))
+                        .param("title", VALID_FORM.title())
+                        .param("category", VALID_FORM.category().name())
+                        .param("specialization", VALID_FORM.specialization())
+                        .param("seniorityLevel", VALID_FORM.seniorityLevel())
+                        .param("minYearsOfExperience", VALID_FORM.minYearsOfExperience().toString())
+                        .param("description", VALID_FORM.description())
+                        .param("requiredSkills", VALID_FORM.requiredSkills())
+                        .param("preferredSkills", VALID_FORM.preferredSkills())
+                        .param("minEnglishLevel", VALID_FORM.minEnglishLevel().name())
+                        .param("salaryMin", VALID_FORM.salaryMin().toString())
+                        .param("salaryMax", VALID_FORM.salaryMax().toString())
+                        .param("currency", VALID_FORM.currency())
+                        .param("employmentType", VALID_FORM.employmentType().name())
+                        .param("locationType", VALID_FORM.locationType().name())
+                        .param("location", VALID_FORM.location()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl(VACANCIES_URL))
+                .andExpect(flash().attribute("successMessage", "Вакансію успішно збережено!"));
+    }
+
+    @Test
+    @DisplayName("listVacancies - should render dynamic IDs on action buttons in table view")
+    @WithMockUser(username = "candidate@candidai.com", roles = "CANDIDATE")
+    void givenCandidateRole_listVacancies_shouldRenderDynamicApplyButtonId() throws Exception {
+        when(vacancyService.getAllVacancies(isNull(), isNull(), any(Pageable.class)))
+                .thenReturn(SINGLE_PAGE_VACANCIES);
+
+        MvcResult result = mockMvc.perform(get(VACANCIES_URL))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        assertThat(result.getResponse().getContentAsString())
+                .contains("id=\"btn-apply-" + VACANCY_RESPONSE_1.id() + "\"")
+                .doesNotContain("id=\"btn-apply\"");
+    }
+
+    @Test
+    @DisplayName("handleCreateVacancy - should return 422 when recruiter profile not found")
+    @WithMockUser(username = RECRUITER_EMAIL, roles = "RECRUITER")
+    void givenRecruiterProfileNotFound_createVacancy_shouldReturn422WithGlobalError() throws Exception {
+        when(userApi.getUserNotificationProfileByEmail(RECRUITER_EMAIL))
+                .thenReturn(Optional.empty());
+
+        mockMvc.perform(post(VACANCIES_URL)
+                        .with(csrf())
+                        .param("title", VALID_FORM.title())
+                        .param("category", VALID_FORM.category().name())
+                        .param("specialization", VALID_FORM.specialization())
+                        .param("seniorityLevel", VALID_FORM.seniorityLevel())
+                        .param("minYearsOfExperience", VALID_FORM.minYearsOfExperience().toString())
+                        .param("description", VALID_FORM.description())
+                        .param("requiredSkills", VALID_FORM.requiredSkills())
+                        .param("preferredSkills", VALID_FORM.preferredSkills())
+                        .param("minEnglishLevel", VALID_FORM.minEnglishLevel().name())
+                        .param("salaryMin", VALID_FORM.salaryMin().toString())
+                        .param("salaryMax", VALID_FORM.salaryMax().toString())
+                        .param("currency", VALID_FORM.currency())
+                        .param("employmentType", VALID_FORM.employmentType().name())
+                        .param("locationType", VALID_FORM.locationType().name())
+                        .param("location", VALID_FORM.location()))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(view().name("vacancies/create-form"))
+                .andExpect(model().hasErrors())
+                .andExpect(model().attributeHasErrors("form"));
+
+        verify(vacancyService, never()).createVacancy(any());
+    }
+
+    @Test
+    @DisplayName("handleCreateVacancy - should return 422 when requiredSkills contains only commas and spaces")
+    @WithMockUser(username = RECRUITER_EMAIL, roles = "RECRUITER")
+    void givenSkillsOnlyCommasAndSpaces_createVacancy_shouldReturn422WithSkillsError() throws Exception {
+        mockMvc.perform(post(VACANCIES_URL)
+                        .with(csrf())
+                        .param("title", VALID_FORM.title())
+                        .param("category", VALID_FORM.category().name())
+                        .param("specialization", VALID_FORM.specialization())
+                        .param("seniorityLevel", VALID_FORM.seniorityLevel())
+                        .param("minYearsOfExperience", VALID_FORM.minYearsOfExperience().toString())
+                        .param("description", VALID_FORM.description())
+                        .param("requiredSkills", "  ,  ,  ,  ")
+                        .param("preferredSkills", VALID_FORM.preferredSkills())
+                        .param("minEnglishLevel", VALID_FORM.minEnglishLevel().name())
+                        .param("salaryMin", VALID_FORM.salaryMin().toString())
+                        .param("salaryMax", VALID_FORM.salaryMax().toString())
+                        .param("currency", VALID_FORM.currency())
+                        .param("employmentType", VALID_FORM.employmentType().name())
+                        .param("locationType", VALID_FORM.locationType().name())
+                        .param("location", VALID_FORM.location()))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(view().name("vacancies/create-form"))
+                .andExpect(model().hasErrors())
+                .andExpect(model().attributeHasFieldErrors("form", "requiredSkills"));
+    }
+
+    @Test
     @DisplayName("listVacancies - should render error message alert when flash attribute is present")
     @WithMockUser(username = RECRUITER_EMAIL, roles = "RECRUITER")
     void givenErrorMessageInFlash_getVacancies_shouldRenderErrorAlert() throws Exception {
