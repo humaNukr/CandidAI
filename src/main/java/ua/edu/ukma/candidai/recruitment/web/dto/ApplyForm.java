@@ -22,12 +22,9 @@ public record ApplyForm(
         @NotBlank(message = "{application.resumeUrl.required}")
         @URL(message = "{application.resumeUrl.invalid}")
         @Size(max = 500, message = "{application.resumeUrl.size}")
-        String resumeUrl,
-
-        @Size(max = 2000, message = "{application.coverLetter.size}")
-        String coverLetter
+        String resumeUrl
 ) {
     public static ApplyForm empty() {
-        return new ApplyForm("", "", "", "", "");
+        return new ApplyForm("", "", "", "");
     }
 }

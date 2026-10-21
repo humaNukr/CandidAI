@@ -125,8 +125,7 @@ class ApplicationWebControllerTest {
                         .param("candidateName", "Jane Doe")
                         .param("email", "candidate@candidai.com")
                         .param("phone", "+380501234567")
-                        .param("resumeUrl", "https://storage.candidai.com/resume.pdf")
-                        .param("coverLetter", "Hello!"))
+                        .param("resumeUrl", "https://storage.candidai.com/resume.pdf"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/vacancies"))
                 .andExpect(flash().attributeExists("successMessage"));

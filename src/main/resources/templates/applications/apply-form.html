@@ -96,21 +96,6 @@
                             </div>
                         </div>
 
-                        <div class="mb-4">
-                            <label for="coverLetter" class="form-label fw-semibold" th:text="#{application.coverLetter.label}">
-                                Супровідний лист
-                            </label>
-                            <textarea id="coverLetter"
-                                      th:field="*{coverLetter}"
-                                      class="form-control"
-                                      th:errorclass="is-invalid"
-                                      rows="4"
-                                      placeholder="Розкажіть про свій досвід та чому вас зацікавила вакансія..."></textarea>
-                            <div class="invalid-feedback" th:if="${#fields.hasErrors('coverLetter')}" th:errors="*{coverLetter}">
-                                Занадто довгий текст
-                            </div>
-                        </div>
-
                         <div class="d-flex justify-content-between align-items-center pt-2 border-top">
                             <a th:href="@{/vacancies}" class="btn btn-outline-secondary" th:text="#{application.btn.cancel}">
                                 Скасувати

@@ -3,6 +3,7 @@ package ua.edu.ukma.candidai.recruitment.web;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.MessageSource;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
@@ -26,6 +27,7 @@ import ua.edu.ukma.candidai.vacancy.VacancyApi;
 import ua.edu.ukma.candidai.vacancy.VacancyDetails;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 
 @Slf4j
@@ -37,6 +39,7 @@ public class ApplicationWebController {
     private final ApplicationService applicationService;
     private final UserApi userApi;
     private final VacancyApi vacancyApi;
+    private final MessageSource messageSource;
 
     @GetMapping("/apply")
     @PreAuthorize("hasRole('CANDIDATE')")
@@ -55,7 +58,7 @@ public class ApplicationWebController {
         }
 
         populateVacancyDetails(vacancyId, model);
-        model.addAttribute("form", new ApplyForm(candidateName, email, "", "", ""));
+        model.addAttribute("form", new ApplyForm(candidateName, email, "", ""));
         return "applications/apply-form";
     }
 
@@ -67,7 +70,8 @@ public class ApplicationWebController {
             BindingResult bindingResult,
             Model model,
             RedirectAttributes redirectAttributes,
-            Authentication authentication) {
+            Authentication authentication,
+            Locale locale) {
 
         if (bindingResult.hasErrors()) {
             populateVacancyDetails(vacancyId, model);
@@ -97,10 +101,13 @@ public class ApplicationWebController {
 
         try {
             applicationService.apply(request);
-            redirectAttributes.addFlashAttribute(
-                    "successMessage",
-                    "Вашу заявку успішно надіслано! Дякуємо за відгук."
+            String successMessage = messageSource.getMessage(
+                    "application.apply.success",
+                    null,
+                    "Вашу заявку успішно надіслано! Дякуємо за відгук.",
+                    locale
             );
+            redirectAttributes.addFlashAttribute("successMessage", successMessage);
             return "redirect:/vacancies";
         } catch (DuplicateResourceException | InvalidStateTransitionException ex) {
             log.warn("Application submission error for vacancy {}: {}", vacancyId, ex.getMessage());
