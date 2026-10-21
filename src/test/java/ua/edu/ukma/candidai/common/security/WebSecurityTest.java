@@ -133,7 +133,7 @@ class WebSecurityTest {
     void getVacanciesNew_whenAdminRole_shouldNotBeForbidden() throws Exception {
         mockMvc.perform(get("/vacancies/new")
                         .with(user("admin@candidai.com").roles("ADMIN")))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isOk());
     }
 
     @Test
@@ -153,7 +153,7 @@ class WebSecurityTest {
                         .with(csrf())
                         .with(user("admin@candidai.com").roles("ADMIN"))
                         .param("title", "Java Engineer"))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isUnprocessableEntity());
     }
 
     @Test
