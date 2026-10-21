@@ -31,8 +31,12 @@ public class WebSecurityConfiguration {
                                 "/favicon.ico",
                                 "/error"
                         ).permitAll()
-                        .requestMatchers(HttpMethod.GET, "/", "/vacancies", "/vacancies/*").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/vacancies/**").hasRole("RECRUITER")
+                        .requestMatchers(HttpMethod.GET, "/", "/vacancies").permitAll()
+                        .requestMatchers("/vacancies/*/apply").hasRole("CANDIDATE")
+                        .requestMatchers("/vacancies/*/applications").hasAnyRole("TECH_LEAD", "RECRUITER", "ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/vacancies/new").hasAnyRole("RECRUITER", "ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/vacancies").hasAnyRole("RECRUITER", "ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/vacancies/*").permitAll()
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated())
                 .formLogin(form -> form

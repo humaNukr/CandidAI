@@ -111,4 +111,84 @@ class WebSecurityTest {
                         .with(user("candidate@candidai.com").roles("CANDIDATE")))
                 .andExpect(status().isForbidden());
     }
+
+    @Test
+    @DisplayName("GET /vacancies/new without authentication redirects to /login")
+    void getVacanciesNew_whenAnonymous_shouldRedirectToLogin() throws Exception {
+        mockMvc.perform(get("/vacancies/new"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl(LOGIN_PATH));
+    }
+
+    @Test
+    @DisplayName("GET /vacancies/new when candidate role returns 403 Forbidden")
+    void getVacanciesNew_whenCandidateRole_shouldReturn403Forbidden() throws Exception {
+        mockMvc.perform(get("/vacancies/new")
+                        .with(user("candidate@candidai.com").roles("CANDIDATE")))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("GET /vacancies/new when admin role is authorized")
+    void getVacanciesNew_whenAdminRole_shouldNotBeForbidden() throws Exception {
+        mockMvc.perform(get("/vacancies/new")
+                        .with(user("admin@candidai.com").roles("ADMIN")))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("POST /vacancies when candidate role returns 403 Forbidden")
+    void postVacancies_whenCandidateRole_shouldReturn403Forbidden() throws Exception {
+        mockMvc.perform(post(VACANCIES_PATH)
+                        .with(csrf())
+                        .with(user("candidate@candidai.com").roles("CANDIDATE"))
+                        .param("title", "Java Engineer"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("POST /vacancies when admin role with CSRF is authorized")
+    void postVacancies_whenAdminRoleWithCsrf_shouldNotBeForbidden() throws Exception {
+        mockMvc.perform(post(VACANCIES_PATH)
+                        .with(csrf())
+                        .with(user("admin@candidai.com").roles("ADMIN"))
+                        .param("title", "Java Engineer"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("POST /vacancies/*/apply allows candidate role with CSRF")
+    void postVacanciesApply_whenCandidateWithCsrf_shouldNotBeForbiddenByRecruiterRule() throws Exception {
+        mockMvc.perform(post("/vacancies/123/apply")
+                        .with(csrf())
+                        .with(user("candidate@candidai.com").roles("CANDIDATE"))
+                        .param("candidateName", "John Doe"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("POST /vacancies/*/apply rejects non-candidate roles with 403 Forbidden")
+    void postVacanciesApply_whenRecruiterRole_shouldReturn403Forbidden() throws Exception {
+        mockMvc.perform(post("/vacancies/123/apply")
+                        .with(csrf())
+                        .with(user("recruiter@candidai.com").roles("RECRUITER"))
+                        .param("candidateName", "Jane Recruiter"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("GET /vacancies/*/applications rejects candidate role with 403 Forbidden")
+    void getVacanciesApplications_whenCandidateRole_shouldReturn403Forbidden() throws Exception {
+        mockMvc.perform(get("/vacancies/123/applications")
+                        .with(user("candidate@candidai.com").roles("CANDIDATE")))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("GET /vacancies/*/applications authorizes tech lead role")
+    void getVacanciesApplications_whenTechLeadRole_shouldBeAuthorized() throws Exception {
+        mockMvc.perform(get("/vacancies/123/applications")
+                        .with(user("techlead@candidai.com").roles("TECH_LEAD")))
+                .andExpect(status().isNotFound());
+    }
 }

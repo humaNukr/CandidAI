@@ -1,5 +1,6 @@
 package ua.edu.ukma.candidai.company.controller;
 
+import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -64,21 +65,19 @@ class CompanyControllerTest {
     @DisplayName("POST /api/v1/companies - should return 400 ProblemDetail when name is blank")
     void givenBlankName_createCompany_shouldReturn400BadRequest() throws Exception {
         CreateCompanyRequest invalidRequest = sampleInvalidCreateCompanyRequest();
+        ProblemDetail expectedProblemDetail = expectedValidationProblemDetail(Map.of("name", "must not be blank"));
 
         MvcResult result = mockMvc.perform(post(BASE_URL)
+                        .cookie(new Cookie("lang", "en"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(invalidRequest)))
                 .andExpect(status().isBadRequest())
                 .andReturn();
 
         ProblemDetail actual = parseProblemDetail(result);
-        assertThat(actual.getStatus()).isEqualTo(400);
-        assertThat(actual.getTitle()).isEqualTo("Validation Error");
-        assertThat(actual.getType()).isEqualTo(URI.create("https://candidai.ukma.edu.ua/errors/validation"));
-        assertThat(actual.getProperties()).isNotNull();
-        @SuppressWarnings("unchecked")
-        Map<String, String> errors = (Map<String, String>) actual.getProperties().get("errors");
-        assertThat(errors).containsKey("name");
+        assertThat(actual).usingRecursiveComparison()
+                .ignoringFields("properties.timestamp")
+                .isEqualTo(expectedProblemDetail);
     }
 
     @Test
@@ -192,21 +191,22 @@ class CompanyControllerTest {
     @DisplayName("PUT /api/v1/companies/{id} - should return 400 ProblemDetail when name is blank")
     void givenBlankName_updateCompany_shouldReturn400BadRequest() throws Exception {
         UpdateCompanyRequest invalidRequest = sampleInvalidUpdateCompanyRequest();
+        ProblemDetail expectedProblemDetail = expectedValidationProblemDetail(
+                URI.create(BASE_URL + "/" + DEFAULT_COMPANY_ID),
+                Map.of("name", "must not be blank")
+        );
 
         MvcResult result = mockMvc.perform(put(BASE_URL + "/" + DEFAULT_COMPANY_ID)
+                        .cookie(new Cookie("lang", "en"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(invalidRequest)))
                 .andExpect(status().isBadRequest())
                 .andReturn();
 
         ProblemDetail actual = parseProblemDetail(result);
-        assertThat(actual.getStatus()).isEqualTo(400);
-        assertThat(actual.getTitle()).isEqualTo("Validation Error");
-        assertThat(actual.getType()).isEqualTo(URI.create("https://candidai.ukma.edu.ua/errors/validation"));
-        assertThat(actual.getProperties()).isNotNull();
-        @SuppressWarnings("unchecked")
-        Map<String, String> errors = (Map<String, String>) actual.getProperties().get("errors");
-        assertThat(errors).containsKey("name");
+        assertThat(actual).usingRecursiveComparison()
+                .ignoringFields("properties.timestamp")
+                .isEqualTo(expectedProblemDetail);
     }
 
     @Test
