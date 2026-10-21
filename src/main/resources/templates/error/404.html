@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:lang="${#locale.language}">
+<head th:replace="~{fragments/layout :: head(#{error.404.title})}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+
+<main class="container narrow">
+    <div class="card p-4 text-center">
+        <h1 class="h3 mb-3 text-warning" th:text="#{error.404.title}">Сторінку не знайдено</h1>
+        <p class="text-muted mb-4" th:text="#{error.404.text}">Запитана адреса не існує або була переміщена.</p>
+        <div>
+            <a th:href="@{/vacancies}" class="btn btn-outline-primary" th:text="#{error.back}">Повернутися до вакансій</a>
+        </div>
+    </div>
+</main>
+</body>
+</html>

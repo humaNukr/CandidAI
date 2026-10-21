@@ -12,25 +12,34 @@ import org.springframework.web.servlet.resource.VersionResourceResolver;
 
 import java.util.concurrent.TimeUnit;
 
+/**
+ * Static resource handling with long-term caching:
+ * - Content-based versioning for CSS with pre-compressed gzip support.
+ * - Long-term caching for webjars.
+ * - Shallow ETag generation for REST API endpoints.
+ */
 @Configuration(proxyBeanMethods = false)
 public class StaticResourcesConfiguration implements WebMvcConfigurer {
 
-    private static final int ONE_YEAR_DAYS = 365;
+    private static final int CACHE_DAYS = 365;
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
         registry.addResourceHandler("/css/**")
                 .addResourceLocations("classpath:/static/css/")
-                .setCacheControl(CacheControl.maxAge(ONE_YEAR_DAYS, TimeUnit.DAYS).cachePublic())
+                .setCacheControl(CacheControl.maxAge(CACHE_DAYS, TimeUnit.DAYS).cachePublic())
                 .resourceChain(true)
                 .addResolver(new EncodedResourceResolver())
                 .addResolver(new VersionResourceResolver().addContentVersionStrategy("/**"));
 
         registry.addResourceHandler("/webjars/**")
                 .addResourceLocations("classpath:/META-INF/resources/webjars/")
-                .setCacheControl(CacheControl.maxAge(ONE_YEAR_DAYS, TimeUnit.DAYS).cachePublic());
+                .setCacheControl(CacheControl.maxAge(CACHE_DAYS, TimeUnit.DAYS).cachePublic());
     }
 
+    /**
+     * ETag filter applies only to /api/* JSON responses to avoid invalidating CSRF on Thymeleaf views.
+     */
     @Bean
     public FilterRegistrationBean<ShallowEtagHeaderFilter> apiEtagFilter() {
         FilterRegistrationBean<ShallowEtagHeaderFilter> registration
@@ -39,4 +48,3 @@ public class StaticResourcesConfiguration implements WebMvcConfigurer {
         return registration;
     }
 }
-
