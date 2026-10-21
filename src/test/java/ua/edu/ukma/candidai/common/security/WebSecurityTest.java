@@ -159,7 +159,7 @@ class WebSecurityTest {
     @Test
     @DisplayName("POST /vacancies/*/apply allows candidate role with CSRF")
     void postVacanciesApply_whenCandidateWithCsrf_shouldNotBeForbiddenByRecruiterRule() throws Exception {
-        mockMvc.perform(post("/vacancies/123/apply")
+        mockMvc.perform(post("/vacancies/550e8400-e29b-41d4-a716-446655440000/apply")
                         .with(csrf())
                         .with(user("candidate@candidai.com").roles("CANDIDATE"))
                         .param("candidateName", "John Doe"))
@@ -169,7 +169,7 @@ class WebSecurityTest {
     @Test
     @DisplayName("POST /vacancies/*/apply rejects non-candidate roles with 403 Forbidden")
     void postVacanciesApply_whenRecruiterRole_shouldReturn403Forbidden() throws Exception {
-        mockMvc.perform(post("/vacancies/123/apply")
+        mockMvc.perform(post("/vacancies/550e8400-e29b-41d4-a716-446655440000/apply")
                         .with(csrf())
                         .with(user("recruiter@candidai.com").roles("RECRUITER"))
                         .param("candidateName", "Jane Recruiter"))
@@ -179,7 +179,7 @@ class WebSecurityTest {
     @Test
     @DisplayName("GET /vacancies/*/applications rejects candidate role with 403 Forbidden")
     void getVacanciesApplications_whenCandidateRole_shouldReturn403Forbidden() throws Exception {
-        mockMvc.perform(get("/vacancies/123/applications")
+        mockMvc.perform(get("/vacancies/550e8400-e29b-41d4-a716-446655440000/applications")
                         .with(user("candidate@candidai.com").roles("CANDIDATE")))
                 .andExpect(status().isForbidden());
     }
@@ -187,7 +187,7 @@ class WebSecurityTest {
     @Test
     @DisplayName("GET /vacancies/*/applications authorizes tech lead role")
     void getVacanciesApplications_whenTechLeadRole_shouldBeAuthorized() throws Exception {
-        mockMvc.perform(get("/vacancies/123/applications")
+        mockMvc.perform(get("/vacancies/550e8400-e29b-41d4-a716-446655440000/applications")
                         .with(user("techlead@candidai.com").roles("TECH_LEAD")))
                 .andExpect(status().isNotFound());
     }
