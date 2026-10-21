@@ -16,10 +16,13 @@ import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import ua.edu.ukma.candidai.common.exception.DuplicateResourceException;
+import ua.edu.ukma.candidai.common.exception.ResourceNotFoundException;
 import ua.edu.ukma.candidai.user.UserApi;
 import ua.edu.ukma.candidai.user.UserNotificationProfile;
 import ua.edu.ukma.candidai.vacancy.dto.response.VacancyResponse;
@@ -69,6 +72,18 @@ public class VacancyWebController {
         };
     }
 
+    @GetMapping("/{id}")
+    public String showVacancy(@PathVariable("id") String id) {
+        UUID uuid;
+        try {
+            uuid = UUID.fromString(id);
+        } catch (IllegalArgumentException ex) {
+            throw new ResourceNotFoundException("Vacancy not found: " + id);
+        }
+        vacancyService.getVacancyById(uuid);
+        return "redirect:/vacancies";
+    }
+
     @PreAuthorize("hasAnyRole('RECRUITER', 'ADMIN')")
     @GetMapping("/new")
     public String showCreateForm(Model model) {
@@ -109,16 +124,28 @@ public class VacancyWebController {
             return "vacancies/create-form";
         }
 
-        vacancyService.createVacancy(form.toRequest(authorId));
-        String successMessage = messageSource.getMessage(
-                "vacancies.flash.created",
-                null,
-                "Vacancy successfully created!",
-                locale
-        );
-        redirectAttributes.addFlashAttribute("successMessage", successMessage);
-
-        return "redirect:/vacancies";
+        try {
+            vacancyService.createVacancy(form.toRequest(authorId));
+            String successMessage = messageSource.getMessage(
+                    "vacancies.flash.created",
+                    null,
+                    "Vacancy successfully created!",
+                    locale
+            );
+            redirectAttributes.addFlashAttribute("successMessage", successMessage);
+            return "redirect:/vacancies";
+        } catch (DuplicateResourceException ex) {
+            String duplicateMessage = messageSource.getMessage(
+                    "vacancies.form.title.duplicate",
+                    null,
+                    ex.getMessage(),
+                    locale
+            );
+            bindingResult.rejectValue("title", "vacancies.form.title.duplicate", duplicateMessage);
+            response.setStatus(HttpStatus.UNPROCESSABLE_ENTITY.value());
+            populateReferenceData(model);
+            return "vacancies/create-form";
+        }
     }
 
     private void populateReferenceData(Model model) {

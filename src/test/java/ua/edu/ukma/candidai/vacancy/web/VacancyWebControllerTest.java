@@ -15,6 +15,9 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import ua.edu.ukma.candidai.common.config.MethodSecurityConfiguration;
 import ua.edu.ukma.candidai.common.config.TestSecurityConfiguration;
+import ua.edu.ukma.candidai.common.exception.DuplicateResourceException;
+import ua.edu.ukma.candidai.common.exception.ResourceNotFoundException;
+import ua.edu.ukma.candidai.common.exception.WebExceptionAdvice;
 import ua.edu.ukma.candidai.user.UserApi;
 import ua.edu.ukma.candidai.vacancy.dto.request.CreateVacancyRequest;
 import ua.edu.ukma.candidai.vacancy.service.VacancyService;
@@ -30,7 +33,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static ua.edu.ukma.candidai.vacancy.web.VacancyWebTestResources.*;
 
 @WebMvcTest(controllers = VacancyWebController.class)
-@Import({MethodSecurityConfiguration.class, TestSecurityConfiguration.class})
+@Import({MethodSecurityConfiguration.class, TestSecurityConfiguration.class, WebExceptionAdvice.class})
 @EnableSpringDataWebSupport
 class VacancyWebControllerTest {
 
@@ -247,6 +250,39 @@ class VacancyWebControllerTest {
     }
 
     @Test
+    @DisplayName("handleCreateVacancy - should return 422 with title error when DuplicateResourceException is thrown")
+    @WithMockUser(username = RECRUITER_EMAIL, roles = "RECRUITER")
+    void givenDuplicateTitle_createVacancy_shouldReturn422WithTitleError() throws Exception {
+        when(userApi.getUserNotificationProfileByEmail(RECRUITER_EMAIL))
+                .thenReturn(Optional.of(RECRUITER_PROFILE));
+        when(vacancyService.createVacancy(any(CreateVacancyRequest.class)))
+                .thenThrow(new DuplicateResourceException("Active vacancy already exists"));
+
+        mockMvc.perform(post(VACANCIES_URL)
+                        .with(csrf())
+                        .cookie(new jakarta.servlet.http.Cookie("lang", "uk"))
+                        .param("title", VALID_FORM.title())
+                        .param("category", VALID_FORM.category().name())
+                        .param("specialization", VALID_FORM.specialization())
+                        .param("seniorityLevel", VALID_FORM.seniorityLevel())
+                        .param("minYearsOfExperience", VALID_FORM.minYearsOfExperience().toString())
+                        .param("description", VALID_FORM.description())
+                        .param("requiredSkills", VALID_FORM.requiredSkills())
+                        .param("preferredSkills", VALID_FORM.preferredSkills())
+                        .param("minEnglishLevel", VALID_FORM.minEnglishLevel().name())
+                        .param("salaryMin", VALID_FORM.salaryMin().toString())
+                        .param("salaryMax", VALID_FORM.salaryMax().toString())
+                        .param("currency", VALID_FORM.currency())
+                        .param("employmentType", VALID_FORM.employmentType().name())
+                        .param("locationType", VALID_FORM.locationType().name())
+                        .param("location", VALID_FORM.location()))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(view().name("vacancies/create-form"))
+                .andExpect(model().hasErrors())
+                .andExpect(model().attributeHasFieldErrors("form", "title"));
+    }
+
+    @Test
     @DisplayName("listVacancies - should render dynamic IDs on action buttons in table view")
     @WithMockUser(username = "candidate@candidai.com", roles = "CANDIDATE")
     void givenCandidateRole_listVacancies_shouldRenderDynamicApplyButtonId() throws Exception {
@@ -354,5 +390,39 @@ class VacancyWebControllerTest {
         assertThat(html)
                 .contains("&lt;script&gt;alert(&#39;title&#39;)&lt;/script&gt;")
                 .doesNotContain("<script>alert('title')</script>");
+    }
+
+    @Test
+    @DisplayName("showVacancy - should redirect to /vacancies when vacancy exists")
+    @WithAnonymousUser
+    void givenExistingId_showVacancy_shouldRedirectToVacancies() throws Exception {
+        java.util.UUID vacancyId = java.util.UUID.fromString("00000000-0000-0000-0000-000000000001");
+        when(vacancyService.getVacancyById(vacancyId)).thenReturn(VACANCY_RESPONSE_1);
+
+        mockMvc.perform(get(VACANCIES_URL + "/" + vacancyId))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl(VACANCIES_URL));
+    }
+
+    @Test
+    @DisplayName("showVacancy - should return 404 Not Found view when vacancy does not exist")
+    @WithAnonymousUser
+    void givenNonExistentId_showVacancy_shouldReturn404View() throws Exception {
+        java.util.UUID nonExistentId = java.util.UUID.fromString("00000000-0000-0000-0000-000000000000");
+        when(vacancyService.getVacancyById(nonExistentId))
+                .thenThrow(new ResourceNotFoundException("Vacancy not found"));
+
+        mockMvc.perform(get(VACANCIES_URL + "/" + nonExistentId))
+                .andExpect(status().isNotFound())
+                .andExpect(view().name("error/404"));
+    }
+
+    @Test
+    @DisplayName("showVacancy - should return 404 Not Found view when id is invalid UUID")
+    @WithAnonymousUser
+    void givenInvalidUuid_showVacancy_shouldReturn404View() throws Exception {
+        mockMvc.perform(get(VACANCIES_URL + "/invalid-uuid-string"))
+                .andExpect(status().isNotFound())
+                .andExpect(view().name("error/404"));
     }
 }

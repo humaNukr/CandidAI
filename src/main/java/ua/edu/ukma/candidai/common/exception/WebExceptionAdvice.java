@@ -2,14 +2,13 @@ package ua.edu.ukma.candidai.common.exception;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
-import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
 @Slf4j
-@ControllerAdvice(annotations = Controller.class)
+@ControllerAdvice
 public class WebExceptionAdvice {
 
     @ExceptionHandler(ResourceNotFoundException.class)
@@ -20,3 +19,5 @@ public class WebExceptionAdvice {
         return "error/404";
     }
 }
+
+
