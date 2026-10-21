@@ -143,13 +143,14 @@ class ApplicationWebControllerTest {
 
         mockMvc.perform(post(APPLY_URL)
                         .with(csrf())
+                        .cookie(new jakarta.servlet.http.Cookie("lang", "uk"))
                         .param("candidateName", "Jane Doe")
                         .param("email", "candidate@candidai.com")
                         .param("phone", "+380501234567")
                         .param("resumeUrl", "https://storage.candidai.com/resume.pdf"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/vacancies"))
-                .andExpect(flash().attribute("errorMessage", "Candidate already applied to this vacancy"));
+                .andExpect(flash().attribute("errorMessage", "Ви вже подавали заявку на цю вакансію."));
     }
 
     @Test

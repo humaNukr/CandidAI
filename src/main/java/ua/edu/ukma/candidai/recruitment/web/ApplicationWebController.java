@@ -109,7 +109,17 @@ public class ApplicationWebController {
             );
             redirectAttributes.addFlashAttribute("successMessage", successMessage);
             return "redirect:/vacancies";
-        } catch (DuplicateResourceException | InvalidStateTransitionException ex) {
+        } catch (DuplicateResourceException ex) {
+            log.warn("Application duplicate submission for vacancy {}: {}", vacancyId, ex.getMessage());
+            String duplicateMessage = messageSource.getMessage(
+                    "application.apply.duplicate",
+                    null,
+                    "Ви вже подавали заявку на цю вакансію.",
+                    locale
+            );
+            redirectAttributes.addFlashAttribute("errorMessage", duplicateMessage);
+            return "redirect:/vacancies";
+        } catch (InvalidStateTransitionException ex) {
             log.warn("Application submission error for vacancy {}: {}", vacancyId, ex.getMessage());
             redirectAttributes.addFlashAttribute("errorMessage", ex.getMessage());
             return "redirect:/vacancies";
