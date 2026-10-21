@@ -15,3 +15,7 @@ logging:
   level:
     root: INFO
     ua.edu.ukma.candidai: DEBUG
+
+spring:
+  thymeleaf:
+    cache: false
