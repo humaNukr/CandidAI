@@ -37,6 +37,8 @@ import java.util.UUID;
 @AllArgsConstructor
 public class Vacancy {
 
+    private static final UUID DEFAULT_COMPANY_ID = UUID.fromString("c0000000-0000-0000-0000-000000000003");
+
     @Id
     @EqualsAndHashCode.Include
     private UUID id;
@@ -119,7 +121,7 @@ public class Vacancy {
                 .id(id)
                 .authorId(request.authorId())
                 .assignedRecruiterId(request.assignedRecruiterId())
-                .companyId(request.companyId())
+                .companyId(request.companyId() != null ? request.companyId() : DEFAULT_COMPANY_ID)
                 .title(request.title())
                 .category(request.category())
                 .specialization(request.specialization())
