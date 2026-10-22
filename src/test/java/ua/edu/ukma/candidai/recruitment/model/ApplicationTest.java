@@ -9,13 +9,8 @@ import ua.edu.ukma.candidai.recruitment.dto.request.ApplyForVacancyRequest;
 import java.time.Instant;
 import java.util.UUID;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static ua.edu.ukma.candidai.recruitment.RecruitmentTestResources.DEFAULT_APPLICATION_ID;
-import static ua.edu.ukma.candidai.recruitment.RecruitmentTestResources.DEFAULT_NOW;
-import static ua.edu.ukma.candidai.recruitment.RecruitmentTestResources.anApplication;
-import static ua.edu.ukma.candidai.recruitment.RecruitmentTestResources.anApplicationBuilder;
-import static ua.edu.ukma.candidai.recruitment.RecruitmentTestResources.validApplyForVacancyRequest;
+import static org.assertj.core.api.Assertions.*;
+import static ua.edu.ukma.candidai.recruitment.RecruitmentTestResources.*;
 
 class ApplicationTest {
 
@@ -80,6 +75,34 @@ class ApplicationTest {
         assertThatThrownBy(() -> application.updateStatus(ApplicationStatus.OFFER, "Direct offer", UPDATED_NOW))
                 .isInstanceOf(InvalidStateTransitionException.class)
                 .hasMessageContaining("Invalid status transition from APPLIED to OFFER");
+    }
+
+    @Test
+    @DisplayName("updateCandidateDetails - should update phone, resumeUrl, and updatedAt when status is APPLIED")
+    void givenAppliedStatus_updateCandidateDetails_shouldUpdatePhoneResumeAndTimestamp() {
+        Application application = anApplication(ApplicationStatus.APPLIED);
+        Application expected = anApplicationBuilder()
+                .phone(UPDATED_PHONE)
+                .resumeUrl(UPDATED_RESUME_URL)
+                .updatedAt(UPDATED_NOW)
+                .build();
+
+        application.updateCandidateDetails(UPDATED_PHONE, UPDATED_RESUME_URL, UPDATED_NOW);
+
+        assertThat(application)
+                .usingRecursiveComparison()
+                .isEqualTo(expected);
+    }
+
+    @Test
+    @DisplayName("updateCandidateDetails - should throw InvalidStateTransitionException when status is not APPLIED")
+    void givenNonAppliedStatus_updateCandidateDetails_shouldThrowInvalidStateTransitionException() {
+        Application application = anApplication(ApplicationStatus.SCREENING);
+
+        assertThatThrownBy(() -> application.updateCandidateDetails(UPDATED_PHONE, UPDATED_RESUME_URL, UPDATED_NOW))
+                .isInstanceOf(InvalidStateTransitionException.class)
+                .hasMessageContaining("Cannot update application in status SCREENING. "
+                        + "Only APPLIED applications can be updated.");
     }
 
     @Test

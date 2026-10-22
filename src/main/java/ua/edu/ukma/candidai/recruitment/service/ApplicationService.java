@@ -15,6 +15,8 @@ public interface ApplicationService {
 
     ApplicationResponse apply(ApplyForVacancyRequest request);
 
+    ApplicationResponse updateApplication(UUID vacancyId, UUID candidateId, ApplyForVacancyRequest request);
+
     ApplicationResponse getById(UUID id);
 
     ApplicationResponse updateStatus(UUID id, UpdateApplicationStatusRequest request);
