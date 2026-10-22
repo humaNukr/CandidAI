@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.ui.ConcurrentModel;
 import org.springframework.ui.Model;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.*;
 
 class WebExceptionAdviceTest {
 
@@ -13,7 +13,7 @@ class WebExceptionAdviceTest {
 
     @Test
     @DisplayName("handleNotFound - should populate model and return error/404 view")
-    void handleNotFound_shouldReturn404View() {
+    void givenResourceNotFoundException_handleNotFound_shouldPopulateModelAndReturn404View() {
         Model model = new ConcurrentModel();
         ResourceNotFoundException ex = new ResourceNotFoundException("Vacancy not found");
 

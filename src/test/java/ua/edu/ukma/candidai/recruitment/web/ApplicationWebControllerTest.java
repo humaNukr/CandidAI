@@ -30,10 +30,11 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -51,6 +52,7 @@ class ApplicationWebControllerTest {
     private static final UUID CANDIDATE_ID = UUID.fromString("00000000-0000-0000-0000-000000000002");
     private static final String APPLY_URL = "/vacancies/" + VACANCY_ID + "/apply";
     private static final String APPLICATIONS_URL = "/vacancies/" + VACANCY_ID + "/applications";
+    private static final String RESUME_URL = "https://storage.candidai.com/resume.pdf";
 
     @Autowired
     private MockMvc mockMvc;
@@ -98,11 +100,7 @@ class ApplicationWebControllerTest {
                 new VacancyDetails(VACANCY_ID, "Java Developer", "Description", List.of(), List.of(), "Senior")
         );
 
-        mockMvc.perform(post(APPLY_URL)
-                        .with(csrf())
-                        .param("candidateName", "")
-                        .param("email", "not-an-email")
-                        .param("resumeUrl", "not-a-url"))
+        mockMvc.perform(postApplyForm("", "not-an-email", null, "not-a-url"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("applications/apply-form"))
                 .andExpect(model().hasErrors());
@@ -118,20 +116,24 @@ class ApplicationWebControllerTest {
         when(applicationService.apply(any(ApplyForVacancyRequest.class))).thenReturn(
                 new ApplicationResponse(
                         UUID.randomUUID(), VACANCY_ID, CANDIDATE_ID, "Jane Doe",
-                        "candidate@candidai.com", "+380501234567", "https://storage.candidai.com/resume.pdf",
+                        "candidate@candidai.com", "+380501234567", RESUME_URL,
                         ApplicationStatus.APPLIED, null, null, Instant.now(), Instant.now()
                 )
         );
 
-        mockMvc.perform(post(APPLY_URL)
-                        .with(csrf())
-                        .param("candidateName", "Jane Doe")
-                        .param("email", "candidate@candidai.com")
-                        .param("phone", "+380501234567")
-                        .param("resumeUrl", "https://storage.candidai.com/resume.pdf"))
+        mockMvc.perform(postApplyForm("Jane Doe", "candidate@candidai.com", "+380501234567", RESUME_URL))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/vacancies"))
                 .andExpect(flash().attributeExists("successMessage"));
+
+        verify(applicationService).apply(new ApplyForVacancyRequest(
+                VACANCY_ID,
+                CANDIDATE_ID,
+                "Jane Doe",
+                "candidate@candidai.com",
+                "+380501234567",
+                RESUME_URL
+        ));
     }
 
     @Test
@@ -144,16 +146,21 @@ class ApplicationWebControllerTest {
         when(applicationService.apply(any(ApplyForVacancyRequest.class)))
                 .thenThrow(new DuplicateResourceException("Candidate already applied to this vacancy"));
 
-        mockMvc.perform(post(APPLY_URL)
-                        .with(csrf())
-                        .cookie(new Cookie("lang", "uk"))
-                        .param("candidateName", "Jane Doe")
-                        .param("email", "candidate@candidai.com")
-                        .param("phone", "+380501234567")
-                        .param("resumeUrl", "https://storage.candidai.com/resume.pdf"))
+        mockMvc.perform(postApplyForm("Jane Doe", "candidate@candidai.com", "+380501234567", RESUME_URL)
+                        .cookie(new Cookie("lang", "uk")))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/vacancies"))
                 .andExpect(flash().attribute("errorMessage", "Ви вже подавали заявку на цю вакансію."));
+    }
+
+    private static MockHttpServletRequestBuilder postApplyForm(
+            String name, String email, String phone, String resumeUrl) {
+        MockHttpServletRequestBuilder builder = post(APPLY_URL).with(csrf());
+        if (name != null) builder.param("candidateName", name);
+        if (email != null) builder.param("email", email);
+        if (phone != null) builder.param("phone", phone);
+        if (resumeUrl != null) builder.param("resumeUrl", resumeUrl);
+        return builder;
     }
 
     @Test

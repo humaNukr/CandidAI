@@ -3,6 +3,7 @@ package ua.edu.ukma.candidai.vacancy.web;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import ua.edu.ukma.candidai.user.UserNotificationProfile;
 import ua.edu.ukma.candidai.vacancy.dto.request.CreateVacancyRequest;
 import ua.edu.ukma.candidai.vacancy.dto.response.VacancyResponse;
@@ -17,6 +18,9 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
 public final class VacancyWebTestResources {
 
@@ -169,5 +173,27 @@ public final class VacancyWebTestResources {
     );
 
     private VacancyWebTestResources() {
+    }
+
+    public static MockHttpServletRequestBuilder postVacancyForm(String url, CreateVacancyForm form) {
+        MockHttpServletRequestBuilder builder = post(url).with(csrf());
+        if (form.title() != null) builder.param("title", form.title());
+        if (form.category() != null) builder.param("category", form.category().name());
+        if (form.specialization() != null) builder.param("specialization", form.specialization());
+        if (form.seniorityLevel() != null) builder.param("seniorityLevel", form.seniorityLevel());
+        if (form.minYearsOfExperience() != null) {
+            builder.param("minYearsOfExperience", form.minYearsOfExperience().toString());
+        }
+        if (form.description() != null) builder.param("description", form.description());
+        if (form.requiredSkills() != null) builder.param("requiredSkills", form.requiredSkills());
+        if (form.preferredSkills() != null) builder.param("preferredSkills", form.preferredSkills());
+        if (form.minEnglishLevel() != null) builder.param("minEnglishLevel", form.minEnglishLevel().name());
+        if (form.salaryMin() != null) builder.param("salaryMin", form.salaryMin().toString());
+        if (form.salaryMax() != null) builder.param("salaryMax", form.salaryMax().toString());
+        if (form.currency() != null) builder.param("currency", form.currency());
+        if (form.employmentType() != null) builder.param("employmentType", form.employmentType().name());
+        if (form.locationType() != null) builder.param("locationType", form.locationType().name());
+        if (form.location() != null) builder.param("location", form.location());
+        return builder;
     }
 }

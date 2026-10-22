@@ -3,7 +3,6 @@ package ua.edu.ukma.candidai.vacancy.web;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
@@ -22,6 +21,7 @@ import ua.edu.ukma.candidai.common.exception.WebExceptionAdvice;
 import ua.edu.ukma.candidai.user.UserApi;
 import ua.edu.ukma.candidai.vacancy.dto.request.CreateVacancyRequest;
 import ua.edu.ukma.candidai.vacancy.service.VacancyService;
+import ua.edu.ukma.candidai.vacancy.web.dto.CreateVacancyForm;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -107,9 +107,7 @@ class VacancyWebControllerTest {
     @DisplayName("handleCreateVacancy - should return 403 Forbidden for CANDIDATE")
     @WithMockUser(username = "candidate@candidai.com", roles = "CANDIDATE")
     void givenCandidateRole_createVacancy_shouldReturn403Forbidden() throws Exception {
-        mockMvc.perform(post(VACANCIES_URL)
-                        .with(csrf())
-                        .param("title", VALID_FORM.title()))
+        mockMvc.perform(postVacancyForm(VACANCIES_URL, VALID_FORM))
                 .andExpect(status().isForbidden());
     }
 
@@ -125,17 +123,7 @@ class VacancyWebControllerTest {
     @DisplayName("handleCreateVacancy - should return 422 Unprocessable Entity when validation fails")
     @WithMockUser(username = RECRUITER_EMAIL, roles = "RECRUITER")
     void givenInvalidForm_createVacancy_shouldReturn422WithFieldErrors() throws Exception {
-        mockMvc.perform(post(VACANCIES_URL)
-                        .with(csrf())
-                        .param("title", INVALID_FORM.title())
-                        .param("specialization", INVALID_FORM.specialization())
-                        .param("seniorityLevel", INVALID_FORM.seniorityLevel())
-                        .param("minYearsOfExperience", INVALID_FORM.minYearsOfExperience().toString())
-                        .param("description", INVALID_FORM.description())
-                        .param("requiredSkills", INVALID_FORM.requiredSkills())
-                        .param("salaryMin", INVALID_FORM.salaryMin().toString())
-                        .param("salaryMax", INVALID_FORM.salaryMax().toString())
-                        .param("currency", INVALID_FORM.currency()))
+        mockMvc.perform(postVacancyForm(VACANCIES_URL, INVALID_FORM))
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(view().name("vacancies/create-form"))
                 .andExpect(model().hasErrors())
@@ -160,23 +148,7 @@ class VacancyWebControllerTest {
     @DisplayName("handleCreateVacancy - should return 422 when salaryMax is less than salaryMin")
     @WithMockUser(username = RECRUITER_EMAIL, roles = "RECRUITER")
     void givenInvalidSalaryRange_createVacancy_shouldReturn422WithSalaryError() throws Exception {
-        mockMvc.perform(post(VACANCIES_URL)
-                        .with(csrf())
-                        .param("title", INVALID_SALARY_RANGE_FORM.title())
-                        .param("category", INVALID_SALARY_RANGE_FORM.category().name())
-                        .param("specialization", INVALID_SALARY_RANGE_FORM.specialization())
-                        .param("seniorityLevel", INVALID_SALARY_RANGE_FORM.seniorityLevel())
-                        .param("minYearsOfExperience", INVALID_SALARY_RANGE_FORM.minYearsOfExperience().toString())
-                        .param("description", INVALID_SALARY_RANGE_FORM.description())
-                        .param("requiredSkills", INVALID_SALARY_RANGE_FORM.requiredSkills())
-                        .param("preferredSkills", INVALID_SALARY_RANGE_FORM.preferredSkills())
-                        .param("minEnglishLevel", INVALID_SALARY_RANGE_FORM.minEnglishLevel().name())
-                        .param("salaryMin", INVALID_SALARY_RANGE_FORM.salaryMin().toString())
-                        .param("salaryMax", INVALID_SALARY_RANGE_FORM.salaryMax().toString())
-                        .param("currency", INVALID_SALARY_RANGE_FORM.currency())
-                        .param("employmentType", INVALID_SALARY_RANGE_FORM.employmentType().name())
-                        .param("locationType", INVALID_SALARY_RANGE_FORM.locationType().name())
-                        .param("location", INVALID_SALARY_RANGE_FORM.location()))
+        mockMvc.perform(postVacancyForm(VACANCIES_URL, INVALID_SALARY_RANGE_FORM))
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(view().name("vacancies/create-form"))
                 .andExpect(model().hasErrors())
@@ -190,35 +162,12 @@ class VacancyWebControllerTest {
         when(userApi.getUserNotificationProfileByEmail(RECRUITER_EMAIL))
                 .thenReturn(Optional.of(RECRUITER_PROFILE));
 
-        ArgumentCaptor<CreateVacancyRequest> captor = ArgumentCaptor.forClass(CreateVacancyRequest.class);
-
-        mockMvc.perform(post(VACANCIES_URL)
-                        .cookie(new Cookie("lang", "en"))
-                        .with(csrf())
-                        .param("title", VALID_FORM.title())
-                        .param("category", VALID_FORM.category().name())
-                        .param("specialization", VALID_FORM.specialization())
-                        .param("seniorityLevel", VALID_FORM.seniorityLevel())
-                        .param("minYearsOfExperience", VALID_FORM.minYearsOfExperience().toString())
-                        .param("description", VALID_FORM.description())
-                        .param("requiredSkills", VALID_FORM.requiredSkills())
-                        .param("preferredSkills", VALID_FORM.preferredSkills())
-                        .param("minEnglishLevel", VALID_FORM.minEnglishLevel().name())
-                        .param("salaryMin", VALID_FORM.salaryMin().toString())
-                        .param("salaryMax", VALID_FORM.salaryMax().toString())
-                        .param("currency", VALID_FORM.currency())
-                        .param("employmentType", VALID_FORM.employmentType().name())
-                        .param("locationType", VALID_FORM.locationType().name())
-                        .param("location", VALID_FORM.location()))
+        mockMvc.perform(postVacancyForm(VACANCIES_URL, VALID_FORM).cookie(new Cookie("lang", "en")))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl(VACANCIES_URL))
                 .andExpect(flash().attribute("successMessage", "Vacancy successfully created!"));
 
-        verify(vacancyService).createVacancy(captor.capture());
-
-        assertThat(captor.getValue())
-                .usingRecursiveComparison()
-                .isEqualTo(EXPECTED_CREATE_REQUEST);
+        verify(vacancyService).createVacancy(EXPECTED_CREATE_REQUEST);
     }
 
     @Test
@@ -228,24 +177,7 @@ class VacancyWebControllerTest {
         when(userApi.getUserNotificationProfileByEmail(RECRUITER_EMAIL))
                 .thenReturn(Optional.of(RECRUITER_PROFILE));
 
-        mockMvc.perform(post(VACANCIES_URL)
-                        .with(csrf())
-                        .cookie(new Cookie("lang", "uk"))
-                        .param("title", VALID_FORM.title())
-                        .param("category", VALID_FORM.category().name())
-                        .param("specialization", VALID_FORM.specialization())
-                        .param("seniorityLevel", VALID_FORM.seniorityLevel())
-                        .param("minYearsOfExperience", VALID_FORM.minYearsOfExperience().toString())
-                        .param("description", VALID_FORM.description())
-                        .param("requiredSkills", VALID_FORM.requiredSkills())
-                        .param("preferredSkills", VALID_FORM.preferredSkills())
-                        .param("minEnglishLevel", VALID_FORM.minEnglishLevel().name())
-                        .param("salaryMin", VALID_FORM.salaryMin().toString())
-                        .param("salaryMax", VALID_FORM.salaryMax().toString())
-                        .param("currency", VALID_FORM.currency())
-                        .param("employmentType", VALID_FORM.employmentType().name())
-                        .param("locationType", VALID_FORM.locationType().name())
-                        .param("location", VALID_FORM.location()))
+        mockMvc.perform(postVacancyForm(VACANCIES_URL, VALID_FORM).cookie(new Cookie("lang", "uk")))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl(VACANCIES_URL))
                 .andExpect(flash().attribute("successMessage", "Вакансію успішно збережено!"));
@@ -260,24 +192,7 @@ class VacancyWebControllerTest {
         when(vacancyService.createVacancy(any(CreateVacancyRequest.class)))
                 .thenThrow(new DuplicateResourceException("Active vacancy already exists"));
 
-        mockMvc.perform(post(VACANCIES_URL)
-                        .with(csrf())
-                        .cookie(new Cookie("lang", "uk"))
-                        .param("title", VALID_FORM.title())
-                        .param("category", VALID_FORM.category().name())
-                        .param("specialization", VALID_FORM.specialization())
-                        .param("seniorityLevel", VALID_FORM.seniorityLevel())
-                        .param("minYearsOfExperience", VALID_FORM.minYearsOfExperience().toString())
-                        .param("description", VALID_FORM.description())
-                        .param("requiredSkills", VALID_FORM.requiredSkills())
-                        .param("preferredSkills", VALID_FORM.preferredSkills())
-                        .param("minEnglishLevel", VALID_FORM.minEnglishLevel().name())
-                        .param("salaryMin", VALID_FORM.salaryMin().toString())
-                        .param("salaryMax", VALID_FORM.salaryMax().toString())
-                        .param("currency", VALID_FORM.currency())
-                        .param("employmentType", VALID_FORM.employmentType().name())
-                        .param("locationType", VALID_FORM.locationType().name())
-                        .param("location", VALID_FORM.location()))
+        mockMvc.perform(postVacancyForm(VACANCIES_URL, VALID_FORM).cookie(new Cookie("lang", "uk")))
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(view().name("vacancies/create-form"))
                 .andExpect(model().hasErrors())
@@ -307,23 +222,7 @@ class VacancyWebControllerTest {
         when(userApi.getUserNotificationProfileByEmail(RECRUITER_EMAIL))
                 .thenReturn(Optional.empty());
 
-        mockMvc.perform(post(VACANCIES_URL)
-                        .with(csrf())
-                        .param("title", VALID_FORM.title())
-                        .param("category", VALID_FORM.category().name())
-                        .param("specialization", VALID_FORM.specialization())
-                        .param("seniorityLevel", VALID_FORM.seniorityLevel())
-                        .param("minYearsOfExperience", VALID_FORM.minYearsOfExperience().toString())
-                        .param("description", VALID_FORM.description())
-                        .param("requiredSkills", VALID_FORM.requiredSkills())
-                        .param("preferredSkills", VALID_FORM.preferredSkills())
-                        .param("minEnglishLevel", VALID_FORM.minEnglishLevel().name())
-                        .param("salaryMin", VALID_FORM.salaryMin().toString())
-                        .param("salaryMax", VALID_FORM.salaryMax().toString())
-                        .param("currency", VALID_FORM.currency())
-                        .param("employmentType", VALID_FORM.employmentType().name())
-                        .param("locationType", VALID_FORM.locationType().name())
-                        .param("location", VALID_FORM.location()))
+        mockMvc.perform(postVacancyForm(VACANCIES_URL, VALID_FORM))
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(view().name("vacancies/create-form"))
                 .andExpect(model().hasErrors())
@@ -336,23 +235,11 @@ class VacancyWebControllerTest {
     @DisplayName("handleCreateVacancy - should return 422 when requiredSkills contains only commas and spaces")
     @WithMockUser(username = RECRUITER_EMAIL, roles = "RECRUITER")
     void givenSkillsOnlyCommasAndSpaces_createVacancy_shouldReturn422WithSkillsError() throws Exception {
-        mockMvc.perform(post(VACANCIES_URL)
-                        .with(csrf())
-                        .param("title", VALID_FORM.title())
-                        .param("category", VALID_FORM.category().name())
-                        .param("specialization", VALID_FORM.specialization())
-                        .param("seniorityLevel", VALID_FORM.seniorityLevel())
-                        .param("minYearsOfExperience", VALID_FORM.minYearsOfExperience().toString())
-                        .param("description", VALID_FORM.description())
-                        .param("requiredSkills", "  ,  ,  ,  ")
-                        .param("preferredSkills", VALID_FORM.preferredSkills())
-                        .param("minEnglishLevel", VALID_FORM.minEnglishLevel().name())
-                        .param("salaryMin", VALID_FORM.salaryMin().toString())
-                        .param("salaryMax", VALID_FORM.salaryMax().toString())
-                        .param("currency", VALID_FORM.currency())
-                        .param("employmentType", VALID_FORM.employmentType().name())
-                        .param("locationType", VALID_FORM.locationType().name())
-                        .param("location", VALID_FORM.location()))
+        CreateVacancyForm formWithBlankSkills = VALID_FORM.toBuilder()
+                .requiredSkills("  ,  ,  ,  ")
+                .build();
+
+        mockMvc.perform(postVacancyForm(VACANCIES_URL, formWithBlankSkills))
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(view().name("vacancies/create-form"))
                 .andExpect(model().hasErrors())
@@ -464,5 +351,15 @@ class VacancyWebControllerTest {
                 .contains("placeholder=\"напр. Senior або Lead\"")
                 .contains("placeholder=\"напр. 4000\"")
                 .contains("placeholder=\"Київ, Україна\"");
+    }
+
+    @Test
+    @DisplayName("toRequest - should map form fields to CreateVacancyRequest")
+    void givenValidForm_toRequest_shouldMapAllFields() {
+        CreateVacancyRequest actual = VALID_FORM.toRequest(RECRUITER_ID);
+
+        assertThat(actual)
+                .usingRecursiveComparison()
+                .isEqualTo(EXPECTED_CREATE_REQUEST);
     }
 }
