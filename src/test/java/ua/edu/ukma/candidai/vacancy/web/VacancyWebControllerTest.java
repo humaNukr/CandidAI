@@ -1,5 +1,6 @@
 package ua.edu.ukma.candidai.vacancy.web;
 
+import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -23,6 +24,7 @@ import ua.edu.ukma.candidai.vacancy.dto.request.CreateVacancyRequest;
 import ua.edu.ukma.candidai.vacancy.service.VacancyService;
 
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -191,7 +193,7 @@ class VacancyWebControllerTest {
         ArgumentCaptor<CreateVacancyRequest> captor = ArgumentCaptor.forClass(CreateVacancyRequest.class);
 
         mockMvc.perform(post(VACANCIES_URL)
-                        .cookie(new jakarta.servlet.http.Cookie("lang", "en"))
+                        .cookie(new Cookie("lang", "en"))
                         .with(csrf())
                         .param("title", VALID_FORM.title())
                         .param("category", VALID_FORM.category().name())
@@ -228,7 +230,7 @@ class VacancyWebControllerTest {
 
         mockMvc.perform(post(VACANCIES_URL)
                         .with(csrf())
-                        .cookie(new jakarta.servlet.http.Cookie("lang", "uk"))
+                        .cookie(new Cookie("lang", "uk"))
                         .param("title", VALID_FORM.title())
                         .param("category", VALID_FORM.category().name())
                         .param("specialization", VALID_FORM.specialization())
@@ -260,7 +262,7 @@ class VacancyWebControllerTest {
 
         mockMvc.perform(post(VACANCIES_URL)
                         .with(csrf())
-                        .cookie(new jakarta.servlet.http.Cookie("lang", "uk"))
+                        .cookie(new Cookie("lang", "uk"))
                         .param("title", VALID_FORM.title())
                         .param("category", VALID_FORM.category().name())
                         .param("specialization", VALID_FORM.specialization())
@@ -396,7 +398,7 @@ class VacancyWebControllerTest {
     @DisplayName("showVacancy - should redirect to /vacancies when vacancy exists")
     @WithAnonymousUser
     void givenExistingId_showVacancy_shouldRedirectToVacancies() throws Exception {
-        java.util.UUID vacancyId = java.util.UUID.fromString("00000000-0000-0000-0000-000000000001");
+        UUID vacancyId = UUID.fromString("00000000-0000-0000-0000-000000000001");
         when(vacancyService.getVacancyById(vacancyId)).thenReturn(VACANCY_RESPONSE_1);
 
         mockMvc.perform(get(VACANCIES_URL + "/" + vacancyId))
@@ -408,7 +410,7 @@ class VacancyWebControllerTest {
     @DisplayName("showVacancy - should return 404 Not Found view when vacancy does not exist")
     @WithAnonymousUser
     void givenNonExistentId_showVacancy_shouldReturn404View() throws Exception {
-        java.util.UUID nonExistentId = java.util.UUID.fromString("00000000-0000-0000-0000-000000000000");
+        UUID nonExistentId = UUID.fromString("00000000-0000-0000-0000-000000000000");
         when(vacancyService.getVacancyById(nonExistentId))
                 .thenThrow(new ResourceNotFoundException("Vacancy not found"));
 

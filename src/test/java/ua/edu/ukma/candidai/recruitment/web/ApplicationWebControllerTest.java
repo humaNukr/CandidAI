@@ -1,5 +1,6 @@
 package ua.edu.ukma.candidai.recruitment.web;
 
+import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,6 +10,7 @@ import org.springframework.security.test.context.support.WithAnonymousUser;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import ua.edu.ukma.candidai.common.config.MethodSecurityConfiguration;
 import ua.edu.ukma.candidai.common.config.TestSecurityConfiguration;
 import ua.edu.ukma.candidai.common.exception.DuplicateResourceException;
@@ -144,7 +146,7 @@ class ApplicationWebControllerTest {
 
         mockMvc.perform(post(APPLY_URL)
                         .with(csrf())
-                        .cookie(new jakarta.servlet.http.Cookie("lang", "uk"))
+                        .cookie(new Cookie("lang", "uk"))
                         .param("candidateName", "Jane Doe")
                         .param("email", "candidate@candidai.com")
                         .param("phone", "+380501234567")
@@ -237,7 +239,7 @@ class ApplicationWebControllerTest {
         when(userApi.getUserNotificationProfileByEmail("candidate@candidai.com")).thenReturn(Optional.of(profile));
         when(vacancyApi.getVacancyDetails(VACANCY_ID)).thenReturn(details);
 
-        org.springframework.test.web.servlet.MvcResult result = mockMvc.perform(get(APPLY_URL).param("lang", "en"))
+        MvcResult result = mockMvc.perform(get(APPLY_URL).param("lang", "en"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("applications/apply-form"))
                 .andReturn();
@@ -264,7 +266,7 @@ class ApplicationWebControllerTest {
         when(userApi.getUserNotificationProfileByEmail("candidate@candidai.com")).thenReturn(Optional.of(profile));
         when(vacancyApi.getVacancyDetails(VACANCY_ID)).thenReturn(details);
 
-        org.springframework.test.web.servlet.MvcResult result = mockMvc.perform(get(APPLY_URL).param("lang", "uk"))
+        MvcResult result = mockMvc.perform(get(APPLY_URL).param("lang", "uk"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("applications/apply-form"))
                 .andReturn();
