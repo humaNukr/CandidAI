@@ -72,7 +72,7 @@
                                    th:errorclass="is-invalid"
                                    th:placeholder="#{application.phone.placeholder}">
                             <div class="invalid-feedback" th:if="${#fields.hasErrors('phone')}" th:errors="*{phone}">
-                                Некоректний формат телефону (+380...)
+                                Некоректний формат телефону (наприклад: +380501234567 або +1 555 123-4567)
                             </div>
                         </div>
 

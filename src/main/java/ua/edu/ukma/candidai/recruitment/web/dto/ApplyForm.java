@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import org.hibernate.validator.constraints.URL;
+import ua.edu.ukma.candidai.recruitment.dto.request.ApplyForVacancyRequest;
 
 public record ApplyForm(
         @NotBlank(message = "{application.candidateName.required}")
@@ -16,7 +17,7 @@ public record ApplyForm(
         @Size(max = 150, message = "{application.email.size}")
         String email,
 
-        @Pattern(regexp = "^$|^\\+?[0-9]{10,15}$", message = "{application.phone.invalid}")
+        @Pattern(regexp = ApplyForVacancyRequest.PHONE_REGEX, message = "{application.phone.invalid}")
         String phone,
 
         @NotBlank(message = "{application.resumeUrl.required}")

@@ -3,6 +3,8 @@ package ua.edu.ukma.candidai.recruitment.web;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
@@ -136,6 +138,54 @@ class ApplicationWebControllerTest {
         ));
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "+380 50 123 45 67",
+            "+380 (50) 123-45-67",
+            "+1 (555) 123-4567",
+            "+44 20 7946 0958",
+            "+48 12 345 67 89"
+    })
+    @DisplayName("submitApplication - should accept valid international phone numbers")
+    @WithMockUser(username = "candidate@candidai.com", roles = "CANDIDATE")
+    void givenInternationalPhone_submitApplication_shouldRedirectWithSuccess(String phone) throws Exception {
+        when(userApi.getUserNotificationProfileByEmail("candidate@candidai.com")).thenReturn(
+                Optional.of(new UserNotificationProfile(CANDIDATE_ID, "Jane Doe", "candidate@candidai.com", null))
+        );
+        when(applicationService.apply(any(ApplyForVacancyRequest.class))).thenReturn(
+                new ApplicationResponse(
+                        UUID.randomUUID(), VACANCY_ID, CANDIDATE_ID, "Jane Doe",
+                        "candidate@candidai.com", phone, RESUME_URL,
+                        ApplicationStatus.APPLIED, null, null, Instant.now(), Instant.now()
+                )
+        );
+
+        mockMvc.perform(postApplyForm("Jane Doe", "candidate@candidai.com", phone, RESUME_URL))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/vacancies"))
+                .andExpect(flash().attributeExists("successMessage"));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "abc12345",
+            "123",
+            "++380501234567",
+            "+12345678901234567890"
+    })
+    @DisplayName("submitApplication - should return form view with errors when phone is invalid")
+    @WithMockUser(username = "candidate@candidai.com", roles = "CANDIDATE")
+    void givenInvalidPhone_submitApplication_shouldReturnFormWithErrors(String invalidPhone) throws Exception {
+        when(vacancyApi.getVacancyDetails(VACANCY_ID)).thenReturn(
+                new VacancyDetails(VACANCY_ID, "Java Developer", "Description", List.of(), List.of(), "Senior")
+        );
+
+        mockMvc.perform(postApplyForm("Jane Doe", "candidate@candidai.com", invalidPhone, RESUME_URL))
+                .andExpect(status().isOk())
+                .andExpect(view().name("applications/apply-form"))
+                .andExpect(model().attributeHasFieldErrors("form", "phone"));
+    }
+
     @Test
     @DisplayName("submitApplication - should redirect with error message when duplicate application")
     @WithMockUser(username = "candidate@candidai.com", roles = "CANDIDATE")
@@ -256,7 +306,7 @@ class ApplicationWebControllerTest {
         assertThat(html)
                 .contains("placeholder=\"John Doe\"")
                 .contains("placeholder=\"candidate@example.com\"")
-                .contains("placeholder=\"+380501234567\"")
+                .contains("placeholder=\"+1 555 123-4567\"")
                 .contains("placeholder=\"https://storage.candidai.com/resumes/my_resume.pdf\"");
     }
 
@@ -283,7 +333,7 @@ class ApplicationWebControllerTest {
         assertThat(html)
                 .contains("placeholder=\"Іван Петренко\"")
                 .contains("placeholder=\"candidate@example.com\"")
-                .contains("placeholder=\"+380501234567\"")
+                .contains("placeholder=\"+380 50 123 45 67\"")
                 .contains("placeholder=\"https://storage.candidai.com/resumes/my_resume.pdf\"");
     }
 }
