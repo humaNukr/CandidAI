@@ -7,9 +7,6 @@ server:
         http-only: true
         secure: false
         same-site: lax
-  error:
-    include-stacktrace: never
-    include-message: never
 
 spring:
   application:
@@ -21,6 +18,9 @@ spring:
     problem-details:
       enabled: true
   web:
+    error:
+      include-stacktrace: never
+      include-message: never
     resources:
       chain:
         enabled: true
