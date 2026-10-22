@@ -165,21 +165,21 @@ git commit -m "feat(recruitment): add application update capability in domain an
 - Modify: `src/main/resources/messages_en.properties`
 - Test: `src/test/java/ua/edu/ukma/candidai/recruitment/web/ApplicationWebControllerTest.java`
 
-- [ ] **Step 1: Write failing tests in ApplicationWebControllerTest**
+- [x] **Step 1: Write failing tests in ApplicationWebControllerTest**
 
 Add tests:
 - `givenExistingApplication_showApplyForm_shouldPopulateExistingDataAndEditFlag`: verifies model has `isEdit=true`, form contains existing phone and resume, `applicationStatus="APPLIED"`, `canEdit=true`.
 - `givenExistingNonAppliedApplication_showApplyForm_shouldSetCanEditFalse`: verifies `canEdit=false` when status is `REJECTED` or `INTERVIEW_SCHEDULED`.
 - `givenExistingApplication_submitApplication_shouldCallUpdateApplicationAndRedirect`: verifies submitting form for already applied vacancy calls `applicationService.updateApplication` and redirects with flash message `application.apply.updated`.
 
-- [ ] **Step 2: Run tests to observe failure (RED)**
+- [x] **Step 2: Run tests to observe failure (RED)**
 
 Run:
 ```powershell
 ./gradlew.bat :test --tests "ua.edu.ukma.candidai.recruitment.web.ApplicationWebControllerTest"
 ```
 
-- [ ] **Step 3: Update ApplicationWebController**
+- [x] **Step 3: Update ApplicationWebController**
 
 In `showApplyForm`:
 - Look up existing application for candidate on this vacancy.
@@ -191,7 +191,7 @@ In `submitApplication`:
 - If exists: call `applicationService.updateApplication(...)` and set flash message `application.apply.updated`.
 - If absent: call `applicationService.apply(...)` with flash message `application.apply.success`.
 
-- [ ] **Step 4: Update messages and templates**
+- [x] **Step 4: Update messages and templates**
 
 Add keys to `messages*.properties`:
 - `application.apply.heading.edit`: "Редагування заявки на вакансію" / "Edit Application"
@@ -204,14 +204,14 @@ In `apply-form.html`:
 - If `!canEdit`: render informative alert and disable inputs / hide submit button.
 - If `canEdit` and `isEdit`: show badge `Поточний статус: APPLIED`.
 
-- [ ] **Step 5: Run tests and verify GREEN**
+- [x] **Step 5: Run tests and verify GREEN**
 
 Run:
 ```powershell
 ./gradlew.bat :test --tests "ua.edu.ukma.candidai.recruitment.web.ApplicationWebControllerTest"
 ```
 
-- [ ] **Step 6: Commit Task 3**
+- [x] **Step 6: Commit Task 3**
 
 ```powershell
 git add src/main src/test

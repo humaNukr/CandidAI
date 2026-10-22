@@ -9,6 +9,7 @@ import ua.edu.ukma.candidai.recruitment.dto.response.InterviewFeedbackResponse;
 import ua.edu.ukma.candidai.recruitment.service.strategy.EvaluationResult;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface ApplicationService {
@@ -16,6 +17,8 @@ public interface ApplicationService {
     ApplicationResponse apply(ApplyForVacancyRequest request);
 
     ApplicationResponse updateApplication(UUID vacancyId, UUID candidateId, ApplyForVacancyRequest request);
+
+    Optional<ApplicationResponse> findCandidateApplication(UUID vacancyId, UUID candidateId);
 
     ApplicationResponse getById(UUID id);
 

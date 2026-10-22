@@ -590,4 +590,50 @@ class ApplicationServiceTest {
                 .hasMessageContaining("Cannot update application in status SCREENING. "
                         + "Only APPLIED applications can be updated.");
     }
+
+    @Test
+    @DisplayName("findCandidateApplication should return application response when application exists")
+    void givenExistingApplication_findCandidateApplication_shouldReturnResponse() {
+        Application application = anApplication(ApplicationStatus.APPLIED);
+        ApplicationResponse expectedResponse = anApplicationResponse();
+
+        when(applicationRepository.findByVacancyIdAndCandidateId(DEFAULT_VACANCY_ID, DEFAULT_CANDIDATE_ID))
+                .thenReturn(Optional.of(application));
+        when(applicationMapper.toResponse(application)).thenReturn(expectedResponse);
+
+        Optional<ApplicationResponse> actual = applicationService.findCandidateApplication(
+                DEFAULT_VACANCY_ID, DEFAULT_CANDIDATE_ID
+        );
+
+        assertThat(actual)
+                .isPresent()
+                .contains(expectedResponse);
+    }
+
+    @Test
+    @DisplayName("findCandidateApplication should return empty when application does not exist")
+    void givenNonExistentApplication_findCandidateApplication_shouldReturnEmpty() {
+        when(applicationRepository.findByVacancyIdAndCandidateId(DEFAULT_VACANCY_ID, NON_EXISTENT_ID))
+                .thenReturn(Optional.empty());
+
+        Optional<ApplicationResponse> actual = applicationService.findCandidateApplication(
+                DEFAULT_VACANCY_ID, NON_EXISTENT_ID
+        );
+
+        assertThat(actual).isEmpty();
+    }
+
+    @Test
+    @DisplayName("findCandidateApplication should return empty when vacancyId or candidateId is null")
+    void givenNullIds_findCandidateApplication_shouldReturnEmpty() {
+        Optional<ApplicationResponse> actualWithNullVacancy = applicationService.findCandidateApplication(
+                null, DEFAULT_CANDIDATE_ID
+        );
+        Optional<ApplicationResponse> actualWithNullCandidate = applicationService.findCandidateApplication(
+                DEFAULT_VACANCY_ID, null
+        );
+
+        assertThat(actualWithNullVacancy).isEmpty();
+        assertThat(actualWithNullCandidate).isEmpty();
+    }
 }

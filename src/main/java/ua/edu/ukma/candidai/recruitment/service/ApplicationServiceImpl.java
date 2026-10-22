@@ -30,6 +30,7 @@ import ua.edu.ukma.candidai.vacancy.model.JobCategory;
 import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Slf4j
@@ -100,6 +101,16 @@ public class ApplicationServiceImpl implements ApplicationService {
         log.info("Successfully updated application {} for vacancy {}", saved.getId(), vacancyId);
 
         return applicationMapper.toResponse(saved);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<ApplicationResponse> findCandidateApplication(UUID vacancyId, UUID candidateId) {
+        if (vacancyId == null || candidateId == null) {
+            return Optional.empty();
+        }
+        return applicationRepository.findByVacancyIdAndCandidateId(vacancyId, candidateId)
+                .map(applicationMapper::toResponse);
     }
 
     @Override

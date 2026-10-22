@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import ua.edu.ukma.candidai.common.exception.DuplicateResourceException;
 import ua.edu.ukma.candidai.common.exception.InvalidStateTransitionException;
+import ua.edu.ukma.candidai.recruitment.dto.model.ApplicationStatus;
 import ua.edu.ukma.candidai.recruitment.dto.request.ApplyForVacancyRequest;
 import ua.edu.ukma.candidai.recruitment.dto.response.ApplicationResponse;
 import ua.edu.ukma.candidai.recruitment.service.ApplicationService;
@@ -28,6 +29,7 @@ import ua.edu.ukma.candidai.vacancy.VacancyDetails;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.UUID;
 
 @Slf4j
@@ -51,13 +53,34 @@ public class ApplicationWebController {
         String email = authentication != null ? authentication.getName() : "";
         String candidateName = "";
 
+        populateVacancyDetails(vacancyId, model);
+
         if (email != null && !email.isBlank()) {
-            candidateName = userApi.getUserNotificationProfileByEmail(email)
-                    .map(UserNotificationProfile::fullName)
-                    .orElse("");
+            Optional<UserNotificationProfile> profileOpt = userApi.getUserNotificationProfileByEmail(email);
+            if (profileOpt.isPresent()) {
+                UserNotificationProfile profile = profileOpt.get();
+                candidateName = profile.fullName() != null ? profile.fullName() : "";
+                Optional<ApplicationResponse> existingOpt = applicationService.findCandidateApplication(
+                        vacancyId, profile.userId()
+                );
+                if (existingOpt.isPresent()) {
+                    ApplicationResponse existing = existingOpt.get();
+                    model.addAttribute("form", new ApplyForm(
+                            existing.candidateName(),
+                            existing.email(),
+                            existing.phone() != null ? existing.phone() : "",
+                            existing.resumeUrl() != null ? existing.resumeUrl() : ""
+                    ));
+                    model.addAttribute("isEdit", true);
+                    model.addAttribute("applicationStatus", existing.status().name());
+                    model.addAttribute("canEdit", existing.status() == ApplicationStatus.APPLIED);
+                    return "applications/apply-form";
+                }
+            }
         }
 
-        populateVacancyDetails(vacancyId, model);
+        model.addAttribute("isEdit", false);
+        model.addAttribute("canEdit", true);
         model.addAttribute("form", new ApplyForm(candidateName, email, "", ""));
         return "applications/apply-form";
     }
@@ -75,6 +98,7 @@ public class ApplicationWebController {
 
         if (bindingResult.hasErrors()) {
             populateVacancyDetails(vacancyId, model);
+            populateExistingApplicationState(vacancyId, authentication, model);
             return "applications/apply-form";
         }
 
@@ -85,6 +109,8 @@ public class ApplicationWebController {
         if (candidateId == null) {
             bindingResult.reject("application.candidate.notFound", "Candidate profile not found");
             populateVacancyDetails(vacancyId, model);
+            model.addAttribute("isEdit", false);
+            model.addAttribute("canEdit", true);
             return "applications/apply-form";
         }
 
@@ -98,6 +124,33 @@ public class ApplicationWebController {
                 phone,
                 form.resumeUrl()
         );
+
+        Optional<ApplicationResponse> existingOpt = applicationService.findCandidateApplication(
+                vacancyId, candidateId
+        );
+
+        if (existingOpt.isPresent()) {
+            ApplicationResponse existing = existingOpt.get();
+            if (existing.status() != ApplicationStatus.APPLIED) {
+                String lockedMessage = messageSource.getMessage(
+                        "application.apply.locked",
+                        new Object[]{existing.status()},
+                        locale
+                );
+                redirectAttributes.addFlashAttribute("errorMessage", lockedMessage);
+                return "redirect:/vacancies";
+            }
+
+            applicationService.updateApplication(vacancyId, candidateId, request);
+            String updatedMessage = messageSource.getMessage(
+                    "application.apply.updated",
+                    null,
+                    "Вашу заявку успішно оновлено!",
+                    locale
+            );
+            redirectAttributes.addFlashAttribute("successMessage", updatedMessage);
+            return "redirect:/vacancies";
+        }
 
         try {
             applicationService.apply(request);
@@ -136,6 +189,29 @@ public class ApplicationWebController {
         List<ApplicationResponse> applications = applicationService.getApplicationsByVacancy(vacancyId, true);
         model.addAttribute("applications", applications);
         return "applications/list";
+    }
+
+    private void populateExistingApplicationState(UUID vacancyId, Authentication authentication, Model model) {
+        String email = authentication != null ? authentication.getName() : null;
+        if (email != null && !email.isBlank()) {
+            userApi.getUserNotificationProfileByEmail(email)
+                    .map(UserNotificationProfile::userId)
+                    .flatMap(candidateId -> applicationService.findCandidateApplication(vacancyId, candidateId))
+                    .ifPresentOrElse(
+                            existing -> {
+                                model.addAttribute("isEdit", true);
+                                model.addAttribute("applicationStatus", existing.status().name());
+                                model.addAttribute("canEdit", existing.status() == ApplicationStatus.APPLIED);
+                            },
+                            () -> {
+                                model.addAttribute("isEdit", false);
+                                model.addAttribute("canEdit", true);
+                            }
+                    );
+            return;
+        }
+        model.addAttribute("isEdit", false);
+        model.addAttribute("canEdit", true);
     }
 
     private void populateVacancyDetails(UUID vacancyId, Model model) {
