@@ -232,20 +232,20 @@ git commit -m "feat(recruitment-web): support editing submitted applications"
 - Test: `src/test/java/ua/edu/ukma/candidai/vacancy/web/VacancyWebControllerTest.java`
 - Test: `src/test/java/ua/edu/ukma/candidai/ModularityTests.java`
 
-- [ ] **Step 1: Write failing tests in VacancyWebControllerTest**
+- [x] **Step 1: Write failing tests in VacancyWebControllerTest**
 
 Add tests:
 - `givenCandidateWithAppliedVacancies_vacancies_shouldPopulateAppliedVacanciesInModel`: verifies `model.getAttribute("appliedVacancies")` contains map of `vacancyId -> status`.
 - `givenCandidateWithAppliedVacancies_vacancies_shouldRenderAppliedBadgeAndEditButton`: verifies rendered HTML contains `btn-applied-{id}` with status badge and edit link.
 
-- [ ] **Step 2: Run tests to observe failure (RED)**
+- [x] **Step 2: Run tests to observe failure (RED)**
 
 Run:
 ```powershell
 ./gradlew.bat :test --tests "ua.edu.ukma.candidai.vacancy.web.VacancyWebControllerTest"
 ```
 
-- [ ] **Step 3: Update VacancyWebController**
+- [x] **Step 3: Update VacancyWebController**
 
 Inject `Optional<CandidateApplicationLookup> candidateApplicationLookup`.
 In `vacancies(...)` and `filterVacancies(...)`:
@@ -253,7 +253,7 @@ If `principal != null`:
 Look up candidate profile via `userApi.getUserNotificationProfileByEmail(principal.getName())`.
 If profile exists, get `candidateApplicationLookup.map(l -> l.findAppliedVacancyStatusesByCandidateId(profile.id())).orElse(Map.of())` and add to model as `appliedVacancies`.
 
-- [ ] **Step 4: Update templates & localization**
+- [x] **Step 4: Update templates & localization**
 
 In `messages*.properties`:
 - `vacancies.btn.editApplication`: "Редагувати" / "Edit"
@@ -277,7 +277,7 @@ For `sec:authorize="hasRole('CANDIDATE')"`:
 </th:block>
 ```
 
-- [ ] **Step 5: Run tests and verify GREEN**
+- [x] **Step 5: Run tests and verify GREEN**
 
 Run:
 ```powershell
@@ -285,7 +285,7 @@ Run:
 ./gradlew.bat :test --tests "ua.edu.ukma.candidai.ModularityTests"
 ```
 
-- [ ] **Step 6: Commit Task 4**
+- [x] **Step 6: Commit Task 4**
 
 ```powershell
 git add src/main src/test

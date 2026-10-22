@@ -17,6 +17,7 @@ import ua.edu.ukma.candidai.vacancy.web.dto.CreateVacancyForm;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -35,6 +36,20 @@ public final class VacancyWebTestResources {
             "Anna Recruiter",
             RECRUITER_EMAIL,
             "12345678"
+    );
+
+    public static final UUID CANDIDATE_ID = UUID.fromString("00000000-0000-0000-0000-000000000003");
+    public static final String CANDIDATE_EMAIL = "candidate@candidai.com";
+
+    public static final UserNotificationProfile CANDIDATE_PROFILE = new UserNotificationProfile(
+            CANDIDATE_ID,
+            "Ivan Candidate",
+            CANDIDATE_EMAIL,
+            "380501112233"
+    );
+
+    public static final Map<UUID, String> CANDIDATE_APPLIED_VACANCIES = Map.of(
+            UUID.fromString("11111111-1111-1111-1111-111111111111"), "APPLIED"
     );
 
     public static final CreateVacancyForm VALID_FORM = CreateVacancyForm.builder()

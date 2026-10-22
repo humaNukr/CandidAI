@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import ua.edu.ukma.candidai.common.candidate.CandidateApplicationLookup;
 import ua.edu.ukma.candidai.common.exception.DuplicateResourceException;
 import ua.edu.ukma.candidai.common.exception.ResourceNotFoundException;
 import ua.edu.ukma.candidai.user.UserApi;
@@ -36,6 +37,7 @@ import ua.edu.ukma.candidai.vacancy.web.dto.CreateVacancyForm;
 import ua.edu.ukma.candidai.vacancy.web.model.VacancyView;
 
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -47,6 +49,7 @@ public class VacancyWebController {
     private final VacancyService vacancyService;
     private final UserApi userApi;
     private final MessageSource messageSource;
+    private final Optional<CandidateApplicationLookup> candidateApplicationLookup;
 
     @GetMapping
     public String listVacancies(
@@ -54,9 +57,20 @@ public class VacancyWebController {
             @RequestParam(required = false) JobCategory category,
             @RequestParam(defaultValue = "TABLE") VacancyView view,
             @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
-            Model model
+            Model model,
+            Authentication authentication
     ) {
         Page<VacancyResponse> vacancies = vacancyService.getAllVacancies(status, category, pageable);
+
+        if (authentication != null && authentication.isAuthenticated()) {
+            userApi.getUserNotificationProfileByEmail(authentication.getName())
+                    .ifPresent(profile -> {
+                        Map<UUID, String> appliedVacancies = candidateApplicationLookup
+                                .map(lookup -> lookup.findAppliedVacancyStatusesByCandidateId(profile.userId()))
+                                .orElse(Map.of());
+                        model.addAttribute("appliedVacancies", appliedVacancies);
+                    });
+        }
 
         model.addAttribute("vacancies", vacancies);
         model.addAttribute("selectedStatus", status);

@@ -13,6 +13,7 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import ua.edu.ukma.candidai.common.candidate.CandidateApplicationLookup;
 import ua.edu.ukma.candidai.common.config.MethodSecurityConfiguration;
 import ua.edu.ukma.candidai.common.config.TestSecurityConfiguration;
 import ua.edu.ukma.candidai.common.exception.DuplicateResourceException;
@@ -23,6 +24,7 @@ import ua.edu.ukma.candidai.vacancy.dto.request.CreateVacancyRequest;
 import ua.edu.ukma.candidai.vacancy.service.VacancyService;
 import ua.edu.ukma.candidai.vacancy.web.dto.CreateVacancyForm;
 
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -47,6 +49,9 @@ class VacancyWebControllerTest {
 
     @MockitoBean
     private UserApi userApi;
+
+    @MockitoBean
+    private CandidateApplicationLookup candidateApplicationLookup;
 
     @Test
     @DisplayName("listVacancies - should render table view by default")
@@ -361,5 +366,78 @@ class VacancyWebControllerTest {
         assertThat(actual)
                 .usingRecursiveComparison()
                 .isEqualTo(EXPECTED_CREATE_REQUEST);
+    }
+
+    @Test
+    @DisplayName("listVacancies - should populate applied vacancies and render badge in table view")
+    @WithMockUser(username = CANDIDATE_EMAIL, roles = "CANDIDATE")
+    void givenCandidateWithAppliedVacancies_listVacancies_shouldPopulateAppliedVacanciesAndRenderBadge()
+            throws Exception {
+        when(vacancyService.getAllVacancies(isNull(), isNull(), any(Pageable.class)))
+                .thenReturn(SINGLE_PAGE_VACANCIES);
+        when(userApi.getUserNotificationProfileByEmail(CANDIDATE_EMAIL))
+                .thenReturn(Optional.of(CANDIDATE_PROFILE));
+        when(candidateApplicationLookup.findAppliedVacancyStatusesByCandidateId(CANDIDATE_ID))
+                .thenReturn(CANDIDATE_APPLIED_VACANCIES);
+
+        MvcResult result = mockMvc.perform(get(VACANCIES_URL))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("appliedVacancies", CANDIDATE_APPLIED_VACANCIES))
+                .andReturn();
+
+        String html = result.getResponse().getContentAsString();
+        assertThat(html)
+                .contains("id=\"btn-applied-" + VACANCY_RESPONSE_1.id() + "\"")
+                .contains("APPLIED")
+                .contains("Редагувати")
+                .doesNotContain("id=\"btn-apply-" + VACANCY_RESPONSE_1.id() + "\"");
+    }
+
+    @Test
+    @DisplayName("listVacancies - should render apply button when candidate has no applied vacancies")
+    @WithMockUser(username = CANDIDATE_EMAIL, roles = "CANDIDATE")
+    void givenCandidateWithoutAppliedVacancies_listVacancies_shouldRenderApplyButton() throws Exception {
+        when(vacancyService.getAllVacancies(isNull(), isNull(), any(Pageable.class)))
+                .thenReturn(SINGLE_PAGE_VACANCIES);
+        when(userApi.getUserNotificationProfileByEmail(CANDIDATE_EMAIL))
+                .thenReturn(Optional.of(CANDIDATE_PROFILE));
+        when(candidateApplicationLookup.findAppliedVacancyStatusesByCandidateId(CANDIDATE_ID))
+                .thenReturn(Map.of());
+
+        MvcResult result = mockMvc.perform(get(VACANCIES_URL))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("appliedVacancies", Map.of()))
+                .andReturn();
+
+        String html = result.getResponse().getContentAsString();
+        assertThat(html)
+                .contains("id=\"btn-apply-" + VACANCY_RESPONSE_1.id() + "\"")
+                .doesNotContain("id=\"btn-applied-" + VACANCY_RESPONSE_1.id() + "\"")
+                .doesNotContain("Редагувати");
+    }
+
+    @Test
+    @DisplayName("listVacancies - should render applied badge and edit button in cards view")
+    @WithMockUser(username = CANDIDATE_EMAIL, roles = "CANDIDATE")
+    void givenCandidateWithAppliedVacanciesCardsView_listVacancies_shouldRenderAppliedBadgeInCards()
+            throws Exception {
+        when(vacancyService.getAllVacancies(isNull(), isNull(), any(Pageable.class)))
+                .thenReturn(SINGLE_PAGE_VACANCIES);
+        when(userApi.getUserNotificationProfileByEmail(CANDIDATE_EMAIL))
+                .thenReturn(Optional.of(CANDIDATE_PROFILE));
+        when(candidateApplicationLookup.findAppliedVacancyStatusesByCandidateId(CANDIDATE_ID))
+                .thenReturn(CANDIDATE_APPLIED_VACANCIES);
+
+        MvcResult result = mockMvc.perform(get(VACANCIES_URL).param("view", "CARDS"))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("appliedVacancies", CANDIDATE_APPLIED_VACANCIES))
+                .andReturn();
+
+        String html = result.getResponse().getContentAsString();
+        assertThat(html)
+                .contains("id=\"btn-applied-" + VACANCY_RESPONSE_1.id() + "\"")
+                .contains("APPLIED")
+                .contains("Редагувати")
+                .doesNotContain("id=\"btn-apply-" + VACANCY_RESPONSE_1.id() + "\"");
     }
 }
