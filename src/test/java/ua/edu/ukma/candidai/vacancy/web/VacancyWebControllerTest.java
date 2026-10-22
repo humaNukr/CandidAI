@@ -425,4 +425,42 @@ class VacancyWebControllerTest {
                 .andExpect(status().isNotFound())
                 .andExpect(view().name("error/404"));
     }
+
+    @Test
+    @DisplayName("showCreateForm - should render placeholders in English when English locale requested")
+    @WithMockUser(username = RECRUITER_EMAIL, roles = "RECRUITER")
+    void givenEnglishLocale_getCreateForm_shouldRenderEnglishPlaceholders() throws Exception {
+        MvcResult result = mockMvc.perform(get(NEW_VACANCY_URL).param("lang", "en"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("vacancies/create-form"))
+                .andReturn();
+
+        String html = result.getResponse().getContentAsString();
+
+        assertThat(html)
+                .contains("placeholder=\"e.g. Senior Java Developer\"")
+                .contains("placeholder=\"e.g. Java / Spring Boot\"")
+                .contains("placeholder=\"e.g. Senior or Lead\"")
+                .contains("placeholder=\"e.g. 4000\"")
+                .contains("placeholder=\"Kyiv, Ukraine\"");
+    }
+
+    @Test
+    @DisplayName("showCreateForm - should render placeholders in Ukrainian when Ukrainian locale requested")
+    @WithMockUser(username = RECRUITER_EMAIL, roles = "RECRUITER")
+    void givenUkrainianLocale_getCreateForm_shouldRenderUkrainianPlaceholders() throws Exception {
+        MvcResult result = mockMvc.perform(get(NEW_VACANCY_URL).param("lang", "uk"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("vacancies/create-form"))
+                .andReturn();
+
+        String html = result.getResponse().getContentAsString();
+
+        assertThat(html)
+                .contains("placeholder=\"напр. Senior Java Developer\"")
+                .contains("placeholder=\"напр. Java / Spring Boot\"")
+                .contains("placeholder=\"напр. Senior або Lead\"")
+                .contains("placeholder=\"напр. 4000\"")
+                .contains("placeholder=\"Київ, Україна\"");
+    }
 }

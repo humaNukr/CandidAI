@@ -37,7 +37,7 @@
                                    th:field="*{candidateName}"
                                    class="form-control"
                                    th:errorclass="is-invalid"
-                                   placeholder="Іван Петренко"
+                                   th:placeholder="#{application.candidateName.placeholder}"
                                    required>
                             <div class="invalid-feedback" th:if="${#fields.hasErrors('candidateName')}" th:errors="*{candidateName}">
                                 Помилка імені
@@ -54,7 +54,7 @@
                                    th:field="*{email}"
                                    class="form-control"
                                    th:errorclass="is-invalid"
-                                   placeholder="candidate@example.com"
+                                   th:placeholder="#{application.email.placeholder}"
                                    required>
                             <div class="invalid-feedback" th:if="${#fields.hasErrors('email')}" th:errors="*{email}">
                                 Помилка email
@@ -70,7 +70,7 @@
                                    th:field="*{phone}"
                                    class="form-control"
                                    th:errorclass="is-invalid"
-                                   placeholder="+380501234567">
+                                   th:placeholder="#{application.phone.placeholder}">
                             <div class="invalid-feedback" th:if="${#fields.hasErrors('phone')}" th:errors="*{phone}">
                                 Некоректний формат телефону (+380...)
                             </div>
@@ -86,7 +86,7 @@
                                    th:field="*{resumeUrl}"
                                    class="form-control"
                                    th:errorclass="is-invalid"
-                                   placeholder="https://storage.candidai.com/resumes/my_resume.pdf"
+                                   th:placeholder="#{application.resumeUrl.placeholder}"
                                    required>
                             <div class="invalid-feedback" th:if="${#fields.hasErrors('resumeUrl')}" th:errors="*{resumeUrl}">
                                 Вкажіть дійсне URL-посилання на резюме

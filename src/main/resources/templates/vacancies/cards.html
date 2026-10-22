@@ -93,16 +93,16 @@
                     <p class="card-text small text-secondary flex-grow-1" th:text="${vac.description}">Job description...</p>
                     <div class="border-top pt-2 mt-2">
                         <div class="d-flex justify-content-between small text-muted mb-2">
-                            <span><span th:text="#{vacancies.th.experience}">Досвід</span>: <strong th:text="${vac.minYearsOfExperience}">3</strong> р.</span>
+                            <span><span th:text="#{vacancies.th.experience}">Досвід</span>: <strong th:text="${vac.minYearsOfExperience}">3</strong> <span th:text="#{vacancies.years}">р.</span></span>
                             <span><span th:text="#{vacancies.th.english}">Англійська</span>: <strong th:text="${vac.minEnglishLevel}">B2</strong></span>
                         </div>
                         <div class="fw-semibold text-primary mb-3">
                             <span th:if="${vac.salaryMin != null and vac.salaryMax != null}"
                                   th:text="${vac.salaryMin} + ' - ' + ${vac.salaryMax} + ' ' + ${vac.currency}">4000 - 6000 USD</span>
                             <span th:if="${vac.salaryMin != null and vac.salaryMax == null}"
-                                  th:text="'від ' + ${vac.salaryMin} + ' ' + ${vac.currency}">від 4000 USD</span>
+                                  th:text="#{vacancies.salary.from} + ' ' + ${vac.salaryMin} + ' ' + ${vac.currency}">від 4000 USD</span>
                             <span th:if="${vac.salaryMin == null and vac.salaryMax != null}"
-                                  th:text="'до ' + ${vac.salaryMax} + ' ' + ${vac.currency}">до 6000 USD</span>
+                                  th:text="#{vacancies.salary.to} + ' ' + ${vac.salaryMax} + ' ' + ${vac.currency}">до 6000 USD</span>
                             <span th:if="${vac.salaryMin == null and vac.salaryMax == null}" class="text-muted">—</span>
                         </div>
                         <div class="d-flex justify-content-end gap-1">

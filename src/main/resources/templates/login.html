@@ -19,12 +19,12 @@
             <div class="mb-3">
                 <label for="username" class="form-label" th:text="#{login.username}">Електронна пошта</label>
                 <input type="text" id="username" name="username" class="form-control"
-                       autocomplete="username" required autofocus/>
+                       autocomplete="username" th:placeholder="#{login.username.placeholder}" required autofocus/>
             </div>
             <div class="mb-4">
                 <label for="password" class="form-label" th:text="#{login.password}">Пароль</label>
                 <input type="password" id="password" name="password" class="form-control"
-                       autocomplete="current-password" required/>
+                       autocomplete="current-password" th:placeholder="#{login.password.placeholder}" required/>
             </div>
             <button type="submit" class="btn btn-primary w-100" th:text="#{login.submit}">Увійти</button>
         </form>

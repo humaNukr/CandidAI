@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -221,6 +222,60 @@ class ApplicationWebControllerTest {
         mockMvc.perform(get(APPLICATIONS_URL))
                 .andExpect(status().isNotFound())
                 .andExpect(view().name("error/404"));
+    }
+
+    @Test
+    @DisplayName("showApplyForm - should render placeholders in English when English locale requested")
+    @WithMockUser(username = "candidate@candidai.com", roles = "CANDIDATE")
+    void givenEnglishLocale_getApplyForm_shouldRenderEnglishPlaceholders() throws Exception {
+        UserNotificationProfile profile = new UserNotificationProfile(
+                CANDIDATE_ID, "John Doe", "candidate@candidai.com", null
+        );
+        VacancyDetails details = new VacancyDetails(
+                VACANCY_ID, "Java Engineer", "Description", List.of("Java"), List.of(), "Senior"
+        );
+        when(userApi.getUserNotificationProfileByEmail("candidate@candidai.com")).thenReturn(Optional.of(profile));
+        when(vacancyApi.getVacancyDetails(VACANCY_ID)).thenReturn(details);
+
+        org.springframework.test.web.servlet.MvcResult result = mockMvc.perform(get(APPLY_URL).param("lang", "en"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("applications/apply-form"))
+                .andReturn();
+
+        String html = result.getResponse().getContentAsString();
+
+        assertThat(html)
+                .contains("placeholder=\"John Doe\"")
+                .contains("placeholder=\"candidate@example.com\"")
+                .contains("placeholder=\"+380501234567\"")
+                .contains("placeholder=\"https://storage.candidai.com/resumes/my_resume.pdf\"");
+    }
+
+    @Test
+    @DisplayName("showApplyForm - should render placeholders in Ukrainian when Ukrainian locale requested")
+    @WithMockUser(username = "candidate@candidai.com", roles = "CANDIDATE")
+    void givenUkrainianLocale_getApplyForm_shouldRenderUkrainianPlaceholders() throws Exception {
+        UserNotificationProfile profile = new UserNotificationProfile(
+                CANDIDATE_ID, "Іван Петренко", "candidate@candidai.com", null
+        );
+        VacancyDetails details = new VacancyDetails(
+                VACANCY_ID, "Java Engineer", "Description", List.of("Java"), List.of(), "Senior"
+        );
+        when(userApi.getUserNotificationProfileByEmail("candidate@candidai.com")).thenReturn(Optional.of(profile));
+        when(vacancyApi.getVacancyDetails(VACANCY_ID)).thenReturn(details);
+
+        org.springframework.test.web.servlet.MvcResult result = mockMvc.perform(get(APPLY_URL).param("lang", "uk"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("applications/apply-form"))
+                .andReturn();
+
+        String html = result.getResponse().getContentAsString();
+
+        assertThat(html)
+                .contains("placeholder=\"Іван Петренко\"")
+                .contains("placeholder=\"candidate@example.com\"")
+                .contains("placeholder=\"+380501234567\"")
+                .contains("placeholder=\"https://storage.candidai.com/resumes/my_resume.pdf\"");
     }
 }
 

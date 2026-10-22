@@ -107,9 +107,9 @@
                         <span th:if="${vac.salaryMin != null and vac.salaryMax != null}"
                               th:text="${vac.salaryMin} + ' - ' + ${vac.salaryMax} + ' ' + ${vac.currency}">4000 - 6000 USD</span>
                         <span th:if="${vac.salaryMin != null and vac.salaryMax == null}"
-                              th:text="'від ' + ${vac.salaryMin} + ' ' + ${vac.currency}">від 4000 USD</span>
+                              th:text="#{vacancies.salary.from} + ' ' + ${vac.salaryMin} + ' ' + ${vac.currency}">від 4000 USD</span>
                         <span th:if="${vac.salaryMin == null and vac.salaryMax != null}"
-                              th:text="'до ' + ${vac.salaryMax} + ' ' + ${vac.currency}">до 6000 USD</span>
+                              th:text="#{vacancies.salary.to} + ' ' + ${vac.salaryMax} + ' ' + ${vac.currency}">до 6000 USD</span>
                         <span th:if="${vac.salaryMin == null and vac.salaryMax == null}" class="text-muted">—</span>
                     </td>
                     <td>
