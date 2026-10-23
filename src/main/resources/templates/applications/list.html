@@ -29,14 +29,14 @@
     <div th:if="${#lists.isEmpty(applications)}" class="card shadow-sm border-0 text-center py-5">
         <div class="card-body">
             <h5 class="text-muted mb-3" th:text="#{application.list.empty}">Заявок на цю вакансію ще немає</h5>
-            <p class="text-muted small">Коли кандидати відгукнуться, вони з'являться тут із результатами AI-скринінгу.</p>
+            <p class="text-muted small" th:text="#{application.list.emptyHint}">Коли кандидати відгукнуться, вони з'являться тут із результатами AI-скринінгу.</p>
         </div>
     </div>
 
     <div th:if="${not #lists.isEmpty(applications)}" class="card shadow-sm border-0">
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
-                <thead class="table-dark">
+                <thead class="table-light">
                     <tr>
                         <th scope="col" th:text="#{application.th.candidate}">Кандидат</th>
                         <th scope="col" th:text="#{application.th.phone}">Телефон</th>
@@ -71,7 +71,9 @@
                                   th:text="${app.matchingScore} + '%'">
                                 85%
                             </span>
-                            <span th:unless="${app.matchingScore != null}" class="badge bg-light text-muted border">
+                            <span th:unless="${app.matchingScore != null}"
+                                  class="badge bg-light text-muted border"
+                                  th:text="#{application.score.pending}">
                                 Очікує
                             </span>
                         </td>

@@ -27,6 +27,8 @@ public final class RecruitmentTestResources {
     public static final String DEFAULT_EMAIL = "john.doe@example.com";
     public static final String DEFAULT_PHONE = "+380501234567";
     public static final String DEFAULT_RESUME_URL = "https://storage.candidai.ukma.edu.ua/resumes/john_doe.pdf";
+    public static final String UPDATED_PHONE = "+380509876543";
+    public static final String UPDATED_RESUME_URL = "https://storage.candidai.ukma.edu.ua/resumes/john_doe_updated.pdf";
     public static final Instant DEFAULT_NOW = Instant.parse("2026-09-20T10:00:00Z");
 
     public static final String JSON_WITH_UNKNOWN_PROPERTY = """
@@ -201,6 +203,23 @@ public final class RecruitmentTestResources {
 
     public static ApplicationResponse updatedApplicationResponse() {
         return anApplicationResponse(ApplicationStatus.INTERVIEW, "Candidate passed screening successfully");
+    }
+
+    public static ApplicationResponse anUpdatedApplicationResponse(Instant updatedAt) {
+        return new ApplicationResponse(
+                DEFAULT_APPLICATION_ID,
+                DEFAULT_VACANCY_ID,
+                DEFAULT_CANDIDATE_ID,
+                DEFAULT_CANDIDATE_NAME,
+                DEFAULT_EMAIL,
+                UPDATED_PHONE,
+                UPDATED_RESUME_URL,
+                ApplicationStatus.APPLIED,
+                null,
+                null,
+                DEFAULT_NOW,
+                updatedAt
+        );
     }
 
     public static ApplicationResponse sampleApplicationResponse() {

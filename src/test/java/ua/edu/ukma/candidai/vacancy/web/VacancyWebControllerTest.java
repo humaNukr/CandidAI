@@ -1,8 +1,8 @@
 package ua.edu.ukma.candidai.vacancy.web;
 
+import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
@@ -13,13 +13,20 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import ua.edu.ukma.candidai.common.candidate.CandidateApplicationLookup;
 import ua.edu.ukma.candidai.common.config.MethodSecurityConfiguration;
 import ua.edu.ukma.candidai.common.config.TestSecurityConfiguration;
+import ua.edu.ukma.candidai.common.exception.DuplicateResourceException;
+import ua.edu.ukma.candidai.common.exception.ResourceNotFoundException;
+import ua.edu.ukma.candidai.common.exception.WebExceptionAdvice;
 import ua.edu.ukma.candidai.user.UserApi;
 import ua.edu.ukma.candidai.vacancy.dto.request.CreateVacancyRequest;
 import ua.edu.ukma.candidai.vacancy.service.VacancyService;
+import ua.edu.ukma.candidai.vacancy.web.dto.CreateVacancyForm;
 
+import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -30,7 +37,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static ua.edu.ukma.candidai.vacancy.web.VacancyWebTestResources.*;
 
 @WebMvcTest(controllers = VacancyWebController.class)
-@Import({MethodSecurityConfiguration.class, TestSecurityConfiguration.class})
+@Import({MethodSecurityConfiguration.class, TestSecurityConfiguration.class, WebExceptionAdvice.class})
 @EnableSpringDataWebSupport
 class VacancyWebControllerTest {
 
@@ -42,6 +49,9 @@ class VacancyWebControllerTest {
 
     @MockitoBean
     private UserApi userApi;
+
+    @MockitoBean
+    private CandidateApplicationLookup candidateApplicationLookup;
 
     @Test
     @DisplayName("listVacancies - should render table view by default")
@@ -102,9 +112,7 @@ class VacancyWebControllerTest {
     @DisplayName("handleCreateVacancy - should return 403 Forbidden for CANDIDATE")
     @WithMockUser(username = "candidate@candidai.com", roles = "CANDIDATE")
     void givenCandidateRole_createVacancy_shouldReturn403Forbidden() throws Exception {
-        mockMvc.perform(post(VACANCIES_URL)
-                        .with(csrf())
-                        .param("title", VALID_FORM.title()))
+        mockMvc.perform(postVacancyForm(VACANCIES_URL, VALID_FORM))
                 .andExpect(status().isForbidden());
     }
 
@@ -120,17 +128,7 @@ class VacancyWebControllerTest {
     @DisplayName("handleCreateVacancy - should return 422 Unprocessable Entity when validation fails")
     @WithMockUser(username = RECRUITER_EMAIL, roles = "RECRUITER")
     void givenInvalidForm_createVacancy_shouldReturn422WithFieldErrors() throws Exception {
-        mockMvc.perform(post(VACANCIES_URL)
-                        .with(csrf())
-                        .param("title", INVALID_FORM.title())
-                        .param("specialization", INVALID_FORM.specialization())
-                        .param("seniorityLevel", INVALID_FORM.seniorityLevel())
-                        .param("minYearsOfExperience", INVALID_FORM.minYearsOfExperience().toString())
-                        .param("description", INVALID_FORM.description())
-                        .param("requiredSkills", INVALID_FORM.requiredSkills())
-                        .param("salaryMin", INVALID_FORM.salaryMin().toString())
-                        .param("salaryMax", INVALID_FORM.salaryMax().toString())
-                        .param("currency", INVALID_FORM.currency()))
+        mockMvc.perform(postVacancyForm(VACANCIES_URL, INVALID_FORM))
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(view().name("vacancies/create-form"))
                 .andExpect(model().hasErrors())
@@ -155,23 +153,7 @@ class VacancyWebControllerTest {
     @DisplayName("handleCreateVacancy - should return 422 when salaryMax is less than salaryMin")
     @WithMockUser(username = RECRUITER_EMAIL, roles = "RECRUITER")
     void givenInvalidSalaryRange_createVacancy_shouldReturn422WithSalaryError() throws Exception {
-        mockMvc.perform(post(VACANCIES_URL)
-                        .with(csrf())
-                        .param("title", INVALID_SALARY_RANGE_FORM.title())
-                        .param("category", INVALID_SALARY_RANGE_FORM.category().name())
-                        .param("specialization", INVALID_SALARY_RANGE_FORM.specialization())
-                        .param("seniorityLevel", INVALID_SALARY_RANGE_FORM.seniorityLevel())
-                        .param("minYearsOfExperience", INVALID_SALARY_RANGE_FORM.minYearsOfExperience().toString())
-                        .param("description", INVALID_SALARY_RANGE_FORM.description())
-                        .param("requiredSkills", INVALID_SALARY_RANGE_FORM.requiredSkills())
-                        .param("preferredSkills", INVALID_SALARY_RANGE_FORM.preferredSkills())
-                        .param("minEnglishLevel", INVALID_SALARY_RANGE_FORM.minEnglishLevel().name())
-                        .param("salaryMin", INVALID_SALARY_RANGE_FORM.salaryMin().toString())
-                        .param("salaryMax", INVALID_SALARY_RANGE_FORM.salaryMax().toString())
-                        .param("currency", INVALID_SALARY_RANGE_FORM.currency())
-                        .param("employmentType", INVALID_SALARY_RANGE_FORM.employmentType().name())
-                        .param("locationType", INVALID_SALARY_RANGE_FORM.locationType().name())
-                        .param("location", INVALID_SALARY_RANGE_FORM.location()))
+        mockMvc.perform(postVacancyForm(VACANCIES_URL, INVALID_SALARY_RANGE_FORM))
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(view().name("vacancies/create-form"))
                 .andExpect(model().hasErrors())
@@ -185,35 +167,12 @@ class VacancyWebControllerTest {
         when(userApi.getUserNotificationProfileByEmail(RECRUITER_EMAIL))
                 .thenReturn(Optional.of(RECRUITER_PROFILE));
 
-        ArgumentCaptor<CreateVacancyRequest> captor = ArgumentCaptor.forClass(CreateVacancyRequest.class);
-
-        mockMvc.perform(post(VACANCIES_URL)
-                        .cookie(new jakarta.servlet.http.Cookie("lang", "en"))
-                        .with(csrf())
-                        .param("title", VALID_FORM.title())
-                        .param("category", VALID_FORM.category().name())
-                        .param("specialization", VALID_FORM.specialization())
-                        .param("seniorityLevel", VALID_FORM.seniorityLevel())
-                        .param("minYearsOfExperience", VALID_FORM.minYearsOfExperience().toString())
-                        .param("description", VALID_FORM.description())
-                        .param("requiredSkills", VALID_FORM.requiredSkills())
-                        .param("preferredSkills", VALID_FORM.preferredSkills())
-                        .param("minEnglishLevel", VALID_FORM.minEnglishLevel().name())
-                        .param("salaryMin", VALID_FORM.salaryMin().toString())
-                        .param("salaryMax", VALID_FORM.salaryMax().toString())
-                        .param("currency", VALID_FORM.currency())
-                        .param("employmentType", VALID_FORM.employmentType().name())
-                        .param("locationType", VALID_FORM.locationType().name())
-                        .param("location", VALID_FORM.location()))
+        mockMvc.perform(postVacancyForm(VACANCIES_URL, VALID_FORM).cookie(new Cookie("lang", "en")))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl(VACANCIES_URL))
                 .andExpect(flash().attribute("successMessage", "Vacancy successfully created!"));
 
-        verify(vacancyService).createVacancy(captor.capture());
-
-        assertThat(captor.getValue())
-                .usingRecursiveComparison()
-                .isEqualTo(EXPECTED_CREATE_REQUEST);
+        verify(vacancyService).createVacancy(EXPECTED_CREATE_REQUEST);
     }
 
     @Test
@@ -223,27 +182,26 @@ class VacancyWebControllerTest {
         when(userApi.getUserNotificationProfileByEmail(RECRUITER_EMAIL))
                 .thenReturn(Optional.of(RECRUITER_PROFILE));
 
-        mockMvc.perform(post(VACANCIES_URL)
-                        .with(csrf())
-                        .cookie(new jakarta.servlet.http.Cookie("lang", "uk"))
-                        .param("title", VALID_FORM.title())
-                        .param("category", VALID_FORM.category().name())
-                        .param("specialization", VALID_FORM.specialization())
-                        .param("seniorityLevel", VALID_FORM.seniorityLevel())
-                        .param("minYearsOfExperience", VALID_FORM.minYearsOfExperience().toString())
-                        .param("description", VALID_FORM.description())
-                        .param("requiredSkills", VALID_FORM.requiredSkills())
-                        .param("preferredSkills", VALID_FORM.preferredSkills())
-                        .param("minEnglishLevel", VALID_FORM.minEnglishLevel().name())
-                        .param("salaryMin", VALID_FORM.salaryMin().toString())
-                        .param("salaryMax", VALID_FORM.salaryMax().toString())
-                        .param("currency", VALID_FORM.currency())
-                        .param("employmentType", VALID_FORM.employmentType().name())
-                        .param("locationType", VALID_FORM.locationType().name())
-                        .param("location", VALID_FORM.location()))
+        mockMvc.perform(postVacancyForm(VACANCIES_URL, VALID_FORM).cookie(new Cookie("lang", "uk")))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl(VACANCIES_URL))
                 .andExpect(flash().attribute("successMessage", "Вакансію успішно збережено!"));
+    }
+
+    @Test
+    @DisplayName("handleCreateVacancy - should return 422 with title error when DuplicateResourceException is thrown")
+    @WithMockUser(username = RECRUITER_EMAIL, roles = "RECRUITER")
+    void givenDuplicateTitle_createVacancy_shouldReturn422WithTitleError() throws Exception {
+        when(userApi.getUserNotificationProfileByEmail(RECRUITER_EMAIL))
+                .thenReturn(Optional.of(RECRUITER_PROFILE));
+        when(vacancyService.createVacancy(any(CreateVacancyRequest.class)))
+                .thenThrow(new DuplicateResourceException("Active vacancy already exists"));
+
+        mockMvc.perform(postVacancyForm(VACANCIES_URL, VALID_FORM).cookie(new Cookie("lang", "uk")))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(view().name("vacancies/create-form"))
+                .andExpect(model().hasErrors())
+                .andExpect(model().attributeHasFieldErrors("form", "title"));
     }
 
     @Test
@@ -269,23 +227,7 @@ class VacancyWebControllerTest {
         when(userApi.getUserNotificationProfileByEmail(RECRUITER_EMAIL))
                 .thenReturn(Optional.empty());
 
-        mockMvc.perform(post(VACANCIES_URL)
-                        .with(csrf())
-                        .param("title", VALID_FORM.title())
-                        .param("category", VALID_FORM.category().name())
-                        .param("specialization", VALID_FORM.specialization())
-                        .param("seniorityLevel", VALID_FORM.seniorityLevel())
-                        .param("minYearsOfExperience", VALID_FORM.minYearsOfExperience().toString())
-                        .param("description", VALID_FORM.description())
-                        .param("requiredSkills", VALID_FORM.requiredSkills())
-                        .param("preferredSkills", VALID_FORM.preferredSkills())
-                        .param("minEnglishLevel", VALID_FORM.minEnglishLevel().name())
-                        .param("salaryMin", VALID_FORM.salaryMin().toString())
-                        .param("salaryMax", VALID_FORM.salaryMax().toString())
-                        .param("currency", VALID_FORM.currency())
-                        .param("employmentType", VALID_FORM.employmentType().name())
-                        .param("locationType", VALID_FORM.locationType().name())
-                        .param("location", VALID_FORM.location()))
+        mockMvc.perform(postVacancyForm(VACANCIES_URL, VALID_FORM))
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(view().name("vacancies/create-form"))
                 .andExpect(model().hasErrors())
@@ -298,23 +240,11 @@ class VacancyWebControllerTest {
     @DisplayName("handleCreateVacancy - should return 422 when requiredSkills contains only commas and spaces")
     @WithMockUser(username = RECRUITER_EMAIL, roles = "RECRUITER")
     void givenSkillsOnlyCommasAndSpaces_createVacancy_shouldReturn422WithSkillsError() throws Exception {
-        mockMvc.perform(post(VACANCIES_URL)
-                        .with(csrf())
-                        .param("title", VALID_FORM.title())
-                        .param("category", VALID_FORM.category().name())
-                        .param("specialization", VALID_FORM.specialization())
-                        .param("seniorityLevel", VALID_FORM.seniorityLevel())
-                        .param("minYearsOfExperience", VALID_FORM.minYearsOfExperience().toString())
-                        .param("description", VALID_FORM.description())
-                        .param("requiredSkills", "  ,  ,  ,  ")
-                        .param("preferredSkills", VALID_FORM.preferredSkills())
-                        .param("minEnglishLevel", VALID_FORM.minEnglishLevel().name())
-                        .param("salaryMin", VALID_FORM.salaryMin().toString())
-                        .param("salaryMax", VALID_FORM.salaryMax().toString())
-                        .param("currency", VALID_FORM.currency())
-                        .param("employmentType", VALID_FORM.employmentType().name())
-                        .param("locationType", VALID_FORM.locationType().name())
-                        .param("location", VALID_FORM.location()))
+        CreateVacancyForm formWithBlankSkills = VALID_FORM.toBuilder()
+                .requiredSkills("  ,  ,  ,  ")
+                .build();
+
+        mockMvc.perform(postVacancyForm(VACANCIES_URL, formWithBlankSkills))
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(view().name("vacancies/create-form"))
                 .andExpect(model().hasErrors())
@@ -354,5 +284,160 @@ class VacancyWebControllerTest {
         assertThat(html)
                 .contains("&lt;script&gt;alert(&#39;title&#39;)&lt;/script&gt;")
                 .doesNotContain("<script>alert('title')</script>");
+    }
+
+    @Test
+    @DisplayName("showVacancy - should redirect to /vacancies when vacancy exists")
+    @WithAnonymousUser
+    void givenExistingId_showVacancy_shouldRedirectToVacancies() throws Exception {
+        UUID vacancyId = UUID.fromString("00000000-0000-0000-0000-000000000001");
+        when(vacancyService.getVacancyById(vacancyId)).thenReturn(VACANCY_RESPONSE_1);
+
+        mockMvc.perform(get(VACANCIES_URL + "/" + vacancyId))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl(VACANCIES_URL));
+    }
+
+    @Test
+    @DisplayName("showVacancy - should return 404 Not Found view when vacancy does not exist")
+    @WithAnonymousUser
+    void givenNonExistentId_showVacancy_shouldReturn404View() throws Exception {
+        UUID nonExistentId = UUID.fromString("00000000-0000-0000-0000-000000000000");
+        when(vacancyService.getVacancyById(nonExistentId))
+                .thenThrow(new ResourceNotFoundException("Vacancy not found"));
+
+        mockMvc.perform(get(VACANCIES_URL + "/" + nonExistentId))
+                .andExpect(status().isNotFound())
+                .andExpect(view().name("error/404"));
+    }
+
+    @Test
+    @DisplayName("showVacancy - should return 404 Not Found view when id is invalid UUID")
+    @WithAnonymousUser
+    void givenInvalidUuid_showVacancy_shouldReturn404View() throws Exception {
+        mockMvc.perform(get(VACANCIES_URL + "/invalid-uuid-string"))
+                .andExpect(status().isNotFound())
+                .andExpect(view().name("error/404"));
+    }
+
+    @Test
+    @DisplayName("showCreateForm - should render placeholders in English when English locale requested")
+    @WithMockUser(username = RECRUITER_EMAIL, roles = "RECRUITER")
+    void givenEnglishLocale_getCreateForm_shouldRenderEnglishPlaceholders() throws Exception {
+        MvcResult result = mockMvc.perform(get(NEW_VACANCY_URL).param("lang", "en"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("vacancies/create-form"))
+                .andReturn();
+
+        String html = result.getResponse().getContentAsString();
+
+        assertThat(html)
+                .contains("placeholder=\"e.g. Senior Java Developer\"")
+                .contains("placeholder=\"e.g. Java / Spring Boot\"")
+                .contains("placeholder=\"e.g. Senior or Lead\"")
+                .contains("placeholder=\"e.g. 4000\"")
+                .contains("placeholder=\"Kyiv, Ukraine\"");
+    }
+
+    @Test
+    @DisplayName("showCreateForm - should render placeholders in Ukrainian when Ukrainian locale requested")
+    @WithMockUser(username = RECRUITER_EMAIL, roles = "RECRUITER")
+    void givenUkrainianLocale_getCreateForm_shouldRenderUkrainianPlaceholders() throws Exception {
+        MvcResult result = mockMvc.perform(get(NEW_VACANCY_URL).param("lang", "uk"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("vacancies/create-form"))
+                .andReturn();
+
+        String html = result.getResponse().getContentAsString();
+
+        assertThat(html)
+                .contains("placeholder=\"напр. Senior Java Developer\"")
+                .contains("placeholder=\"напр. Java / Spring Boot\"")
+                .contains("placeholder=\"напр. Senior або Lead\"")
+                .contains("placeholder=\"напр. 4000\"")
+                .contains("placeholder=\"Київ, Україна\"");
+    }
+
+    @Test
+    @DisplayName("toRequest - should map form fields to CreateVacancyRequest")
+    void givenValidForm_toRequest_shouldMapAllFields() {
+        CreateVacancyRequest actual = VALID_FORM.toRequest(RECRUITER_ID);
+
+        assertThat(actual)
+                .usingRecursiveComparison()
+                .isEqualTo(EXPECTED_CREATE_REQUEST);
+    }
+
+    @Test
+    @DisplayName("listVacancies - should populate applied vacancies and render badge in table view")
+    @WithMockUser(username = CANDIDATE_EMAIL, roles = "CANDIDATE")
+    void givenCandidateWithAppliedVacancies_listVacancies_shouldPopulateAppliedVacanciesAndRenderBadge()
+            throws Exception {
+        when(vacancyService.getAllVacancies(isNull(), isNull(), any(Pageable.class)))
+                .thenReturn(SINGLE_PAGE_VACANCIES);
+        when(userApi.getUserNotificationProfileByEmail(CANDIDATE_EMAIL))
+                .thenReturn(Optional.of(CANDIDATE_PROFILE));
+        when(candidateApplicationLookup.findAppliedVacancyStatusesByCandidateId(CANDIDATE_ID))
+                .thenReturn(CANDIDATE_APPLIED_VACANCIES);
+
+        MvcResult result = mockMvc.perform(get(VACANCIES_URL))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("appliedVacancies", CANDIDATE_APPLIED_VACANCIES))
+                .andReturn();
+
+        String html = result.getResponse().getContentAsString();
+        assertThat(html)
+                .contains("id=\"btn-applied-" + VACANCY_RESPONSE_1.id() + "\"")
+                .contains("APPLIED")
+                .contains("Редагувати")
+                .doesNotContain("id=\"btn-apply-" + VACANCY_RESPONSE_1.id() + "\"");
+    }
+
+    @Test
+    @DisplayName("listVacancies - should render apply button when candidate has no applied vacancies")
+    @WithMockUser(username = CANDIDATE_EMAIL, roles = "CANDIDATE")
+    void givenCandidateWithoutAppliedVacancies_listVacancies_shouldRenderApplyButton() throws Exception {
+        when(vacancyService.getAllVacancies(isNull(), isNull(), any(Pageable.class)))
+                .thenReturn(SINGLE_PAGE_VACANCIES);
+        when(userApi.getUserNotificationProfileByEmail(CANDIDATE_EMAIL))
+                .thenReturn(Optional.of(CANDIDATE_PROFILE));
+        when(candidateApplicationLookup.findAppliedVacancyStatusesByCandidateId(CANDIDATE_ID))
+                .thenReturn(Map.of());
+
+        MvcResult result = mockMvc.perform(get(VACANCIES_URL))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("appliedVacancies", Map.of()))
+                .andReturn();
+
+        String html = result.getResponse().getContentAsString();
+        assertThat(html)
+                .contains("id=\"btn-apply-" + VACANCY_RESPONSE_1.id() + "\"")
+                .doesNotContain("id=\"btn-applied-" + VACANCY_RESPONSE_1.id() + "\"")
+                .doesNotContain("Редагувати");
+    }
+
+    @Test
+    @DisplayName("listVacancies - should render applied badge and edit button in cards view")
+    @WithMockUser(username = CANDIDATE_EMAIL, roles = "CANDIDATE")
+    void givenCandidateWithAppliedVacanciesCardsView_listVacancies_shouldRenderAppliedBadgeInCards()
+            throws Exception {
+        when(vacancyService.getAllVacancies(isNull(), isNull(), any(Pageable.class)))
+                .thenReturn(SINGLE_PAGE_VACANCIES);
+        when(userApi.getUserNotificationProfileByEmail(CANDIDATE_EMAIL))
+                .thenReturn(Optional.of(CANDIDATE_PROFILE));
+        when(candidateApplicationLookup.findAppliedVacancyStatusesByCandidateId(CANDIDATE_ID))
+                .thenReturn(CANDIDATE_APPLIED_VACANCIES);
+
+        MvcResult result = mockMvc.perform(get(VACANCIES_URL).param("view", "CARDS"))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("appliedVacancies", CANDIDATE_APPLIED_VACANCIES))
+                .andReturn();
+
+        String html = result.getResponse().getContentAsString();
+        assertThat(html)
+                .contains("id=\"btn-applied-" + VACANCY_RESPONSE_1.id() + "\"")
+                .contains("APPLIED")
+                .contains("Редагувати")
+                .doesNotContain("id=\"btn-apply-" + VACANCY_RESPONSE_1.id() + "\"");
     }
 }

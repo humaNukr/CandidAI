@@ -2,6 +2,8 @@ package ua.edu.ukma.candidai.recruitment.controller;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
@@ -323,6 +325,23 @@ class ApplicationControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(content().json(VALIDATION_ERROR_JSON))
                 .andExpect(jsonPath("$.errors.phone").exists());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "+380 50 123 45 67",
+            "+1 (555) 123-4567",
+            "+44 20 7946 0958"
+    })
+    @DisplayName("POST /api/v1/applications - should accept international phone format")
+    void givenInternationalPhone_applyForVacancy_shouldReturn201Created(String phone) throws Exception {
+        ApplyForVacancyRequest request = anApplyRequest().phone(phone).build();
+        when(applicationService.apply(any(ApplyForVacancyRequest.class))).thenReturn(anApplicationResponse());
+
+        mockMvc.perform(post(BASE_URL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated());
     }
 
     @Test

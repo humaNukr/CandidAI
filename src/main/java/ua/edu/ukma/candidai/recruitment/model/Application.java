@@ -103,6 +103,18 @@ public class Application {
                 .build();
     }
 
+    public void updateCandidateDetails(String phone, String resumeUrl, Instant now) {
+        if (this.status != ApplicationStatus.APPLIED) {
+            throw new InvalidStateTransitionException(
+                    "Cannot update application in status " + this.status
+                            + ". Only APPLIED applications can be updated."
+            );
+        }
+        this.phone = phone;
+        this.resumeUrl = resumeUrl;
+        this.updatedAt = now;
+    }
+
     public void updateStatus(ApplicationStatus newStatus, String comment, Instant now) {
         if (!this.status.canTransitionTo(newStatus)) {
             throw new InvalidStateTransitionException(

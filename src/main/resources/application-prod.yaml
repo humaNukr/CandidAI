@@ -13,5 +13,5 @@ candidai:
 
 logging:
   level:
-    root: WARN
+    root: warn
     ua.edu.ukma.candidai: INFO

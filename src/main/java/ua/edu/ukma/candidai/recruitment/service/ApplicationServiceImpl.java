@@ -30,6 +30,7 @@ import ua.edu.ukma.candidai.vacancy.model.JobCategory;
 import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Slf4j
@@ -81,6 +82,35 @@ public class ApplicationServiceImpl implements ApplicationService {
         log.info("Successfully created application {} for vacancy {}", saved.getId(), saved.getVacancyId());
 
         return applicationMapper.toResponse(saved);
+    }
+
+    @Override
+    @Transactional
+    public ApplicationResponse updateApplication(UUID vacancyId, UUID candidateId, ApplyForVacancyRequest request) {
+        log.info("Updating application details for candidate {} on vacancy {}", candidateId, vacancyId);
+
+        Application application = applicationRepository.findByVacancyIdAndCandidateId(vacancyId, candidateId)
+                .orElseThrow(() -> {
+                    log.warn("Application not found for vacancy {} and candidate {}", vacancyId, candidateId);
+                    return new ResourceNotFoundException("Application not found for candidate and vacancy");
+                });
+
+        Instant now = commonGenerator.now();
+        application.updateCandidateDetails(request.phone(), request.resumeUrl(), now);
+        Application saved = applicationRepository.save(application);
+        log.info("Successfully updated application {} for vacancy {}", saved.getId(), vacancyId);
+
+        return applicationMapper.toResponse(saved);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<ApplicationResponse> findCandidateApplication(UUID vacancyId, UUID candidateId) {
+        if (vacancyId == null || candidateId == null) {
+            return Optional.empty();
+        }
+        return applicationRepository.findByVacancyIdAndCandidateId(vacancyId, candidateId)
+                .map(applicationMapper::toResponse);
     }
 
     @Override

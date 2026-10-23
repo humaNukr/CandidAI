@@ -32,7 +32,7 @@ public record ApplyForVacancyRequest(
         String email,
 
         @Schema(description = "Candidate phone number in international format", example = "+380501234567")
-        @Pattern(regexp = "^\\+?[0-9]{10,15}$", message = "Invalid phone number format")
+        @Pattern(regexp = PHONE_REGEX, message = "Invalid phone number format")
         String phone,
 
         @Schema(
@@ -44,4 +44,6 @@ public record ApplyForVacancyRequest(
         @Size(max = 500, message = "Resume URL must not exceed 500 characters")
         String resumeUrl
 ) {
+    public static final String PHONE_REGEX
+            = "^(?:$|(?=(?:\\D*\\d){7,15}\\D*$)\\+?[0-9]{1,4}?([-\\s./]?\\(?[0-9]{1,4}\\)?)+([-\\s./]?[0-9]{1,4})+)$";
 }
