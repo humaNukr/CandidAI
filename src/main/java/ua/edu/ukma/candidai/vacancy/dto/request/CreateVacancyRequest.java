@@ -13,6 +13,7 @@ import ua.edu.ukma.candidai.vacancy.model.EnglishLevel;
 import ua.edu.ukma.candidai.vacancy.model.JobCategory;
 import ua.edu.ukma.candidai.vacancy.model.LocationType;
 import ua.edu.ukma.candidai.vacancy.model.VacancyStatus;
+import ua.edu.ukma.candidai.vacancy.validation.HasSalaryRange;
 import ua.edu.ukma.candidai.vacancy.validation.ValidSalaryRange;
 
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -106,4 +107,4 @@ public record CreateVacancyRequest(
         @Schema(description = "Vacancy expiration timestamp", example = "2026-12-31T23:59:59Z")
         @Future(message = "Expiration date must be in the future")
         Instant expiresAt
-) {}
+) implements HasSalaryRange {}

@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:lang="${#locale.language}">
+<head th:replace="~{fragments/layout :: head(#{application.apply.title})}">
+    <title>Подати заявку - CandidAI</title>
+</head>
+<body class="bg-light">
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+
+<div class="container my-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-primary text-white py-3">
+                    <h4 class="card-title mb-1"
+                        th:text="${isEdit} ? #{application.apply.heading.edit} : #{application.apply.heading}">
+                        Подання заявки на вакансію
+                    </h4>
+                    <p class="card-subtitle mb-0 text-white-50"
+                       th:text="${isEdit} ? #{application.apply.subtitle.edit} : ${vacancyTitle}">
+                        Назва вакансії
+                    </p>
+                </div>
+                <div class="card-body p-4">
+
+                    <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <span th:text="${errorMessage}">Помилка</span>
+                    </div>
+
+                    <div th:if="${isEdit and applicationStatus != null}"
+                         class="alert alert-info py-2 mb-3 d-flex align-items-center justify-content-between">
+                        <span th:text="#{application.status.badge} + ' ' + ${applicationStatus}">
+                            Поточний статус заявки: APPLIED
+                        </span>
+                    </div>
+
+                    <div th:if="${!canEdit}" class="alert alert-warning"
+                         th:text="#{application.apply.locked(${applicationStatus})}">
+                        Заявка заблокована для редагування
+                    </div>
+
+                    <form th:action="@{/vacancies/{id}/apply(id=${vacancyId})}"
+                          th:object="${form}"
+                          method="post"
+                          novalidate>
+
+                        <div class="mb-3">
+                            <label for="candidateName" class="form-label fw-semibold">
+                                <span th:text="#{application.candidateName.label}">Повне ім'я</span>
+                                <span class="text-danger">*</span>
+                            </label>
+                            <input type="text"
+                                   id="candidateName"
+                                   th:field="*{candidateName}"
+                                   class="form-control"
+                                   th:errorclass="is-invalid"
+                                   th:placeholder="#{application.candidateName.placeholder}"
+                                   required>
+                            <div class="invalid-feedback"
+                                 th:if="${#fields.hasErrors('candidateName')}"
+                                 th:errors="*{candidateName}">
+                                Помилка імені
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="email" class="form-label fw-semibold">
+                                <span th:text="#{application.email.label}">Електронна пошта</span>
+                                <span class="text-danger">*</span>
+                            </label>
+                            <input type="email"
+                                   id="email"
+                                   th:field="*{email}"
+                                   class="form-control"
+                                   th:errorclass="is-invalid"
+                                   th:placeholder="#{application.email.placeholder}"
+                                   required>
+                            <div class="invalid-feedback" th:if="${#fields.hasErrors('email')}" th:errors="*{email}">
+                                Помилка email
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="phone" class="form-label fw-semibold">
+                                <span th:text="#{application.phone.label}">Номер телефону</span>
+                            </label>
+                            <input type="tel"
+                                   id="phone"
+                                   th:field="*{phone}"
+                                   class="form-control"
+                                   th:errorclass="is-invalid"
+                                   th:placeholder="#{application.phone.placeholder}"
+                                   th:disabled="${!canEdit}">
+                            <div class="invalid-feedback" th:if="${#fields.hasErrors('phone')}" th:errors="*{phone}">
+                                Некоректний формат телефону (наприклад: +380501234567 або +1 555 123-4567)
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="resumeUrl" class="form-label fw-semibold">
+                                <span th:text="#{application.resumeUrl.label}">Посилання на резюме (PDF/DOCX)</span>
+                                <span class="text-danger">*</span>
+                            </label>
+                            <input type="url"
+                                   id="resumeUrl"
+                                   th:field="*{resumeUrl}"
+                                   class="form-control"
+                                   th:errorclass="is-invalid"
+                                   th:placeholder="#{application.resumeUrl.placeholder}"
+                                   th:disabled="${!canEdit}"
+                                   required>
+                            <div class="invalid-feedback"
+                                 th:if="${#fields.hasErrors('resumeUrl')}"
+                                 th:errors="*{resumeUrl}">
+                                Вкажіть дійсне URL-посилання на резюме
+                            </div>
+                            <div class="form-text text-muted" th:text="#{application.resumeUrl.hint}">
+                                Пряме посилання на завантажене резюме у хмарному сховищі.
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center pt-2 border-top">
+                            <a th:href="@{/vacancies}"
+                               class="btn btn-outline-secondary"
+                               th:text="#{application.btn.cancel}">
+                                Скасувати
+                            </a>
+                            <button th:if="${canEdit}"
+                                    type="submit"
+                                    class="btn btn-primary px-4 fw-semibold"
+                                    th:text="${isEdit} ? #{application.btn.update} : #{application.btn.submit}">
+                                Надіслати заявку
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

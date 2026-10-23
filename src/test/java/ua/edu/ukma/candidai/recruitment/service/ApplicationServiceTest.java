@@ -35,27 +35,9 @@ import java.util.UUID;
 
 import ua.edu.ukma.candidai.recruitment.model.InterviewFeedback;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-import static ua.edu.ukma.candidai.recruitment.RecruitmentTestResources.DEFAULT_APPLICATION_ID;
-import static ua.edu.ukma.candidai.recruitment.RecruitmentTestResources.DEFAULT_CANDIDATE_ID;
-import static ua.edu.ukma.candidai.recruitment.RecruitmentTestResources.DEFAULT_FEEDBACK_ID;
-import static ua.edu.ukma.candidai.recruitment.RecruitmentTestResources.DEFAULT_NOW;
-import static ua.edu.ukma.candidai.recruitment.RecruitmentTestResources.DEFAULT_VACANCY_ID;
-import static ua.edu.ukma.candidai.recruitment.RecruitmentTestResources.NON_EXISTENT_ID;
-import static ua.edu.ukma.candidai.recruitment.RecruitmentTestResources.aFeedbackResponse;
-import static ua.edu.ukma.candidai.recruitment.RecruitmentTestResources.aHireFeedbackResponse;
-import static ua.edu.ukma.candidai.recruitment.RecruitmentTestResources.aRejectFeedbackResponse;
-import static ua.edu.ukma.candidai.recruitment.RecruitmentTestResources.anApplication;
-import static ua.edu.ukma.candidai.recruitment.RecruitmentTestResources.anApplicationBuilder;
-import static ua.edu.ukma.candidai.recruitment.RecruitmentTestResources.anApplicationResponse;
-import static ua.edu.ukma.candidai.recruitment.RecruitmentTestResources.anEvaluationResult;
-import static ua.edu.ukma.candidai.recruitment.RecruitmentTestResources.anInterviewFeedback;
-import static ua.edu.ukma.candidai.recruitment.RecruitmentTestResources.validApplyForVacancyRequest;
-import static ua.edu.ukma.candidai.recruitment.RecruitmentTestResources.validSubmitFeedbackRequest;
+import static org.assertj.core.api.Assertions.*;
+import static org.mockito.Mockito.*;
+import static ua.edu.ukma.candidai.recruitment.RecruitmentTestResources.*;
 
 @ExtendWith(MockitoExtension.class)
 class ApplicationServiceTest {
@@ -549,5 +531,109 @@ class ApplicationServiceTest {
         List<ApplicationResponse> actual = applicationService.getApplicationsByVacancy(DEFAULT_VACANCY_ID, true);
 
         assertThat(actual).containsExactly(resHigh, resLow, resNull);
+    }
+
+    @Test
+    @DisplayName("updateApplication should update candidate details, save application, and return response")
+    void givenExistingAppliedApplication_updateApplication_shouldPersistAndReturnUpdatedResponse() {
+        ApplyForVacancyRequest request = anApplyForVacancyRequest()
+                .phone(UPDATED_PHONE)
+                .resumeUrl(UPDATED_RESUME_URL)
+                .build();
+        Application application = anApplication(ApplicationStatus.APPLIED);
+        Instant updatedAt = DEFAULT_NOW.plusSeconds(3600);
+        ApplicationResponse expectedResponse = anUpdatedApplicationResponse(updatedAt);
+
+        when(applicationRepository.findByVacancyIdAndCandidateId(DEFAULT_VACANCY_ID, DEFAULT_CANDIDATE_ID))
+                .thenReturn(Optional.of(application));
+        when(commonGenerator.now()).thenReturn(updatedAt);
+        when(applicationRepository.save(application)).thenReturn(application);
+        when(applicationMapper.toResponse(application)).thenReturn(expectedResponse);
+
+        ApplicationResponse actual = applicationService.updateApplication(
+                DEFAULT_VACANCY_ID, DEFAULT_CANDIDATE_ID, request
+        );
+
+        assertThat(actual)
+                .usingRecursiveComparison()
+                .isEqualTo(expectedResponse);
+    }
+
+    @Test
+    @DisplayName("updateApplication should throw ResourceNotFoundException when application does not exist")
+    void givenNonExistentApplication_updateApplication_shouldThrowResourceNotFoundException() {
+        ApplyForVacancyRequest request = anApplyForVacancyRequest().build();
+
+        when(applicationRepository.findByVacancyIdAndCandidateId(DEFAULT_VACANCY_ID, NON_EXISTENT_ID))
+                .thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> applicationService.updateApplication(
+                DEFAULT_VACANCY_ID, NON_EXISTENT_ID, request
+        ))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("Application not found for candidate and vacancy");
+    }
+
+    @Test
+    @DisplayName("updateApplication should throw InvalidStateTransitionException when application is not in APPLIED")
+    void givenApplicationInNonAppliedStatus_updateApplication_shouldThrowInvalidStateTransitionException() {
+        ApplyForVacancyRequest request = anApplyForVacancyRequest().build();
+        Application application = anApplication(ApplicationStatus.SCREENING);
+
+        when(applicationRepository.findByVacancyIdAndCandidateId(DEFAULT_VACANCY_ID, DEFAULT_CANDIDATE_ID))
+                .thenReturn(Optional.of(application));
+
+        assertThatThrownBy(() -> applicationService.updateApplication(
+                DEFAULT_VACANCY_ID, DEFAULT_CANDIDATE_ID, request
+        ))
+                .isInstanceOf(InvalidStateTransitionException.class)
+                .hasMessageContaining("Cannot update application in status SCREENING. "
+                        + "Only APPLIED applications can be updated.");
+    }
+
+    @Test
+    @DisplayName("findCandidateApplication should return application response when application exists")
+    void givenExistingApplication_findCandidateApplication_shouldReturnResponse() {
+        Application application = anApplication(ApplicationStatus.APPLIED);
+        ApplicationResponse expectedResponse = anApplicationResponse();
+
+        when(applicationRepository.findByVacancyIdAndCandidateId(DEFAULT_VACANCY_ID, DEFAULT_CANDIDATE_ID))
+                .thenReturn(Optional.of(application));
+        when(applicationMapper.toResponse(application)).thenReturn(expectedResponse);
+
+        Optional<ApplicationResponse> actual = applicationService.findCandidateApplication(
+                DEFAULT_VACANCY_ID, DEFAULT_CANDIDATE_ID
+        );
+
+        assertThat(actual)
+                .isPresent()
+                .contains(expectedResponse);
+    }
+
+    @Test
+    @DisplayName("findCandidateApplication should return empty when application does not exist")
+    void givenNonExistentApplication_findCandidateApplication_shouldReturnEmpty() {
+        when(applicationRepository.findByVacancyIdAndCandidateId(DEFAULT_VACANCY_ID, NON_EXISTENT_ID))
+                .thenReturn(Optional.empty());
+
+        Optional<ApplicationResponse> actual = applicationService.findCandidateApplication(
+                DEFAULT_VACANCY_ID, NON_EXISTENT_ID
+        );
+
+        assertThat(actual).isEmpty();
+    }
+
+    @Test
+    @DisplayName("findCandidateApplication should return empty when vacancyId or candidateId is null")
+    void givenNullIds_findCandidateApplication_shouldReturnEmpty() {
+        Optional<ApplicationResponse> actualWithNullVacancy = applicationService.findCandidateApplication(
+                null, DEFAULT_CANDIDATE_ID
+        );
+        Optional<ApplicationResponse> actualWithNullCandidate = applicationService.findCandidateApplication(
+                DEFAULT_VACANCY_ID, null
+        );
+
+        assertThat(actualWithNullVacancy).isEmpty();
+        assertThat(actualWithNullCandidate).isEmpty();
     }
 }

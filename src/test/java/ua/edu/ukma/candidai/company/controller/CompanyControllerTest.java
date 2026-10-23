@@ -1,5 +1,6 @@
 package ua.edu.ukma.candidai.company.controller;
 
+import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -67,6 +68,7 @@ class CompanyControllerTest {
         ProblemDetail expectedProblemDetail = expectedValidationProblemDetail(Map.of("name", "must not be blank"));
 
         MvcResult result = mockMvc.perform(post(BASE_URL)
+                        .cookie(new Cookie("lang", "en"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(invalidRequest)))
                 .andExpect(status().isBadRequest())
@@ -195,6 +197,7 @@ class CompanyControllerTest {
         );
 
         MvcResult result = mockMvc.perform(put(BASE_URL + "/" + DEFAULT_COMPANY_ID)
+                        .cookie(new Cookie("lang", "en"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(invalidRequest)))
                 .andExpect(status().isBadRequest())

@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:lang="${#locale.language}">
+<head th:replace="~{fragments/layout :: head(#{vacancies.create.title})}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+
+<div class="container pb-5" style="max-width: 800px;">
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-4 p-md-5">
+            <div class="mb-4">
+                <h2 class="fw-bold mb-1" th:text="#{vacancies.create.heading}">Створення нової вакансії</h2>
+                <p class="text-muted" th:text="#{vacancies.create.subtitle}">Заповніть параметри вимог до кандидата та умови співпраці</p>
+            </div>
+
+            <form th:action="@{/vacancies}" th:object="${form}" method="post" id="create-vacancy-form">
+                <!-- th:action automatically renders hidden CSRF token -->
+
+                <div th:if="${#fields.hasGlobalErrors()}" class="alert alert-danger mb-4" role="alert">
+                    <div th:each="err : ${#fields.globalErrors()}" th:text="${err}">Загальна помилка</div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="title" class="form-label fw-semibold" th:text="#{vacancies.form.title}">Назва посади *</label>
+                    <input type="text" id="title" th:field="*{title}" class="form-control"
+                           th:classappend="${#fields.hasErrors('title')} ? 'is-invalid'"
+                           th:placeholder="#{vacancies.form.title.placeholder}"/>
+                    <div class="invalid-feedback" th:if="${#fields.hasErrors('title')}" th:errors="*{title}">Помилка назви</div>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label for="category" class="form-label fw-semibold" th:text="#{vacancies.form.category}">Категорія *</label>
+                        <select id="category" th:field="*{category}" class="form-select"
+                                th:classappend="${#fields.hasErrors('category')} ? 'is-invalid'">
+                            <option th:each="cat : ${categories}" th:value="${cat}" th:text="${cat}">ENGINEERING</option>
+                        </select>
+                        <div class="invalid-feedback" th:if="${#fields.hasErrors('category')}" th:errors="*{category}">Помилка категорії</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="specialization" class="form-label fw-semibold" th:text="#{vacancies.form.specialization}">Спеціалізація *</label>
+                        <input type="text" id="specialization" th:field="*{specialization}" class="form-control"
+                               th:classappend="${#fields.hasErrors('specialization')} ? 'is-invalid'"
+                               th:placeholder="#{vacancies.form.specialization.placeholder}"/>
+                        <div class="invalid-feedback" th:if="${#fields.hasErrors('specialization')}" th:errors="*{specialization}">Помилка спеціалізації</div>
+                    </div>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label for="seniorityLevel" class="form-label fw-semibold" th:text="#{vacancies.form.seniorityLevel}">Рівень кваліфікації *</label>
+                        <input type="text" id="seniorityLevel" th:field="*{seniorityLevel}" class="form-control"
+                               th:classappend="${#fields.hasErrors('seniorityLevel')} ? 'is-invalid'"
+                               th:placeholder="#{vacancies.form.seniorityLevel.placeholder}"/>
+                        <div class="invalid-feedback" th:if="${#fields.hasErrors('seniorityLevel')}" th:errors="*{seniorityLevel}">Помилка рівня</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="minYearsOfExperience" class="form-label fw-semibold" th:text="#{vacancies.form.minYearsOfExperience}">Мінімум років досвіду *</label>
+                        <input type="number" id="minYearsOfExperience" th:field="*{minYearsOfExperience}" class="form-control"
+                               th:classappend="${#fields.hasErrors('minYearsOfExperience')} ? 'is-invalid'" min="0" max="50"/>
+                        <div class="invalid-feedback" th:if="${#fields.hasErrors('minYearsOfExperience')}" th:errors="*{minYearsOfExperience}">Помилка досвіду</div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="requiredSkills" class="form-label fw-semibold" th:text="#{vacancies.form.requiredSkills}">Обов'язкові навички * (через кому)</label>
+                    <input type="text" id="requiredSkills" th:field="*{requiredSkills}" class="form-control"
+                           th:classappend="${#fields.hasErrors('requiredSkills')} ? 'is-invalid'"
+                           th:placeholder="#{vacancies.form.requiredSkills.placeholder}"/>
+                    <div class="invalid-feedback" th:if="${#fields.hasErrors('requiredSkills')}" th:errors="*{requiredSkills}">Помилка навичок</div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="preferredSkills" class="form-label fw-semibold" th:text="#{vacancies.form.preferredSkills}">Бажані навички (через кому)</label>
+                    <input type="text" id="preferredSkills" th:field="*{preferredSkills}" class="form-control"
+                           th:placeholder="#{vacancies.form.preferredSkills.placeholder}"/>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label for="minEnglishLevel" class="form-label fw-semibold" th:text="#{vacancies.form.minEnglishLevel}">Рівень англійської *</label>
+                        <select id="minEnglishLevel" th:field="*{minEnglishLevel}" class="form-select"
+                                th:classappend="${#fields.hasErrors('minEnglishLevel')} ? 'is-invalid'">
+                            <option th:each="eng : ${englishLevels}" th:value="${eng}" th:text="${eng}">B2</option>
+                        </select>
+                        <div class="invalid-feedback" th:if="${#fields.hasErrors('minEnglishLevel')}" th:errors="*{minEnglishLevel}">Помилка англійської</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="employmentType" class="form-label fw-semibold" th:text="#{vacancies.form.employmentType}">Тип зайнятості *</label>
+                        <select id="employmentType" th:field="*{employmentType}" class="form-select"
+                                th:classappend="${#fields.hasErrors('employmentType')} ? 'is-invalid'">
+                            <option th:each="emp : ${employmentTypes}" th:value="${emp}" th:text="${emp}">FULL_TIME</option>
+                        </select>
+                        <div class="invalid-feedback" th:if="${#fields.hasErrors('employmentType')}" th:errors="*{employmentType}">Помилка зайнятості</div>
+                    </div>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-4">
+                        <label for="salaryMin" class="form-label fw-semibold" th:text="#{vacancies.form.salaryMin}">Зарплата від ($)</label>
+                        <input type="number" step="0.01" id="salaryMin" th:field="*{salaryMin}" class="form-control"
+                               th:classappend="${#fields.hasErrors('salaryMin')} ? 'is-invalid'"
+                               th:placeholder="#{vacancies.form.salaryMin.placeholder}"/>
+                        <div class="invalid-feedback" th:if="${#fields.hasErrors('salaryMin')}" th:errors="*{salaryMin}">Помилка мін. зарплати</div>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="salaryMax" class="form-label fw-semibold" th:text="#{vacancies.form.salaryMax}">Зарплата до ($)</label>
+                        <input type="number" step="0.01" id="salaryMax" th:field="*{salaryMax}" class="form-control"
+                               th:classappend="${#fields.hasErrors('salaryMax')} ? 'is-invalid'"
+                               th:placeholder="#{vacancies.form.salaryMax.placeholder}"/>
+                        <div class="invalid-feedback" th:if="${#fields.hasErrors('salaryMax')}" th:errors="*{salaryMax}">Помилка макс. зарплати</div>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="currency" class="form-label fw-semibold" th:text="#{vacancies.form.currency}">Валюта *</label>
+                        <input type="text" id="currency" th:field="*{currency}" class="form-control"
+                               th:classappend="${#fields.hasErrors('currency')} ? 'is-invalid'"
+                               th:placeholder="#{vacancies.form.currency.placeholder}"/>
+                        <div class="invalid-feedback" th:if="${#fields.hasErrors('currency')}" th:errors="*{currency}">Помилка валюти</div>
+                    </div>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label for="locationType" class="form-label fw-semibold" th:text="#{vacancies.form.locationType}">Тип локації *</label>
+                        <select id="locationType" th:field="*{locationType}" class="form-select"
+                                th:classappend="${#fields.hasErrors('locationType')} ? 'is-invalid'">
+                            <option th:each="loc : ${locationTypes}" th:value="${loc}" th:text="${loc}">REMOTE</option>
+                        </select>
+                        <div class="invalid-feedback" th:if="${#fields.hasErrors('locationType')}" th:errors="*{locationType}">Помилка типу локації</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="location" class="form-label fw-semibold" th:text="#{vacancies.form.location}">Локація (місто/країна)</label>
+                        <input type="text" id="location" th:field="*{location}" class="form-control"
+                               th:classappend="${#fields.hasErrors('location')} ? 'is-invalid'"
+                               th:placeholder="#{vacancies.form.location.placeholder}"/>
+                        <div class="invalid-feedback" th:if="${#fields.hasErrors('location')}" th:errors="*{location}">Помилка локації</div>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label for="description" class="form-label fw-semibold" th:text="#{vacancies.form.description}">Опис вакансії *</label>
+                    <textarea id="description" th:field="*{description}" rows="5" class="form-control"
+                              th:classappend="${#fields.hasErrors('description')} ? 'is-invalid'"
+                              th:placeholder="#{vacancies.form.description.placeholder}"></textarea>
+                    <div class="invalid-feedback" th:if="${#fields.hasErrors('description')}" th:errors="*{description}">Помилка опису</div>
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary" id="btn-submit-vacancy" th:text="#{vacancies.btn.save}">Зберегти вакансію</button>
+                    <a th:href="@{/vacancies}" class="btn btn-outline-secondary" th:text="#{vacancies.btn.cancel}">Скасувати</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+</html>

@@ -20,6 +20,8 @@ public interface ApplicationRepository extends JpaRepository<Application, UUID> 
 
     List<Application> findByCandidateId(UUID candidateId);
 
+    Optional<Application> findByVacancyIdAndCandidateId(UUID vacancyId, UUID candidateId);
+
     List<Application> findByVacancyIdAndStatus(UUID vacancyId, ApplicationStatus status);
 
     @Query("SELECT a FROM Application a LEFT JOIN FETCH a.feedbacks WHERE a.id = :id")
