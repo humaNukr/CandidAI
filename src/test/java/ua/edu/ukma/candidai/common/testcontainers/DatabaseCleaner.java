@@ -29,6 +29,7 @@ public class DatabaseCleaner {
         jdbcClient.sql("""
                 DELETE FROM users 
                 WHERE id NOT IN (
+                    'e0000000-0000-0000-0000-000000000001',
                     'a0000000-0000-0000-0000-000000000001', 
                     'c0000000-0000-0000-0000-000000000001'
                 );

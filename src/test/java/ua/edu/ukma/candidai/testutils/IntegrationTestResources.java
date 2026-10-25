@@ -17,6 +17,7 @@ import ua.edu.ukma.candidai.vacancy.model.VacancyStatus;
 public final class IntegrationTestResources {
 
     public static final UUID SEED_COMPANY_ID = UUID.fromString("c0000000-0000-0000-0000-000000000003");
+    public static final UUID SEED_ADMIN_ID = UUID.fromString("e0000000-0000-0000-0000-000000000001");
     public static final UUID SEED_RECRUITER_ID = UUID.fromString("a0000000-0000-0000-0000-000000000001");
     public static final UUID SEED_CANDIDATE_ID = UUID.fromString("c0000000-0000-0000-0000-000000000001");
 

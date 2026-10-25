@@ -16,6 +16,9 @@ import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.context.DelegatingSecurityContextRepository;
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
+import org.springframework.security.web.context.RequestAttributeSecurityContextRepository;
 import ua.edu.ukma.candidai.common.security.jwt.JwtAuthenticationFilter;
 import ua.edu.ukma.candidai.common.security.jwt.JwtValidatorService;
 
@@ -44,6 +47,11 @@ public class SecurityConfiguration {
                 .cors(Customizer.withDefaults())
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .securityContext(securityContext -> securityContext
+                        .securityContextRepository(new DelegatingSecurityContextRepository(
+                                new RequestAttributeSecurityContextRepository(),
+                                new HttpSessionSecurityContextRepository()
+                        )))
                 .exceptionHandling(exceptions -> exceptions
                         .authenticationEntryPoint(authEntryPoint)
                         .accessDeniedHandler(accessDeniedHandler))
