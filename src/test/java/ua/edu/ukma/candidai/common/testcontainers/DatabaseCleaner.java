@@ -22,6 +22,11 @@ public class DatabaseCleaner {
                 """).update();
 
         jdbcClient.sql("""
+                DELETE FROM companies 
+                WHERE id != 'c0000000-0000-0000-0000-000000000003';
+                """).update();
+
+        jdbcClient.sql("""
                 DELETE FROM users 
                 WHERE id NOT IN (
                     'a0000000-0000-0000-0000-000000000001', 
