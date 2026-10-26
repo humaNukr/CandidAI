@@ -47,34 +47,13 @@ public abstract class BrowserTestSupport {
             Path reportDir = Paths.get("build", "reports", "playwright");
             try {
                 Files.createDirectories(reportDir);
-            } catch (Exception ex) {
-                LOG.warn("Failed to create report dir: {}", ex.getMessage());
-            }
-            String testName = extContext.getRequiredTestMethod().getName();
-            try {
+                String testName = extContext.getRequiredTestMethod().getName();
                 if (page != null) {
                     page.screenshot(new Page.ScreenshotOptions()
                             .setPath(reportDir.resolve(testName + "-failure.png")));
                 }
             } catch (Exception ex) {
-                LOG.warn("Failed to take screenshot: {}", ex.getMessage());
-            }
-            try {
-                if (context != null) {
-                    context.tracing().stop(new Tracing.StopOptions()
-                            .setPath(reportDir.resolve(testName + "-trace.zip")));
-                }
-            } catch (Exception ex) {
-                LOG.warn("Failed to stop tracing: {}", ex.getMessage());
-            }
-        }
-
-        @Override
-        public void testSuccessful(ExtensionContext extContext) {
-            try {
-                context.tracing().stop(new Tracing.StopOptions());
-            } catch (Exception ex) {
-                LOG.warn("Failed to stop Playwright tracing: {}", ex.getMessage());
+                LOG.warn("Failed to take failure screenshot: {}", ex.getMessage());
             }
         }
     };
@@ -108,10 +87,31 @@ public abstract class BrowserTestSupport {
     }
 
     @AfterEach
-    void destroyContext() {
+    void destroyContext(org.junit.jupiter.api.TestInfo testInfo) {
         if (context != null) {
+            try {
+                Path reportDir = Paths.get("build", "reports", "playwright");
+                Files.createDirectories(reportDir);
+                String testName = testInfo.getTestMethod()
+                        .map(java.lang.reflect.Method::getName)
+                        .orElse("test");
+                context.tracing().stop(new Tracing.StopOptions()
+                        .setPath(reportDir.resolve(testName + "-trace.zip")));
+            } catch (Exception ex) {
+                LOG.warn("Failed to stop Playwright tracing: {}", ex.getMessage());
+            }
             context.close();
             context = null;
+        }
+    }
+
+    protected void captureScreenshot(String filename) {
+        try {
+            Path dir = Paths.get("docs", "screenshots", "e2e");
+            Files.createDirectories(dir);
+            page.screenshot(new Page.ScreenshotOptions().setPath(dir.resolve(filename)));
+        } catch (Exception ex) {
+            LOG.warn("Failed to capture screenshot {}: {}", filename, ex.getMessage());
         }
     }
 

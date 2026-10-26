@@ -51,6 +51,9 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
+      - name: Install Playwright Browsers
+        run: ./gradlew installPlaywright
+
       - name: Run checkstyle, tests and build JAR
         run: ./gradlew checkstyleMain checkstyleTest test e2eTest jacocoTestReport bootJar
 
@@ -89,6 +92,12 @@ jobs:
           path: build/libs/*.jar
           if-no-files-found: error
           retention-days: 1
+
+      - name: SonarQube Clean Code Analysis
+        if: env.SONAR_TOKEN != ''
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: ./gradlew sonar --info
 
   api-tests:
     name: Newman E2E Tests
