@@ -39,7 +39,6 @@ class ThymeleafUiE2EIT extends BrowserTestSupport {
 
         assertThat(vacancyListPage.hasSuccessAlert()).isTrue();
         assertThat(vacancyListPage.hasVacancyWithTitle(vacancyTitle)).isTrue();
-        captureScreenshot("01-recruiter-created-vacancy.png");
     }
 
     @Test
@@ -82,7 +81,6 @@ class ThymeleafUiE2EIT extends BrowserTestSupport {
         applyPage.submit();
 
         assertThat(vacancyListPage.hasSuccessAlert()).isTrue();
-        captureScreenshot("02-candidate-applied-vacancy.png");
         vacancyListPage.logout();
 
         loginPage.login("techlead@candidai.com", "TechLeadPass123!");
@@ -92,7 +90,6 @@ class ThymeleafUiE2EIT extends BrowserTestSupport {
         ApplicationsListPage applicationsListPage = new ApplicationsListPage(page);
         assertThat(applicationsListPage.hasCandidateApplication("candidate@candidai.com")).isTrue();
         assertThat(applicationsListPage.getCandidateStatus("candidate@candidai.com")).isEqualTo("APPLIED");
-        captureScreenshot("03-techlead-applications-list.png");
     }
 
     @Test
@@ -108,6 +105,5 @@ class ThymeleafUiE2EIT extends BrowserTestSupport {
         assertThat(page.locator("h1.text-danger").isVisible()).isTrue();
         assertThat(page.locator("h1.text-danger").innerText())
                 .containsAnyOf("Доступ заборонено", "Access Denied");
-        captureScreenshot("04-candidate-access-denied-403.png");
     }
 }
