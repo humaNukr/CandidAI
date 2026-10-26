@@ -66,14 +66,15 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-starter-jdbc-test")
     testImplementation("org.springframework.security:spring-security-test")
     testImplementation("org.springframework.modulith:spring-modulith-starter-test")
-    
+
     testImplementation(platform("org.testcontainers:testcontainers-bom:1.20.4"))
     testImplementation("org.springframework.boot:spring-boot-testcontainers")
     testImplementation("org.testcontainers:junit-jupiter")
     testImplementation("org.testcontainers:postgresql")
     testRuntimeOnly("com.h2database:h2")
-    
+
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    testImplementation("com.microsoft.playwright:playwright:1.49.0")
 }
 
 tasks.withType<JavaCompile>().configureEach {
@@ -90,6 +91,35 @@ tasks.withType<Test>().configureEach {
         showCauses = true
         showStackTraces = true
     }
+}
+
+tasks.test {
+    exclude("**/*E2EIT.class")
+}
+
+val e2eTest = tasks.register<Test>("e2eTest") {
+    description = "Runs browser Playwright End-to-End tests."
+    group = "verification"
+    testClassesDirs = sourceSets["test"].output.classesDirs
+    classpath = sourceSets["test"].runtimeClasspath
+    jvmArgs("--enable-preview")
+    include("**/*E2EIT.class")
+    shouldRunAfter(tasks.test)
+    testLogging {
+        events("failed", "standardError")
+        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+        showExceptions = true
+        showCauses = true
+        showStackTraces = true
+    }
+}
+
+val installPlaywright = tasks.register<JavaExec>("installPlaywright") {
+    description = "Installs Playwright browser binaries (Chromium)"
+    group = "verification"
+    classpath = sourceSets["test"].runtimeClasspath
+    mainClass.set("com.microsoft.playwright.CLI")
+    args = listOf("install", "chromium")
 }
 
 checkstyle {

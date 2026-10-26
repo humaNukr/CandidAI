@@ -73,7 +73,7 @@ public final class VacancyWebTestResources {
     public static final CreateVacancyRequest EXPECTED_CREATE_REQUEST = new CreateVacancyRequest(
             RECRUITER_ID,
             RECRUITER_ID,
-            null,
+            CreateVacancyForm.DEFAULT_COMPANY_ID,
             VacancyStatus.OPEN,
             "Lead Kotlin Architect",
             JobCategory.ENGINEERING,
