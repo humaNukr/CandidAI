@@ -52,7 +52,7 @@ jobs:
         run: chmod +x gradlew
 
       - name: Run checkstyle, tests and build JAR
-        run: ./gradlew checkstyleMain checkstyleTest test jacocoTestReport bootJar
+        run: ./gradlew checkstyleMain checkstyleTest test e2eTest jacocoTestReport bootJar
 
       - name: JaCoCo PR Coverage Comment
         uses: madrapps/jacoco-report@v1.8.0
