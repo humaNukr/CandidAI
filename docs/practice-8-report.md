@@ -212,7 +212,29 @@ flowchart TD
 
 ## 5. Доказова база та фотофіксація (Artifacts & Screenshots)
 
-### 5.1. Консольний вивід успішного проходження збірки (`./gradlew check`)
+### 5.1. Знімки екрана з результатами виконання тестів (Gradle Test Results)
+
+Нижче наведено знімки екрана офіційних HTML-звітів тестування, згенерованих Gradle (`build/reports/tests/`) та JaCoCo:
+
+#### 1. Результат виконання швидких модульних та інтеграційних тестів (595 тестів, 100% успішно)
+*Звіт: `build/reports/tests/test/index.html`. 595 тестів виконано без жодного падіння (0 failures, 0 skipped).*
+![01-gradle-unit-integration-tests](screenshots/reports/01-gradle-unit-integration-tests.png)
+
+---
+
+#### 2. Результат виконання End-to-End тестів (8 сценаріїв, 100% успішно)
+*Звіт: `build/reports/tests/e2eTest/index.html`. Усі 8 наскрізних сценаріїв (REST API + Playwright Browser UI) виконані успішно.*
+![02-gradle-e2e-tests](screenshots/reports/02-gradle-e2e-tests.png)
+
+---
+
+#### 3. Результат покриття коду тестами (JaCoCo Code Coverage)
+*Звіт: `build/reports/jacoco/test/html/index.html`. Загальне покриття інструкцій становить 95%, рядків коду — 94%.*
+![03-jacoco-code-coverage](screenshots/reports/03-jacoco-code-coverage.png)
+
+---
+
+### 5.2. Консольний вивід успішного проходження збірки (`./gradlew check`)
 ```text
 > Task :checkstyleMain UP-TO-DATE
 > Task :compileTestJava UP-TO-DATE
@@ -226,7 +248,7 @@ BUILD SUCCESSFUL in 1m 2s
 16 actionable tasks: 6 executed, 10 up-to-date
 ```
 
-### 5.2. Скріншоти виконання браузерних сценаріїв Playwright
+### 5.3. Скріншоти виконання браузерних сценаріїв Playwright
 
 Нижче наведено фактичні скріншоти, зафіксовані рушієм Playwright Chromium під час проходження тестів класу `ThymeleafUiE2EIT`:
 
@@ -254,7 +276,7 @@ BUILD SUCCESSFUL in 1m 2s
 
 ---
 
-### 5.3. Діагностичні архіви Playwright Tracing
+### 5.4. Діагностичні архіви Playwright Tracing
 У каталозі `build/reports/playwright/` сформовано повні архіви трасування для покрокового аналізу в Playwright Trace Viewer:
 - `recruiterCreatesVacancySuccessfully-trace.zip` (735 KB)
 - `candidateAppliesAndTechLeadViewsApplication-trace.zip` (1.2 MB)
