@@ -71,6 +71,7 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-testcontainers")
     testImplementation("org.testcontainers:junit-jupiter")
     testImplementation("org.testcontainers:postgresql")
+    testImplementation("org.wiremock:wiremock-standalone:3.13.2")
     testRuntimeOnly("com.h2database:h2")
 
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
@@ -84,27 +85,6 @@ tasks.withType<JavaCompile>().configureEach {
 
 tasks.withType<Test>().configureEach {
     jvmArgs("--enable-preview")
-    testLogging {
-        events("failed", "standardError")
-        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
-        showExceptions = true
-        showCauses = true
-        showStackTraces = true
-    }
-}
-
-tasks.test {
-    exclude("**/*E2EIT.class")
-}
-
-val e2eTest = tasks.register<Test>("e2eTest") {
-    description = "Runs browser Playwright End-to-End tests."
-    group = "verification"
-    testClassesDirs = sourceSets["test"].output.classesDirs
-    classpath = sourceSets["test"].runtimeClasspath
-    jvmArgs("--enable-preview")
-    include("**/*E2EIT.class")
-    shouldRunAfter(tasks.test)
     testLogging {
         events("failed", "standardError")
         exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
@@ -140,6 +120,32 @@ tasks.withType<Checkstyle>().configureEach {
 tasks.withType<Test> {
     useJUnitPlatform()
     finalizedBy(tasks.jacocoTestReport)
+}
+
+tasks.named<Test>("test") {
+    exclude("**/*E2EIT.class")
+}
+
+val e2eTest = tasks.register<Test>("e2eTest") {
+    description = "Runs End-to-End tests (*E2EIT)."
+    group = "verification"
+    useJUnitPlatform()
+    testClassesDirs = sourceSets["test"].output.classesDirs
+    classpath = sourceSets["test"].runtimeClasspath
+    jvmArgs("--enable-preview")
+    include("**/*E2EIT.class")
+    shouldRunAfter(tasks.named("test"))
+    testLogging {
+        events("failed", "standardError")
+        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+        showExceptions = true
+        showCauses = true
+        showStackTraces = true
+    }
+}
+
+tasks.named("check") {
+    dependsOn(e2eTest)
 }
 
 tasks.jacocoTestReport {
