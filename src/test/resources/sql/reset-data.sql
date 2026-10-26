@@ -4,7 +4,7 @@ TRUNCATE TABLE
     applications, 
     vacancy_skills, 
     vacancies 
-CASCADE;
+RESTART IDENTITY CASCADE;
 
 DELETE FROM companies 
 WHERE id != 'c0000000-0000-0000-0000-000000000003';

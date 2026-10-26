@@ -35,7 +35,7 @@ class VacancyCrudIntegrationTest {
     private ObjectMapper objectMapper;
 
     @Test
-    @WithMockUser(username = "recruiter@candidai.ua", roles = "RECRUITER")
+    @WithMockUser(username = "author@candidai.ua", roles = "RECRUITER")
     void givenValidPayload_createVacancy_shouldReturn201AndPersistInPostgres() throws Exception {
         CreateVacancyRequest request = aValidCreateVacancyRequest();
 
@@ -61,7 +61,7 @@ class VacancyCrudIntegrationTest {
     }
 
     @Test
-    @WithMockUser(username = "recruiter@candidai.ua", roles = "RECRUITER")
+    @WithMockUser(username = "author@candidai.ua", roles = "RECRUITER")
     void givenInvalidPayload_createVacancy_shouldReturn400AndNotChangeRowCount() throws Exception {
         Integer countBefore = jdbcClient.sql("SELECT COUNT(*) FROM vacancies")
                 .query(Integer.class)
@@ -82,7 +82,7 @@ class VacancyCrudIntegrationTest {
     }
 
     @Test
-    @WithMockUser(username = "recruiter@candidai.ua", roles = "RECRUITER")
+    @WithMockUser(username = "author@candidai.ua", roles = "RECRUITER")
     void givenExistingVacancy_getVacancyById_shouldReturn200AndMatchDatabase() throws Exception {
         CreateVacancyRequest request = aValidCreateVacancyRequest();
 
@@ -116,7 +116,7 @@ class VacancyCrudIntegrationTest {
     }
 
     @Test
-    @WithMockUser(username = "recruiter@candidai.ua", roles = "RECRUITER")
+    @WithMockUser(username = "author@candidai.ua", roles = "RECRUITER")
     void givenExistingVacancy_updateVacancyStatus_shouldReturn200AndPersistStatusInPostgres() throws Exception {
         CreateVacancyRequest request = aValidCreateVacancyRequest();
 
@@ -165,7 +165,7 @@ class VacancyCrudIntegrationTest {
     }
 
     @Test
-    @WithMockUser(username = "recruiter@candidai.ua", roles = "RECRUITER")
+    @WithMockUser(username = "author@candidai.ua", roles = "RECRUITER")
     void givenRecruiterRole_deleteVacancy_shouldReturn403AndKeepActiveInPostgres() throws Exception {
         CreateVacancyRequest request = aValidCreateVacancyRequest();
 

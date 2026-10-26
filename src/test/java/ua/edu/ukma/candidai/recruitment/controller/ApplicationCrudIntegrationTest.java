@@ -142,7 +142,7 @@ class ApplicationCrudIntegrationTest {
     }
 
     @Test
-    @WithMockUser(username = "recruiter@candidai.ua", roles = "RECRUITER")
+    @WithMockUser(username = "author@candidai.ua", roles = "RECRUITER")
     void givenExistingApplication_getApplicationById_shouldReturn200AndMatchDatabase() throws Exception {
         UUID vacancyId = createVacancyAsRecruiter();
         ApplyForVacancyRequest request = aValidApplyRequest(vacancyId);
@@ -178,7 +178,7 @@ class ApplicationCrudIntegrationTest {
     }
 
     @Test
-    @WithMockUser(username = "recruiter@candidai.ua", roles = "RECRUITER")
+    @WithMockUser(username = "author@candidai.ua", roles = "RECRUITER")
     void givenExistingApplication_updateApplicationStatus_shouldReturn200AndPersistStatusInPostgres()
             throws Exception {
         UUID vacancyId = createVacancyAsRecruiter();

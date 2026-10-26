@@ -113,7 +113,7 @@ class CompanyCrudIntegrationTest {
     }
 
     @Test
-    @WithMockUser(username = "recruiter@candidai.ua", roles = "RECRUITER")
+    @WithMockUser(username = "author@candidai.ua", roles = "RECRUITER")
     void givenRecruiterRole_createCompany_shouldReturn403Forbidden() throws Exception {
         CreateCompanyRequest request = aValidCreateCompanyRequest();
 
