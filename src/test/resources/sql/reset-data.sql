@@ -14,4 +14,10 @@ WHERE id NOT IN (
     'e0000000-0000-0000-0000-000000000001',
     'a0000000-0000-0000-0000-000000000001', 
     'c0000000-0000-0000-0000-000000000001'
+)
+AND email NOT IN (
+    'admin@candidai.com',
+    'recruiter@candidai.com',
+    'techlead@candidai.com',
+    'candidate@candidai.com'
 );

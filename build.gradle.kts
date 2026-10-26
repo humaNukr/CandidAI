@@ -71,6 +71,7 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-testcontainers")
     testImplementation("org.testcontainers:junit-jupiter")
     testImplementation("org.testcontainers:postgresql")
+    testImplementation("org.wiremock:wiremock-standalone:3.13.2")
     testRuntimeOnly("com.h2database:h2")
     
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
@@ -110,6 +111,24 @@ tasks.withType<Checkstyle>().configureEach {
 tasks.withType<Test> {
     useJUnitPlatform()
     finalizedBy(tasks.jacocoTestReport)
+}
+
+tasks.named<Test>("test") {
+    exclude("**/*E2EIT.class")
+}
+
+val e2eTest by tasks.registering(Test::class) {
+    description = "Runs end-to-end tests (*E2EIT)."
+    group = "verification"
+    useJUnitPlatform()
+    testClassesDirs = sourceSets["test"].output.classesDirs
+    classpath = sourceSets["test"].runtimeClasspath
+    include("**/*E2EIT.class")
+    shouldRunAfter(tasks.named("test"))
+}
+
+tasks.named("check") {
+    dependsOn(e2eTest)
 }
 
 tasks.jacocoTestReport {
