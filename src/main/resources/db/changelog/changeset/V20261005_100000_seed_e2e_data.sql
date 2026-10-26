@@ -12,3 +12,7 @@ ON CONFLICT (id) DO NOTHING;
 INSERT INTO users (id, full_name, email, role, created_at)
 VALUES ('c0000000-0000-0000-0000-000000000001', 'Test Candidate', 'candidate@candidai.ua', 'CANDIDATE', CURRENT_TIMESTAMP)
 ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO users (id, full_name, email, role, created_at)
+VALUES ('e0000000-0000-0000-0000-000000000001', 'Test Admin', 'admin@candidai.ua', 'ADMIN', CURRENT_TIMESTAMP)
+ON CONFLICT (id) DO NOTHING;

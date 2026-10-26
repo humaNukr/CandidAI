@@ -80,6 +80,7 @@ jobs:
           path: |
             build/reports/jacoco/
             build/reports/checkstyle/
+            build/reports/tests/
 
       - name: Upload executable JAR
         uses: actions/upload-artifact@v5
