@@ -4,7 +4,7 @@ plugins {
     jacoco
     id("org.springframework.boot") version "4.1.1"
     id("io.spring.dependency-management") version "1.1.7"
-    id("org.sonarqube") version "6.0.1.5171"
+    id("org.sonarqube") version "7.5.0.8588"
 }
 
 group = "ua.edu.ukma.candidai"
@@ -170,6 +170,7 @@ tasks.register<Exec>("runNewman") {
 
 sonar {
     properties {
+        property("sonar.host.url", "https://sonarcloud.io")
         property("sonar.projectKey", "humaNukr_CandidAI")
         property("sonar.projectName", "CandidAI")
         property("sonar.organization", "humanukr")

@@ -84,6 +84,7 @@ jobs:
             build/reports/jacoco/
             build/reports/checkstyle/
             build/reports/tests/
+            build/test-results/
 
       - name: Upload executable JAR
         uses: actions/upload-artifact@v5
@@ -92,12 +93,6 @@ jobs:
           path: build/libs/*.jar
           if-no-files-found: error
           retention-days: 1
-
-      - name: SonarQube Clean Code Analysis
-        if: env.SONAR_TOKEN != ''
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        run: ./gradlew sonar --info
 
   api-tests:
     name: Newman E2E Tests
@@ -193,3 +188,51 @@ jobs:
         with:
           name: newman-test-report
           path: build/reports/newman/
+
+  sonar:
+    name: SonarQube Clean Code Analysis
+    needs: build
+    runs-on: ubuntu-latest
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '25'
+
+      - name: Cache Gradle packages
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Download verification reports
+        uses: actions/download-artifact@v5
+        continue-on-error: true
+        with:
+          name: verification-reports
+          path: build/reports
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Run SonarQube Clean Code Analysis
+        if: env.SONAR_TOKEN != ''
+        run: ./gradlew classes sonar --info
+
+      - name: SonarQube token status notice
+        if: env.SONAR_TOKEN == ''
+        run: echo "::notice title=SonarQube Clean Code::SONAR_TOKEN secret is not set in GitHub repository secrets. Add SONAR_TOKEN to enable automatic reporting to SonarCloud."
+
