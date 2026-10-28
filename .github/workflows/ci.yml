@@ -20,6 +20,8 @@ jobs:
   build:
     name: Build & Verify
     runs-on: ubuntu-latest
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
     steps:
       - name: Checkout code
@@ -51,8 +53,21 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
+      - name: Cache Playwright Browsers
+        id: playwright-cache
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('build.gradle.kts') }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
+
+      - name: Install Playwright Browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: ./gradlew installPlaywright
+
       - name: Run checkstyle, tests and build JAR
-        run: ./gradlew checkstyleMain checkstyleTest test jacocoTestReport bootJar
+        run: ./gradlew checkstyleMain checkstyleTest test e2eTest jacocoTestReport bootJar
 
       - name: JaCoCo PR Coverage Comment
         uses: madrapps/jacoco-report@v1.8.0
@@ -72,6 +87,16 @@ jobs:
             --jacoco-xml build/reports/jacoco/test/jacocoTestReport.xml \
             --base-ref "${{ github.base_ref }}"
 
+      - name: Run SonarQube Clean Code Analysis
+        if: env.SONAR_TOKEN != ''
+        run: ./gradlew sonar --no-daemon --info
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: SonarQube token status notice
+        if: env.SONAR_TOKEN == ''
+        run: echo "::notice title=SonarQube Clean Code::SONAR_TOKEN secret is not set in GitHub repository secrets. Add SONAR_TOKEN to enable automatic reporting to SonarCloud."
+
       - name: Upload JaCoCo and Checkstyle reports
         uses: actions/upload-artifact@v5
         if: always()
@@ -80,6 +105,8 @@ jobs:
           path: |
             build/reports/jacoco/
             build/reports/checkstyle/
+            build/reports/tests/
+            build/test-results/
 
       - name: Upload executable JAR
         uses: actions/upload-artifact@v5
@@ -183,3 +210,4 @@ jobs:
         with:
           name: newman-test-report
           path: build/reports/newman/
+

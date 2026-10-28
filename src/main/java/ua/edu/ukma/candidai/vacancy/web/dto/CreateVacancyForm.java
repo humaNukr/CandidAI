@@ -79,6 +79,8 @@ public record CreateVacancyForm(
         String location
 ) implements HasSalaryRange {
 
+    public static final UUID DEFAULT_COMPANY_ID = UUID.fromString("c0000000-0000-0000-0000-000000000003");
+
     public static CreateVacancyForm empty() {
         return new CreateVacancyForm(
                 "",
@@ -106,7 +108,7 @@ public record CreateVacancyForm(
         return new CreateVacancyRequest(
                 authorId,
                 authorId,
-                null,
+                DEFAULT_COMPANY_ID,
                 VacancyStatus.OPEN,
                 title,
                 category,

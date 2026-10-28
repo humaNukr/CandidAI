@@ -4,6 +4,7 @@ plugins {
     jacoco
     id("org.springframework.boot") version "4.1.1"
     id("io.spring.dependency-management") version "1.1.7"
+    id("org.sonarqube") version "7.5.0.8588"
 }
 
 group = "ua.edu.ukma.candidai"
@@ -66,14 +67,16 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-starter-jdbc-test")
     testImplementation("org.springframework.security:spring-security-test")
     testImplementation("org.springframework.modulith:spring-modulith-starter-test")
-    
+
     testImplementation(platform("org.testcontainers:testcontainers-bom:1.20.4"))
     testImplementation("org.springframework.boot:spring-boot-testcontainers")
     testImplementation("org.testcontainers:junit-jupiter")
     testImplementation("org.testcontainers:postgresql")
+    testImplementation("org.wiremock:wiremock-standalone:3.13.2")
     testRuntimeOnly("com.h2database:h2")
-    
+
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    testImplementation("com.microsoft.playwright:playwright:1.49.0")
 }
 
 tasks.withType<JavaCompile>().configureEach {
@@ -83,6 +86,21 @@ tasks.withType<JavaCompile>().configureEach {
 
 tasks.withType<Test>().configureEach {
     jvmArgs("--enable-preview")
+    testLogging {
+        events("failed", "standardError")
+        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+        showExceptions = true
+        showCauses = true
+        showStackTraces = true
+    }
+}
+
+val installPlaywright = tasks.register<JavaExec>("installPlaywright") {
+    description = "Installs Playwright browser binaries (Chromium) and system dependencies"
+    group = "verification"
+    classpath = sourceSets["test"].runtimeClasspath
+    mainClass.set("com.microsoft.playwright.CLI")
+    args = listOf("install", "--with-deps", "chromium")
 }
 
 checkstyle {
@@ -105,6 +123,32 @@ tasks.withType<Test> {
     finalizedBy(tasks.jacocoTestReport)
 }
 
+tasks.named<Test>("test") {
+    exclude("**/*E2EIT.class")
+}
+
+val e2eTest = tasks.register<Test>("e2eTest") {
+    description = "Runs End-to-End tests (*E2EIT)."
+    group = "verification"
+    useJUnitPlatform()
+    testClassesDirs = sourceSets["test"].output.classesDirs
+    classpath = sourceSets["test"].runtimeClasspath
+    jvmArgs("--enable-preview")
+    include("**/*E2EIT.class")
+    shouldRunAfter(tasks.named("test"))
+    testLogging {
+        events("failed", "standardError")
+        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+        showExceptions = true
+        showCauses = true
+        showStackTraces = true
+    }
+}
+
+tasks.named("check") {
+    dependsOn(e2eTest)
+}
+
 tasks.jacocoTestReport {
     dependsOn(tasks.withType<Test>())
     reports {
@@ -122,4 +166,19 @@ tasks.register<Exec>("runNewman") {
         "--reporters", "cli,junit",
         "--reporter-junit-export", "build/reports/newman/report.xml"
     )
+}
+
+sonar {
+    properties {
+        property("sonar.host.url", "https://sonarcloud.io")
+        property("sonar.projectKey", "humaNukr_CandidAI")
+        property("sonar.projectName", "CandidAI")
+        property("sonar.organization", "humanukr")
+        property("sonar.sources", "src/main/java")
+        property("sonar.tests", "src/test/java")
+        property("sonar.coverage.jacoco.xmlReportPaths", "build/reports/jacoco/test/jacocoTestReport.xml")
+        property("sonar.junit.reportPaths", "build/test-results/test,build/test-results/e2eTest")
+        property("sonar.exclusions", "**/db/changelog/**,**/config/**,**/dto/**,**/model/**")
+        property("sonar.coverage.exclusions", "**/db/changelog/**,**/config/**,**/dto/**,**/model/**,**/Application.java")
+    }
 }
