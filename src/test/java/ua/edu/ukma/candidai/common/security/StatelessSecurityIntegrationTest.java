@@ -3,13 +3,12 @@ package ua.edu.ukma.candidai.common.security;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import tools.jackson.databind.ObjectMapper;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import tools.jackson.databind.ObjectMapper;
+import ua.edu.ukma.candidai.common.annotation.IntegrationTest;
 import ua.edu.ukma.candidai.common.security.dto.AuthResponse;
 import ua.edu.ukma.candidai.common.security.dto.LoginRequest;
 
@@ -20,16 +19,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static ua.edu.ukma.candidai.common.security.SecurityTestResources.*;
 
-@SpringBootTest(properties = {
-        "spring.datasource.url=jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1",
-        "spring.datasource.driver-class-name=org.h2.Driver",
-        "spring.datasource.username=sa",
-        "spring.datasource.password=",
-        "spring.jpa.database-platform=org.hibernate.dialect.H2Dialect",
-        "spring.liquibase.enabled=false",
-        "spring.jpa.hibernate.ddl-auto=none"
-})
-@AutoConfigureMockMvc
+@IntegrationTest
 class StatelessSecurityIntegrationTest {
 
     private static final String LOGIN_URL = "/api/v1/auth/login";

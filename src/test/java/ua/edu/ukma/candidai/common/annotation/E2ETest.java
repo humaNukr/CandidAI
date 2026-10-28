@@ -12,10 +12,6 @@ import org.springframework.test.context.jdbc.Sql;
 import ua.edu.ukma.candidai.common.testcontainers.TestcontainersConfiguration;
 import ua.edu.ukma.candidai.common.wiremock.ExternalServicesStubConfiguration;
 
-/**
- * End-to-end тести: застосунок запущено на справжньому HTTP-порту (RANDOM_PORT),
- * клієнт (RestTestClient або браузер Playwright) звертається до нього через мережу.
- */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
 @Documented

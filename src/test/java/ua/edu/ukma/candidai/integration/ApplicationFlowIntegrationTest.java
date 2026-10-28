@@ -36,12 +36,6 @@ import static ua.edu.ukma.candidai.testutils.IntegrationTestResources.SEED_CANDI
 import static ua.edu.ukma.candidai.testutils.IntegrationTestResources.aValidApplyRequest;
 import static ua.edu.ukma.candidai.testutils.IntegrationTestResources.aValidCreateVacancyRequest;
 
-/**
- * Наскрізний бізнес-сценарій CandidAI (Слайд 69 Лекції 8):
- * Подання заявки кандидатом -> збереження в PostgreSQL -> публікація події Modulith ->
- * перехоплення виклику до Google Gemini AI та Telegram Bot через WireMock ->
- * оновлення статусу заявки за допомогою Awaitility.
- */
 @IntegrationTest
 class ApplicationFlowIntegrationTest {
 

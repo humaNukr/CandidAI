@@ -3,16 +3,12 @@ package ua.edu.ukma.candidai;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationContext;
+import ua.edu.ukma.candidai.common.annotation.IntegrationTest;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@SpringBootTest(properties = {
-    "spring.liquibase.enabled=false",
-    "spring.jpa.hibernate.ddl-auto=none",
-    "candidai.security.seed-data.enabled=false"
-})
+@IntegrationTest
 class CandidAiApplicationTest {
 
     @Autowired
