@@ -4,6 +4,7 @@ plugins {
     jacoco
     id("org.springframework.boot") version "4.1.1"
     id("io.spring.dependency-management") version "1.1.7"
+    id("org.sonarqube") version "7.5.0.8588"
 }
 
 group = "ua.edu.ukma.candidai"
@@ -95,11 +96,11 @@ tasks.withType<Test>().configureEach {
 }
 
 val installPlaywright = tasks.register<JavaExec>("installPlaywright") {
-    description = "Installs Playwright browser binaries (Chromium)"
+    description = "Installs Playwright browser binaries (Chromium) and system dependencies"
     group = "verification"
     classpath = sourceSets["test"].runtimeClasspath
     mainClass.set("com.microsoft.playwright.CLI")
-    args = listOf("install", "chromium")
+    args = listOf("install", "--with-deps", "chromium")
 }
 
 checkstyle {
@@ -165,4 +166,19 @@ tasks.register<Exec>("runNewman") {
         "--reporters", "cli,junit",
         "--reporter-junit-export", "build/reports/newman/report.xml"
     )
+}
+
+sonar {
+    properties {
+        property("sonar.host.url", "https://sonarcloud.io")
+        property("sonar.projectKey", "humaNukr_CandidAI")
+        property("sonar.projectName", "CandidAI")
+        property("sonar.organization", "humanukr")
+        property("sonar.sources", "src/main/java")
+        property("sonar.tests", "src/test/java")
+        property("sonar.coverage.jacoco.xmlReportPaths", "build/reports/jacoco/test/jacocoTestReport.xml")
+        property("sonar.junit.reportPaths", "build/test-results/test,build/test-results/e2eTest")
+        property("sonar.exclusions", "**/db/changelog/**,**/config/**,**/dto/**,**/model/**")
+        property("sonar.coverage.exclusions", "**/db/changelog/**,**/config/**,**/dto/**,**/model/**,**/Application.java")
+    }
 }

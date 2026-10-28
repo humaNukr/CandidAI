@@ -1,14 +1,6 @@
-# Звіт до Практичної роботи №7 (Групове завдання)
+# Звіт до Практичної роботи №7
 
 ## Тема: Web-інтерфейс на Thymeleaf, форми з валідацією (PRG), мультиланцюгова безпека (JWT для `/api/**` + сесійний вхід з CSRF для вебу), версіонування статики та рольовий контроль
-
-**Дисципліна:** Архітектура корпоративних інформаційних систем (Spring Framework)  
-**Проєкт:** CandidAI (Smart HR / AI Screening Modular Monolith)  
-**Стек:** Java 25, Spring Boot 4.1, Spring Security 7, Spring Modulith 2.1, Thymeleaf + Thymeleaf Extras Spring Security, Bootstrap 5.3.3 (WebJar), PostgreSQL 17, Gradle  
-**Група:**  
-- **Артем Гриценко** — Блок 1: Vacancy UI (реєстр вакансій, форма створення, валідація JSR-380, PRG)  
-- **Денис Корявець** — Блок 2: Security (три ланцюги `SecurityFilterChain`, formLogin, CSRF, CSP, сторінки помилок)  
-- **Анастасія Заровська** — Блок 3: Layout & статика (спільні фрагменти, хешування статики, сторінки заявок, `sec:`-діалект, тести, звіт)  
 
 ---
 
