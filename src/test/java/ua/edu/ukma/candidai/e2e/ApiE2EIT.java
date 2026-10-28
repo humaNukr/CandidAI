@@ -12,7 +12,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.web.servlet.client.RestTestClient;
-import tools.jackson.databind.ObjectMapper;
 import ua.edu.ukma.candidai.common.annotation.E2ETest;
 import ua.edu.ukma.candidai.common.security.dto.AuthResponse;
 import ua.edu.ukma.candidai.common.security.dto.LoginRequest;
@@ -30,12 +29,6 @@ import ua.edu.ukma.candidai.vacancy.model.VacancyStatus;
 import static org.assertj.core.api.Assertions.assertThat;
 import static ua.edu.ukma.candidai.testutils.IntegrationTestResources.SEED_COMPANY_ID;
 
-/**
- * REST API End-to-End тести через мережевий HTTP-стек (Слайди 69–70 Лекції 8):
- * Застосунок запущено на випадковому порті (RANDOM_PORT).
- * Запити проходять через Tomcat, ланцюг фільтрів Spring Security (JWT),
- * обробку контролерів, транзакційні сервіси та персистентність у PostgreSQL Testcontainers.
- */
 @E2ETest
 class ApiE2EIT {
 
@@ -57,9 +50,6 @@ class ApiE2EIT {
 
     @Autowired
     private JdbcClient jdbcClient;
-
-    @Autowired
-    private ObjectMapper objectMapper;
 
     @Autowired
     private WireMockServer wireMockServer;

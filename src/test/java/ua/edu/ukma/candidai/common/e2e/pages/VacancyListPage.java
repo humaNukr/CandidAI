@@ -2,6 +2,7 @@ package ua.edu.ukma.candidai.common.e2e.pages;
 
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
+import com.microsoft.playwright.options.AriaRole;
 
 public class VacancyListPage {
 
@@ -11,33 +12,35 @@ public class VacancyListPage {
         this.page = page;
     }
 
-    public void navigate(String baseUrl) {
-        page.navigate(baseUrl + "/vacancies");
+    public void navigate() {
+        page.navigate("/vacancies");
+    }
+
+    public Locator createVacancyLink() {
+        return page.getByRole(AriaRole.LINK, new Page.GetByRoleOptions().setName("+ Створити вакансію"));
     }
 
     public void clickCreateVacancy() {
-        page.locator("#btn-add-vacancy").click();
+        createVacancyLink().click();
     }
 
-    public boolean hasVacancyWithTitle(String title) {
-        return page.locator("table.table tbody tr", new Page.LocatorOptions().setHasText(title)).count() > 0;
+    public Locator row(String title) {
+        return page.getByRole(AriaRole.ROW).filter(new Locator.FilterOptions().setHasText(title));
     }
 
     public void clickApplyForVacancy(String title) {
-        Locator row = page.locator("table.table tbody tr", new Page.LocatorOptions().setHasText(title));
-        row.locator("a[href*='/apply']").click();
+        row(title).getByRole(AriaRole.LINK, new Locator.GetByRoleOptions().setName("Подати заявку")).click();
     }
 
     public void clickViewApplicationsForVacancy(String title) {
-        Locator row = page.locator("table.table tbody tr", new Page.LocatorOptions().setHasText(title));
-        row.locator("a[href*='/applications']").click();
+        row(title).getByRole(AriaRole.LINK, new Locator.GetByRoleOptions().setName("Заявки")).click();
     }
 
-    public boolean hasSuccessAlert() {
-        return page.locator(".alert-success").isVisible();
+    public Locator alert() {
+        return page.getByRole(AriaRole.ALERT);
     }
 
     public void logout() {
-        page.locator("form[action*='/logout'] button[type='submit']").click();
+        page.getByRole(AriaRole.BUTTON, new Page.GetByRoleOptions().setName("Вийти")).click();
     }
 }

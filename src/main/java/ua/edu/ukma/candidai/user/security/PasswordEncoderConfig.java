@@ -45,8 +45,7 @@ public class PasswordEncoderConfig {
         return args -> {
             String samplePassword = "SecretPassword123!";
             String sampleHash = passwordEncoder.encode(samplePassword);
-            log.info("Argon2id PasswordEncoder successfully initialized.");
-            log.info("Sample encoded password for demonstration (Lecture 6, Slide 110): {}", sampleHash);
+            log.info("Argon2id PasswordEncoder initialized (sample hash: {})", sampleHash);
         };
     }
 }

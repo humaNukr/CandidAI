@@ -106,6 +106,7 @@ jobs:
             build/reports/jacoco/
             build/reports/checkstyle/
             build/reports/tests/
+            build/reports/playwright/
             build/test-results/
 
       - name: Upload executable JAR
@@ -123,7 +124,7 @@ jobs:
 
     services:
       postgres:
-        image: postgres:16-alpine
+        image: postgres:17-alpine
         env:
           POSTGRES_DB: candidai
           POSTGRES_USER: candidai_user

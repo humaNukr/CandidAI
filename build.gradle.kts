@@ -73,7 +73,6 @@ dependencies {
     testImplementation("org.testcontainers:junit-jupiter")
     testImplementation("org.testcontainers:postgresql")
     testImplementation("org.wiremock:wiremock-standalone:3.13.2")
-    testRuntimeOnly("com.h2database:h2")
 
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     testImplementation("com.microsoft.playwright:playwright:1.49.0")
@@ -85,6 +84,7 @@ tasks.withType<JavaCompile>().configureEach {
 }
 
 tasks.withType<Test>().configureEach {
+    useJUnitPlatform()
     jvmArgs("--enable-preview")
     testLogging {
         events("failed", "standardError")
@@ -93,6 +93,7 @@ tasks.withType<Test>().configureEach {
         showCauses = true
         showStackTraces = true
     }
+    finalizedBy(tasks.jacocoTestReport)
 }
 
 val installPlaywright = tasks.register<JavaExec>("installPlaywright") {
@@ -118,11 +119,6 @@ tasks.withType<Checkstyle>().configureEach {
     }
 }
 
-tasks.withType<Test> {
-    useJUnitPlatform()
-    finalizedBy(tasks.jacocoTestReport)
-}
-
 tasks.named<Test>("test") {
     exclude("**/*E2EIT.class")
 }
@@ -130,19 +126,10 @@ tasks.named<Test>("test") {
 val e2eTest = tasks.register<Test>("e2eTest") {
     description = "Runs End-to-End tests (*E2EIT)."
     group = "verification"
-    useJUnitPlatform()
     testClassesDirs = sourceSets["test"].output.classesDirs
     classpath = sourceSets["test"].runtimeClasspath
-    jvmArgs("--enable-preview")
     include("**/*E2EIT.class")
     shouldRunAfter(tasks.named("test"))
-    testLogging {
-        events("failed", "standardError")
-        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
-        showExceptions = true
-        showCauses = true
-        showStackTraces = true
-    }
 }
 
 tasks.named("check") {
@@ -150,7 +137,8 @@ tasks.named("check") {
 }
 
 tasks.jacocoTestReport {
-    dependsOn(tasks.withType<Test>())
+    mustRunAfter(tasks.named("test"), e2eTest)
+    executionData.setFrom(fileTree(layout.buildDirectory.dir("jacoco")).include("*.exec"))
     reports {
         xml.required = true
         html.required = true

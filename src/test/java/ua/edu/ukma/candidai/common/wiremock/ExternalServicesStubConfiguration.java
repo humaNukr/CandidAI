@@ -12,11 +12,6 @@ import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options;
 
-/**
- * Заглушка зовнішніх систем Google Gemini AI та Telegram Bot на WireMock.
- * Справжній HTTP-сервер на випадковому порті: застосунок виконує мережеві виклики
- * як у продакшні, а тестовий контекст перевіряє передані заголовки й тіла запитів.
- */
 @TestConfiguration(proxyBeanMethods = false)
 public class ExternalServicesStubConfiguration {
 

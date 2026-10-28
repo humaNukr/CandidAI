@@ -1,6 +1,7 @@
 package ua.edu.ukma.candidai.common.e2e.pages;
 
 import com.microsoft.playwright.Page;
+import com.microsoft.playwright.options.AriaRole;
 
 public class ApplyVacancyPage {
 
@@ -11,13 +12,13 @@ public class ApplyVacancyPage {
     }
 
     public void fillForm(String candidateName, String email, String phone, String resumeUrl) {
-        page.locator("#candidateName").fill(candidateName);
-        page.locator("#email").fill(email);
-        page.locator("#phone").fill(phone);
-        page.locator("#resumeUrl").fill(resumeUrl);
+        page.getByLabel("Повне ім'я").fill(candidateName);
+        page.getByLabel("Електронна пошта").fill(email);
+        page.getByLabel("Номер телефону").fill(phone);
+        page.getByLabel("Посилання на резюме").fill(resumeUrl);
     }
 
     public void submit() {
-        page.locator("form[action*='/apply'] button[type='submit']").click();
+        page.getByRole(AriaRole.BUTTON, new Page.GetByRoleOptions().setName("Надіслати заявку")).click();
     }
 }
