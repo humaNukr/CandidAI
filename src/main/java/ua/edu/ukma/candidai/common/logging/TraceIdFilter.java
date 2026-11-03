@@ -42,7 +42,7 @@ public class TraceIdFilter extends OncePerRequestFilter {
         response.setHeader(TRACE_ID_HEADER, traceId);
 
         try {
-            log.debug("Processing HTTP request [{} {}] from IP={} with traceId={}",
+            log.info("Processing HTTP request [{} {}] from IP [{}] (traceId={})",
                     request.getMethod(), request.getRequestURI(), clientIp, traceId);
             filterChain.doFilter(request, response);
         } finally {

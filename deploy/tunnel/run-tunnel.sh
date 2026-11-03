@@ -6,8 +6,18 @@ ROOT_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 ACTIVE_URL_FILE="${SCRIPT_DIR}/active-tunnel.url"
 LOG_FILE="${SCRIPT_DIR}/tunnel.log"
 
-PORT="${1:-8080}"
+PORT="${1:-443}"
 TOOL="${2:-auto}"
+
+if [[ "${PORT}" =~ ^https?:// ]]; then
+    TARGET_ORIGIN="${PORT}"
+elif [[ "${PORT}" == "443" ]]; then
+    TARGET_ORIGIN="https://localhost:443"
+elif [[ "${PORT}" =~ ^[0-9]+$ ]]; then
+    TARGET_ORIGIN="http://localhost:${PORT}"
+else
+    TARGET_ORIGIN="http://${PORT}"
+fi
 
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
@@ -47,13 +57,13 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 echo -e "${BLUE}[INFO]${NC} Selected tunnel tool: ${GREEN}${TOOL}${NC}"
-echo -e "${BLUE}[INFO]${NC} Target local port:    ${GREEN}${PORT}${NC}"
+echo -e "${BLUE}[INFO]${NC} Target local origin:  ${GREEN}${TARGET_ORIGIN}${NC}"
 
 PUBLIC_URL=""
 
 if [[ "${TOOL}" == "ngrok" ]]; then
-    echo -e "${BLUE}[INFO]${NC} Starting Ngrok tunnel for http://localhost:${PORT}..."
-    ngrok http "${PORT}" --log=stdout > "${LOG_FILE}" 2>&1 &
+    echo -e "${BLUE}[INFO]${NC} Starting Ngrok tunnel for ${TARGET_ORIGIN}..."
+    ngrok http "${TARGET_ORIGIN}" --log=stdout > "${LOG_FILE}" 2>&1 &
     TUNNEL_PID=$!
 
     echo -e "${BLUE}[INFO]${NC} Waiting for Ngrok API at http://127.0.0.1:4040..."
@@ -68,8 +78,8 @@ if [[ "${TOOL}" == "ngrok" ]]; then
     done
 
 elif [[ "${TOOL}" == "cloudflared" ]]; then
-    echo -e "${BLUE}[INFO]${NC} Starting Cloudflare Tunnel for http://localhost:${PORT}..."
-    cloudflared tunnel --url "http://localhost:${PORT}" > "${LOG_FILE}" 2>&1 &
+    echo -e "${BLUE}[INFO]${NC} Starting Cloudflare Tunnel for ${TARGET_ORIGIN}..."
+    cloudflared tunnel --url "${TARGET_ORIGIN}" --no-tls-verify > "${LOG_FILE}" 2>&1 &
     TUNNEL_PID=$!
 
     echo -e "${BLUE}[INFO]${NC} Waiting for Cloudflare tunnel URL in logs..."

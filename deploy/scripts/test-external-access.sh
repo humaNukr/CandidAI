@@ -52,7 +52,7 @@ run_test() {
     local response_file=$(mktemp)
     local http_code=""
 
-    local curl_cmd=(curl -s -S -o "${response_file}" -w "%{http_code}" -X "${method}" "${TARGET_URL}${endpoint}")
+    local curl_cmd=(curl -s -S -L --post301 -o "${response_file}" -w "%{http_code}" -X "${method}" "${TARGET_URL}${endpoint}")
     if [[ -n "${headers}" ]]; then
         while IFS= read -r header_line; do
             if [[ -n "${header_line}" ]]; then
@@ -109,7 +109,7 @@ run_test "Session Web UI (Login Form & CSRF Token)" \
 
 RECRUITER_LOGIN_PAYLOAD='{"email":"recruiter@candidai.com","password":"RecruiterPass123!"}'
 TEMP_AUTH_RESPONSE=$(mktemp)
-RECRUITER_HTTP_CODE=$(curl -s -o "${TEMP_AUTH_RESPONSE}" -w "%{http_code}" \
+RECRUITER_HTTP_CODE=$(curl -s -L --post301 -o "${TEMP_AUTH_RESPONSE}" -w "%{http_code}" \
     -X POST "${TARGET_URL}/api/v1/auth/login" \
     -H "Content-Type: application/json" \
     -d "${RECRUITER_LOGIN_PAYLOAD}" || echo "000")
@@ -146,7 +146,7 @@ fi
 
 run_test "Security Boundary (Unauthorized Request rejection)" \
          "GET" \
-         "/api/v1/vacancies" \
+         "/api/v1/applications" \
          "401" \
          "Accept: application/problem+json" \
          "" \
@@ -154,7 +154,7 @@ run_test "Security Boundary (Unauthorized Request rejection)" \
 
 CANDIDATE_LOGIN_PAYLOAD='{"email":"candidate@candidai.com","password":"CandidatePass123!"}'
 TEMP_CANDIDATE_RESPONSE=$(mktemp)
-CANDIDATE_HTTP_CODE=$(curl -s -o "${TEMP_CANDIDATE_RESPONSE}" -w "%{http_code}" \
+CANDIDATE_HTTP_CODE=$(curl -s -L --post301 -o "${TEMP_CANDIDATE_RESPONSE}" -w "%{http_code}" \
     -X POST "${TARGET_URL}/api/v1/auth/login" \
     -H "Content-Type: application/json" \
     -d "${CANDIDATE_LOGIN_PAYLOAD}" || echo "000")
