@@ -1,0 +1,12 @@
+version: "3"
+agent:
+  autoupdate: false
+web_addr: "127.0.0.1:4040"
+
+tunnels:
+  candidai:
+    proto: http
+    addr: 8080
+    inspect: true
+    schemes:
+      - https

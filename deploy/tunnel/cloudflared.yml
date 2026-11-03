@@ -1,0 +1,9 @@
+tunnel: candidai-public-tunnel
+ingress:
+  - hostname: candidai.trycloudflare.com
+    service: http://localhost:8080
+    originRequest:
+      noTLSVerify: true
+      connectTimeout: 30s
+      http2Origin: true
+  - service: http_status:404
