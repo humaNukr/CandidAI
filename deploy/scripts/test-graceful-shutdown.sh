@@ -60,11 +60,11 @@ echo -e "\n${BLUE}[PHASE 2] Initiating In-Flight Request and Sending SIGTERM (Si
 
 IN_FLIGHT_RESPONSE_FILE=$(mktemp)
 (
-    curl -s -o "${IN_FLIGHT_RESPONSE_FILE}" -w "%{http_code}" "http://localhost:${PORT}/vacancies" > "${IN_FLIGHT_RESPONSE_FILE}.code" 2>&1
+    curl -s --limit-rate 3k -o "${IN_FLIGHT_RESPONSE_FILE}" -w "%{http_code}" "http://localhost:${PORT}/vacancies" > "${IN_FLIGHT_RESPONSE_FILE}.code" 2>&1
 ) &
 IN_FLIGHT_BG_PID=$!
 
-sleep 0.1
+sleep 0.05
 
 echo -e "${YELLOW}[SIGNAL] Sending SIGTERM (kill -15 ${PID})...${NC}"
 kill -15 "${PID}"

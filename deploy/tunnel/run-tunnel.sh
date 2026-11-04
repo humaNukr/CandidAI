@@ -30,15 +30,15 @@ echo -e "${BLUE}   CandidAI Public Access Tunnel Launcher             ${NC}"
 echo -e "${BLUE}======================================================${NC}"
 
 if [[ "${TOOL}" == "auto" ]]; then
-    if command -v ngrok &>/dev/null; then
-        TOOL="ngrok"
-    elif command -v cloudflared &>/dev/null; then
+    if command -v cloudflared &>/dev/null; then
         TOOL="cloudflared"
+    elif command -v ngrok &>/dev/null; then
+        TOOL="ngrok"
     else
-        echo -e "${RED}[ERROR] Neither ngrok nor cloudflared is installed!${NC}"
+        echo -e "${RED}[ERROR] Neither cloudflared nor ngrok is installed!${NC}"
         echo -e "Please install one of them:"
-        echo -e "  - ngrok:       brew install ngrok"
         echo -e "  - cloudflared: brew install cloudflared"
+        echo -e "  - ngrok:       brew install ngrok"
         exit 1
     fi
 fi
