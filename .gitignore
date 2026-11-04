@@ -34,3 +34,12 @@ Thumbs.db
 # Log files
 *.log
 logs/
+
+# SSL certificates and private keys
+*.key
+*.crt
+*.pem
+*.p12
+
+# Runtime tunnel state
+deploy/tunnel/active-tunnel.url

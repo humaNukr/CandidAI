@@ -10,6 +10,20 @@ public final class DeploymentConfigTestResources {
     public static final String ACTUATOR_ENV_PATH = "/actuator/env";
     public static final String LOGIN_PATH = "/login";
 
+    public static final List<String> TRUSTED_PROXY_IPS = List.of(
+            "127.0.0.1",
+            "::1",
+            "10.0.1.5",
+            "172.18.0.2",
+            "192.168.1.10"
+    );
+
+    public static final List<String> UNTRUSTED_PUBLIC_IPS = List.of(
+            "8.8.8.8",
+            "203.0.113.42",
+            "172.32.0.1"
+    );
+
     private DeploymentConfigTestResources() {
     }
 
@@ -26,6 +40,7 @@ public final class DeploymentConfigTestResources {
                 "graceful",
                 "30s",
                 "8080",
+                "native",
                 "false",
                 "health",
                 "true",
@@ -54,6 +69,7 @@ public final class DeploymentConfigTestResources {
             String shutdownPolicy,
             String shutdownPhaseTimeout,
             String serverPort,
+            String forwardHeadersStrategy,
             String sessionCookieSecure,
             String exposedEndpoints,
             String probesEnabled,
