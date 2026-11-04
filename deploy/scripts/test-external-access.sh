@@ -9,7 +9,7 @@ TARGET_URL="${1:-}"
 
 if [[ -z "${TARGET_URL}" ]]; then
     if [[ -f "${ACTIVE_URL_FILE}" ]]; then
-        TARGET_URL=$(cat "${ACTIVE_URL_FILE}" | tr -d '[:space:]')
+        TARGET_URL=$(tr -d '[:space:]' < "${ACTIVE_URL_FILE}")
     fi
 fi
 
@@ -18,6 +18,11 @@ if [[ -z "${TARGET_URL}" ]]; then
 fi
 
 TARGET_URL="${TARGET_URL%/}"
+
+CURL_TLS_FLAG=""
+if [[ "${TARGET_URL}" =~ ^https://(localhost|127\.0\.0\.1|\[::1\])(:[0-9]+)?$ ]]; then
+    CURL_TLS_FLAG="-k"
+fi
 
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
@@ -52,7 +57,17 @@ run_test() {
     local response_file=$(mktemp)
     local http_code=""
 
-    local curl_cmd=(curl -s -S -L --post301 -o "${response_file}" -w "%{http_code}" -X "${method}" "${TARGET_URL}${endpoint}")
+    local curl_cmd=(
+        curl -s -S -L --post301
+        -H "ngrok-skip-browser-warning: true"
+        -o "${response_file}"
+        -w "%{http_code}"
+        -X "${method}"
+        "${TARGET_URL}${endpoint}"
+    )
+    if [[ -n "${CURL_TLS_FLAG}" ]]; then
+        curl_cmd+=("${CURL_TLS_FLAG}")
+    fi
     if [[ -n "${headers}" ]]; then
         while IFS= read -r header_line; do
             if [[ -n "${header_line}" ]]; then
@@ -65,7 +80,10 @@ run_test() {
         curl_cmd+=(-d "${data}")
     fi
 
-    http_code=$("${curl_cmd[@]}" 2>/dev/null || echo "000")
+    http_code=$("${curl_cmd[@]}" 2>/dev/null || true)
+    if [[ -z "${http_code}" ]]; then
+        http_code="000"
+    fi
     local end_time=$(python3 -c "import time; print(int(time.time() * 1000))" 2>/dev/null || date +%s000)
     local latency=$((end_time - start_time))
 
@@ -109,10 +127,16 @@ run_test "Session Web UI (Login Form & CSRF Token)" \
 
 RECRUITER_LOGIN_PAYLOAD='{"email":"recruiter@candidai.com","password":"RecruiterPass123!"}'
 TEMP_AUTH_RESPONSE=$(mktemp)
-RECRUITER_HTTP_CODE=$(curl -s -L --post301 -o "${TEMP_AUTH_RESPONSE}" -w "%{http_code}" \
-    -X POST "${TARGET_URL}/api/v1/auth/login" \
-    -H "Content-Type: application/json" \
-    -d "${RECRUITER_LOGIN_PAYLOAD}" || echo "000")
+AUTH_CURL=(curl -s -L --post301
+    -H "ngrok-skip-browser-warning: true"
+    -o "${TEMP_AUTH_RESPONSE}" -w "%{http_code}"
+    -X POST "${TARGET_URL}/api/v1/auth/login"
+    -H "Content-Type: application/json"
+    -d "${RECRUITER_LOGIN_PAYLOAD}")
+if [[ -n "${CURL_TLS_FLAG}" ]]; then
+    AUTH_CURL+=("${CURL_TLS_FLAG}")
+fi
+RECRUITER_HTTP_CODE=$("${AUTH_CURL[@]}" 2>/dev/null || true)
 
 TOTAL_TESTS=$((TOTAL_TESTS + 1))
 echo -n "Test ${TOTAL_TESTS}: REST API Authentication (JWT Token Generation)... "
@@ -128,7 +152,7 @@ if [[ "${RECRUITER_HTTP_CODE}" == "200" ]]; then
         FAILED_TESTS=$((FAILED_TESTS + 1))
     fi
 else
-    echo -e "${RED}✗ FAIL${NC} [HTTP ${RECRUITER_HTTP_CODE} (expected 200)]"
+    echo -e "${RED}✗ FAIL${NC} [HTTP ${RECRUITER_HTTP_CODE:-000} (expected 200)]"
     FAILED_TESTS=$((FAILED_TESTS + 1))
 fi
 rm -f "${TEMP_AUTH_RESPONSE}"
@@ -154,10 +178,16 @@ run_test "Security Boundary (Unauthorized Request rejection)" \
 
 CANDIDATE_LOGIN_PAYLOAD='{"email":"candidate@candidai.com","password":"CandidatePass123!"}'
 TEMP_CANDIDATE_RESPONSE=$(mktemp)
-CANDIDATE_HTTP_CODE=$(curl -s -L --post301 -o "${TEMP_CANDIDATE_RESPONSE}" -w "%{http_code}" \
-    -X POST "${TARGET_URL}/api/v1/auth/login" \
-    -H "Content-Type: application/json" \
-    -d "${CANDIDATE_LOGIN_PAYLOAD}" || echo "000")
+CANDIDATE_CURL=(curl -s -L --post301
+    -H "ngrok-skip-browser-warning: true"
+    -o "${TEMP_CANDIDATE_RESPONSE}" -w "%{http_code}"
+    -X POST "${TARGET_URL}/api/v1/auth/login"
+    -H "Content-Type: application/json"
+    -d "${CANDIDATE_LOGIN_PAYLOAD}")
+if [[ -n "${CURL_TLS_FLAG}" ]]; then
+    CANDIDATE_CURL+=("${CURL_TLS_FLAG}")
+fi
+CANDIDATE_HTTP_CODE=$("${CANDIDATE_CURL[@]}" 2>/dev/null || true)
 
 CANDIDATE_TOKEN=""
 if [[ "${CANDIDATE_HTTP_CODE}" == "200" ]]; then
@@ -166,7 +196,22 @@ fi
 rm -f "${TEMP_CANDIDATE_RESPONSE}"
 
 if [[ -n "${CANDIDATE_TOKEN}" ]]; then
-    VACANCY_CREATE_PAYLOAD='{"title":"Unauthorized Vacancy","description":"Test","salaryMin":1000,"salaryMax":2000}'
+    VACANCY_CREATE_PAYLOAD='{
+        "authorId":"00000000-0000-0000-0000-000000000001",
+        "title":"Unauthorized Vacancy Creation Attempt",
+        "category":"ENGINEERING",
+        "specialization":"Java / Spring Boot",
+        "seniorityLevel":"Senior",
+        "minYearsOfExperience":5,
+        "description":"Attempt to create a vacancy without RECRUITER or ADMIN privileges.",
+        "requiredSkills":["Java 25","Spring Boot"],
+        "minEnglishLevel":"B2",
+        "salaryMin":3000,
+        "salaryMax":5000,
+        "currency":"USD",
+        "employmentType":"FULL_TIME",
+        "locationType":"REMOTE"
+    }'
     run_test "Role-Based Access Control (Candidate denied creating vacancy)" \
              "POST" \
              "/api/v1/vacancies" \

@@ -63,7 +63,11 @@ PUBLIC_URL=""
 
 if [[ "${TOOL}" == "ngrok" ]]; then
     echo -e "${BLUE}[INFO]${NC} Starting Ngrok tunnel for ${TARGET_ORIGIN}..."
-    ngrok http "${TARGET_ORIGIN}" --log=stdout > "${LOG_FILE}" 2>&1 &
+    NGROK_ARGS=(http "${TARGET_ORIGIN}" --log=stdout)
+    if [[ "${TARGET_ORIGIN}" =~ ^https:// ]]; then
+        NGROK_ARGS+=(--upstream-tls-verify=false)
+    fi
+    ngrok "${NGROK_ARGS[@]}" > "${LOG_FILE}" 2>&1 &
     TUNNEL_PID=$!
 
     echo -e "${BLUE}[INFO]${NC} Waiting for Ngrok API at http://127.0.0.1:4040..."
@@ -79,7 +83,7 @@ if [[ "${TOOL}" == "ngrok" ]]; then
 
 elif [[ "${TOOL}" == "cloudflared" ]]; then
     echo -e "${BLUE}[INFO]${NC} Starting Cloudflare Tunnel for ${TARGET_ORIGIN}..."
-    cloudflared tunnel --url "${TARGET_ORIGIN}" --no-tls-verify > "${LOG_FILE}" 2>&1 &
+    cloudflared tunnel --config "${SCRIPT_DIR}/cloudflared.yml" --url "${TARGET_ORIGIN}" > "${LOG_FILE}" 2>&1 &
     TUNNEL_PID=$!
 
     echo -e "${BLUE}[INFO]${NC} Waiting for Cloudflare tunnel URL in logs..."

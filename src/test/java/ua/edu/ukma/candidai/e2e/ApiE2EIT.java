@@ -257,6 +257,32 @@ class ApiE2EIT {
         assertThat(isDeleted).isTrue();
     }
 
+    @Test
+    void forwardedHeaders_onEmbeddedTomcat_shouldRewriteGeneratedLocationUrlToHttps() {
+        String recruiterToken = login(RECRUITER_EMAIL, RECRUITER_PASS);
+        UUID recruiterId = getUserIdByEmail(RECRUITER_EMAIL);
+
+        var exchangeResult = client.post().uri(VACANCIES_URL)
+                .headers(h -> {
+                    h.setBearerAuth(recruiterToken);
+                    h.set("X-Forwarded-Proto", "https");
+                    h.set("X-Forwarded-Port", "443");
+                    h.set("X-Forwarded-For", "203.0.113.42");
+                })
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(buildVacancyRequest(recruiterId, "Platform SRE Engineer"))
+                .exchange()
+                .expectStatus().isCreated()
+                .expectBody(VacancyResponse.class)
+                .returnResult();
+
+        VacancyResponse created = exchangeResult.getResponseBody();
+        assertThat(created).isNotNull();
+
+        String location = exchangeResult.getResponseHeaders().getFirst("Location");
+        assertThat(location).isEqualTo("https://localhost/api/v1/vacancies/" + created.id());
+    }
+
     private UUID getUserIdByEmail(String email) {
         return jdbcClient.sql("SELECT id FROM users WHERE email = :email")
                 .param("email", email.toLowerCase())

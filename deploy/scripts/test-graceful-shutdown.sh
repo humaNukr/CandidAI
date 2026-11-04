@@ -71,9 +71,12 @@ kill -15 "${PID}"
 
 echo -e "\n${BLUE}[PHASE 3] Verifying new connections are rejected post-SIGTERM...${NC}"
 sleep 0.5
-NEW_REQUEST_CODE=$(curl -s -o /dev/null --connect-timeout 1 -w "%{http_code}" "http://localhost:${PORT}/vacancies" 2>/dev/null || echo "REFUSED")
+NEW_REQUEST_CODE=$(curl -s -o /dev/null --connect-timeout 1 -w "%{http_code}" "http://localhost:${PORT}/vacancies" 2>/dev/null || true)
+if [[ -z "${NEW_REQUEST_CODE}" || "${NEW_REQUEST_CODE}" == "000" ]]; then
+    NEW_REQUEST_CODE="REFUSED"
+fi
 
-if [[ "${NEW_REQUEST_CODE}" == "REFUSED" || "${NEW_REQUEST_CODE}" == "000" || "${NEW_REQUEST_CODE}" == "503" ]]; then
+if [[ "${NEW_REQUEST_CODE}" == "REFUSED" || "${NEW_REQUEST_CODE}" == "503" ]]; then
     echo -e "${GREEN}✓ New connections successfully rejected or dropped immediately (Result: ${NEW_REQUEST_CODE}).${NC}"
 else
     echo -e "${YELLOW}[INFO] Response for post-SIGTERM request: ${NEW_REQUEST_CODE}${NC}"

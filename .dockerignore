@@ -2,7 +2,6 @@
 .github
 .gradle
 .idea
-.superpowers
 .vscode
 build
 candidai-spring-boot-starter/build

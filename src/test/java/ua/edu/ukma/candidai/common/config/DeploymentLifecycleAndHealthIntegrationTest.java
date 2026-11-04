@@ -1,6 +1,7 @@
 package ua.edu.ukma.candidai.common.config;
 
 import java.util.List;
+import java.util.regex.Pattern;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,12 +33,13 @@ class DeploymentLifecycleAndHealthIntegrationTest {
     private ObjectMapper objectMapper;
 
     @Test
-    @DisplayName("loadConfig - should configure graceful shutdown, port binding, and actuator health exposure")
+    @DisplayName("loadConfig - should configure graceful shutdown, forwarded headers, and actuator health exposure")
     void givenDefaultProfile_loadLifecycleProperties_shouldMatchProductionReadyDefaults() {
         LifecyclePropertiesSnapshot actual = new LifecyclePropertiesSnapshot(
                 environment.getProperty("server.shutdown"),
                 environment.getProperty("spring.lifecycle.timeout-per-shutdown-phase"),
                 environment.getProperty("server.port"),
+                environment.getProperty("server.forward-headers-strategy"),
                 environment.getProperty("server.servlet.session.cookie.secure"),
                 environment.getProperty("management.endpoints.web.exposure.include"),
                 environment.getProperty("management.endpoint.health.probes.enabled"),
@@ -47,6 +49,17 @@ class DeploymentLifecycleAndHealthIntegrationTest {
         assertThat(actual)
                 .usingRecursiveComparison()
                 .isEqualTo(expectedLifecycleProperties());
+    }
+
+    @Test
+    @DisplayName("internalProxies - should trust loopback and RFC 1918 networks and reject public IPs")
+    void givenInternalProxiesRegex_matchAddresses_shouldAllowTrustedSubnetsAndRejectPublicIps() {
+        String regex = environment.getProperty("server.tomcat.remoteip.internal-proxies");
+        assertThat(regex).isNotBlank();
+
+        Pattern pattern = Pattern.compile(regex);
+        assertThat(TRUSTED_PROXY_IPS).allMatch(ip -> pattern.matcher(ip).matches());
+        assertThat(UNTRUSTED_PUBLIC_IPS).noneMatch(ip -> pattern.matcher(ip).matches());
     }
 
     @Test
