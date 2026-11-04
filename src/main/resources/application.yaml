@@ -1,4 +1,5 @@
 server:
+  port: ${PORT:8080}
   shutdown: graceful
   forward-headers-strategy: native
   tomcat:
@@ -98,3 +99,14 @@ notification:
     polling-interval-ms: 5000
     connect-timeout-ms: 5000
     read-timeout-ms: 10000
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: never
