@@ -1,8 +1,15 @@
 server:
+  address: "${SERVER_ADDRESS:::}"
   servlet:
     session:
       cookie:
-        secure: true
+        secure: ${COOKIE_SECURE:true}
+
+spring:
+  main:
+    banner-mode: "off"
+  jpa:
+    show-sql: false
 
 candidai:
   starter:
@@ -20,4 +27,6 @@ candidai:
 logging:
   level:
     root: warn
+    org.springframework.boot: INFO
+    com.zaxxer.hikari: INFO
     ua.edu.ukma.candidai: INFO
