@@ -26,6 +26,8 @@ public class WebSecurityConfiguration {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 "/login",
+                                "/actuator/health",
+                                "/actuator/health/**",
                                 "/css/**",
                                 "/webjars/**",
                                 "/favicon.ico",

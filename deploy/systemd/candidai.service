@@ -1,0 +1,25 @@
+[Unit]
+Description=CandidAI Smart HR & AI Screening Service
+Documentation=https://github.com/humaNukr/CandidAI
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=candidai
+Group=candidai
+WorkingDirectory=/opt/candidai
+EnvironmentFile=/etc/candidai/candidai.env
+ExecStart=/usr/bin/java --enable-preview -XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError -jar /opt/candidai/candidai.jar
+SuccessExitStatus=143
+TimeoutStopSec=35
+Restart=always
+RestartSec=10
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=-/opt/candidai/logs -/opt/candidai/uploads
+
+[Install]
+WantedBy=multi-user.target

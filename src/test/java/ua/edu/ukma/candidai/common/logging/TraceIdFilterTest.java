@@ -32,6 +32,29 @@ class TraceIdFilterTest {
         String traceId = response.getHeader(TraceIdFilter.TRACE_ID_HEADER);
         assertThat(traceId).isNotNull().isNotBlank();
         assertThat(MDC.get(TraceIdFilter.TRACE_ID_MDC_KEY)).isNull();
+        assertThat(MDC.get(TraceIdFilter.CLIENT_IP_MDC_KEY)).isNull();
+    }
+
+    @Test
+    @DisplayName("doFilter - should populate and cleanup clientIp in MDC during filter execution")
+    void givenClientIp_doFilter_shouldPopulateMdcDuringChainAndClearAfter() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setRemoteAddr("198.51.100.42");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        final String[] capturedClientIp = new String[1];
+        MockFilterChain filterChain = new MockFilterChain() {
+            @Override
+            public void doFilter(jakarta.servlet.ServletRequest req, jakarta.servlet.ServletResponse res) {
+                capturedClientIp[0] = MDC.get(TraceIdFilter.CLIENT_IP_MDC_KEY);
+            }
+        };
+
+        filter.doFilter(request, response, filterChain);
+
+        assertThat(capturedClientIp[0]).isEqualTo("198.51.100.42");
+        assertThat(MDC.get(TraceIdFilter.CLIENT_IP_MDC_KEY)).isNull();
+        assertThat(MDC.get(TraceIdFilter.TRACE_ID_MDC_KEY)).isNull();
     }
 
     @Test

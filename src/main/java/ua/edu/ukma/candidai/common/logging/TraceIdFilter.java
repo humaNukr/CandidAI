@@ -22,6 +22,7 @@ public class TraceIdFilter extends OncePerRequestFilter {
     public static final String TRACE_ID_HEADER = "X-Trace-Id";
     public static final String ALT_TRACE_ID_HEADER = "X-Request-ID";
     public static final String TRACE_ID_MDC_KEY = "traceId";
+    public static final String CLIENT_IP_MDC_KEY = "clientIp";
     private static final int MAX_TRACE_ID_LENGTH = 64;
 
     @Override
@@ -34,15 +35,18 @@ public class TraceIdFilter extends OncePerRequestFilter {
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
         String traceId = resolveTraceId(request);
+        String clientIp = request.getRemoteAddr();
 
         MDC.put(TRACE_ID_MDC_KEY, traceId);
+        MDC.put(CLIENT_IP_MDC_KEY, clientIp != null ? clientIp : "UNKNOWN");
         response.setHeader(TRACE_ID_HEADER, traceId);
 
         try {
-            log.debug("Processing HTTP request [{} {}] with traceId={}",
-                    request.getMethod(), request.getRequestURI(), traceId);
+            log.info("Processing HTTP request [{} {}] from IP [{}] (traceId={})",
+                    request.getMethod(), request.getRequestURI(), clientIp, traceId);
             filterChain.doFilter(request, response);
         } finally {
+            MDC.remove(CLIENT_IP_MDC_KEY);
             MDC.remove(TRACE_ID_MDC_KEY);
         }
     }

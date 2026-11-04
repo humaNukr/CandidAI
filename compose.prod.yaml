@@ -1,0 +1,93 @@
+name: candidai-prod
+
+services:
+  candidai-db:
+    image: postgres:17-alpine
+    container_name: candidai-db
+    restart: unless-stopped
+    stop_grace_period: 30s
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-candidai}
+      POSTGRES_USER: ${POSTGRES_USER:-candidai_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env}
+    volumes:
+      - candidai-pgdata:/var/lib/postgresql/data
+    networks:
+      - candidai-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-candidai_user} -d $${POSTGRES_DB:-candidai}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  candidai-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: candidai:latest
+    container_name: candidai-app
+    restart: unless-stopped
+    stop_grace_period: 35s
+    depends_on:
+      candidai-db:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
+      PORT: 8080
+      SERVER_ADDRESS: ${SERVER_ADDRESS:-0.0.0.0}
+      DB_URL: jdbc:postgresql://candidai-db:5432/${POSTGRES_DB:-candidai}
+      DB_USERNAME: ${POSTGRES_USER:-candidai_user}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set in .env}
+      COOKIE_SECURE: ${COOKIE_SECURE:-true}
+      CANDIDAI_SECURITY_SEED_DATA_ENABLED: ${SEED_DATA_ENABLED:-true}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.5-flash-lite}
+      MAIL_ENABLED: ${MAIL_ENABLED:-false}
+      TELEGRAM_ENABLED: ${TELEGRAM_ENABLED:-false}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+    ports:
+      - "127.0.0.1:${APP_HOST_PORT:-8080}:8080"
+    volumes:
+      - candidai-uploads:/app/uploads
+      - candidai-logs:/app/logs
+    networks:
+      - candidai-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:$${PORT:-8080}/actuator/health/readiness || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+
+  candidai-nginx:
+    image: nginx:1.27-alpine
+    container_name: candidai-nginx
+    restart: unless-stopped
+    depends_on:
+      candidai-app:
+        condition: service_healthy
+    ports:
+      - "${NGINX_HTTP_PORT:-80}:80"
+      - "${NGINX_HTTPS_PORT:-443}:443"
+    volumes:
+      - ./deploy/nginx/candidai.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./deploy/nginx/ssl:/etc/nginx/ssl:ro
+    networks:
+      - candidai-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsSk https://127.0.0.1/actuator/health/readiness || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  candidai-pgdata:
+  candidai-uploads:
+  candidai-logs:
+
+networks:
+  candidai-network:
+    driver: bridge
