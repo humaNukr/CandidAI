@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ua.edu.ukma.candidai.common.audit.annotation.AuditAction;
 import ua.edu.ukma.candidai.common.exception.DuplicateResourceException;
 import ua.edu.ukma.candidai.common.exception.InvalidStateTransitionException;
 import ua.edu.ukma.candidai.common.exception.ResourceNotFoundException;
@@ -48,6 +49,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 
     @Override
     @Transactional
+    @AuditAction(action = "APPLY_VACANCY", description = "Submit application for vacancy")
     public ApplicationResponse apply(ApplyForVacancyRequest request) {
         log.info("Processing job application for candidate '{}' on vacancy: {}",
                 request.candidateName(), request.vacancyId());
@@ -122,6 +124,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 
     @Override
     @Transactional
+    @AuditAction(action = "UPDATE_APPLICATION_STATUS", description = "Update application status")
     public ApplicationResponse updateStatus(UUID id, UpdateApplicationStatusRequest request) {
         Application existing = findApplicationOrThrow(id);
         ApplicationStatus currentStatus = existing.getStatus();
@@ -207,6 +210,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 
     @Override
     @Transactional(readOnly = true)
+    @AuditAction(action = "EVALUATE_APPLICATION", description = "AI screening evaluation")
     public EvaluationResult evaluateCandidate(UUID id) {
         Application application = findApplicationOrThrow(id);
         List<InterviewFeedback> feedbacks = feedbackRepository.findByApplicationId(id);

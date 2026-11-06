@@ -3,6 +3,7 @@ package ua.edu.ukma.candidai.common.security.dto;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import ua.edu.ukma.candidai.common.audit.annotation.AuditSensitive;
 
 @Schema(description = "Credentials for user authentication")
 public record LoginRequest(
@@ -13,6 +14,7 @@ public record LoginRequest(
 
         @Schema(description = "Raw user password", example = "RecruiterPass123!")
         @NotBlank(message = "Password must not be blank")
+        @AuditSensitive
         String password
 ) {
 }
