@@ -1,4 +1,5 @@
 TRUNCATE TABLE 
+    audit_logs,
     interview_feedbacks, 
     interviews, 
     applications, 
