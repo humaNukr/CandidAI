@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.transaction.annotation.Transactional;
 import ua.edu.ukma.candidai.common.annotation.IntegrationTest;
 import ua.edu.ukma.candidai.common.audit.annotation.AuditAction;
 import ua.edu.ukma.candidai.recruitment.service.ApplicationService;
@@ -56,6 +57,7 @@ class AuditAopProxyIntegrationTest {
     }
 
     @Test
+    @Transactional
     @DisplayName("Calling @AuditAction annotated service method must trigger AOP advice interception")
     void givenAuditActionMethod_whenInvoked_thenAopAdviceInterceptsInvocation() {
         testAuditAspect.clearInterceptedActions();

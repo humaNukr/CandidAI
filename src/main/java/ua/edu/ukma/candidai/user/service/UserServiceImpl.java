@@ -2,6 +2,7 @@ package ua.edu.ukma.candidai.user.service;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ua.edu.ukma.candidai.common.audit.annotation.AuditAction;
 import ua.edu.ukma.candidai.common.exception.DuplicateResourceException;
 import ua.edu.ukma.candidai.common.exception.ResourceNotFoundException;
@@ -25,6 +26,7 @@ class UserServiceImpl implements UserService {
     private final CommonGenerator commonGenerator;
 
     @Override
+    @Transactional
     @AuditAction(action = "CREATE_USER", description = "Register or create user")
     public UserResponse createUser(CreateUserRequest request) {
         if (userRepository.existsByEmailIgnoreCase(request.email())) {

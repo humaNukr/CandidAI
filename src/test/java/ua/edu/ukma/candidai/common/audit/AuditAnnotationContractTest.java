@@ -13,6 +13,8 @@ import ua.edu.ukma.candidai.vacancy.dto.request.UpdateVacancyStatusRequest;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.lang.reflect.RecordComponent;
+import java.util.Arrays;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -95,5 +97,13 @@ class AuditAnnotationContractTest {
         AuditSensitive userSensitive = createUserPassword.getAnnotation(AuditSensitive.class);
         assertThat(userSensitive).isNotNull();
         assertThat(userSensitive.mask()).isEqualTo("***MASKED***");
+
+        RecordComponent loginComponent = Arrays.stream(LoginRequest.class.getRecordComponents())
+                .filter(rc -> rc.getName().equals("password"))
+                .findFirst()
+                .orElseThrow();
+        AuditSensitive componentSensitive = loginComponent.getAnnotation(AuditSensitive.class);
+        assertThat(componentSensitive).isNotNull();
+        assertThat(componentSensitive.mask()).isEqualTo("***MASKED***");
     }
 }
