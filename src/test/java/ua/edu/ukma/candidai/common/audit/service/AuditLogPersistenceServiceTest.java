@@ -50,8 +50,7 @@ class AuditLogPersistenceServiceTest {
         AuditLogEntity expected = expectedFailedAuditEntity();
         ArgumentCaptor<AuditLogEntity> captor = ArgumentCaptor.forClass(AuditLogEntity.class);
 
-        AuditLogPersistenceService service = new AuditLogPersistenceService(auditLogRepository);
-        service.saveAuditLog(record);
+        auditLogPersistenceService.saveAuditLog(record);
 
         verify(auditLogRepository).save(captor.capture());
         assertThat(captor.getValue())

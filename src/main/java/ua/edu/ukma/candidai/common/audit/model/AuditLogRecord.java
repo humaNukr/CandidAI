@@ -1,5 +1,6 @@
 package ua.edu.ukma.candidai.common.audit.model;
 
+import java.time.Instant;
 import java.util.UUID;
 import lombok.Builder;
 
@@ -14,10 +15,11 @@ public record AuditLogRecord(
         String traceId,
         String clientIp,
         String parameters,
-        Long executionTimeMs,
+        long executionTimeMs,
         boolean success,
         String errorMessage,
-        String exceptionClass
+        String exceptionClass,
+        Instant createdAt
 ) {
 
     public AuditLogEntity toEntity() {
@@ -31,10 +33,11 @@ public record AuditLogRecord(
                 .traceId(traceId)
                 .clientIp(clientIp)
                 .parameters(parameters)
-                .executionTimeMs(executionTimeMs != null ? executionTimeMs : 0L)
+                .executionTimeMs(executionTimeMs)
                 .success(success)
                 .errorMessage(errorMessage)
                 .exceptionClass(exceptionClass)
+                .createdAt(createdAt)
                 .build();
     }
 }
