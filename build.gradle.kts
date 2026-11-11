@@ -103,11 +103,11 @@ tasks.withType<Test>().configureEach {
 }
 
 val installPlaywright = tasks.register<JavaExec>("installPlaywright") {
-    description = "Installs Playwright browser binaries (Chromium) and system dependencies"
+    description = "Installs Playwright browser binaries (Chromium)"
     group = "verification"
     classpath = sourceSets["test"].runtimeClasspath
     mainClass.set("com.microsoft.playwright.CLI")
-    args = listOf("install", "--with-deps", "chromium")
+    args = listOf("install", "chromium")
 }
 
 checkstyle {
