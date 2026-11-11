@@ -1,10 +1,10 @@
 TRUNCATE TABLE 
-    audit_logs,
     interview_feedbacks, 
     interviews, 
     applications, 
     vacancy_skills, 
-    vacancies 
+    vacancies,
+    audit_logs
 RESTART IDENTITY CASCADE;
 
 DELETE FROM companies 
