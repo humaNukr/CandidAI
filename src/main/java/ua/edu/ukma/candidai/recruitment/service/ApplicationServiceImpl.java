@@ -1,8 +1,10 @@
 package ua.edu.ukma.candidai.recruitment.service;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ua.edu.ukma.candidai.common.audit.annotation.AuditAction;
@@ -36,7 +38,6 @@ import java.util.UUID;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class ApplicationServiceImpl implements ApplicationService {
 
     private final ApplicationRepository applicationRepository;
@@ -46,6 +47,49 @@ public class ApplicationServiceImpl implements ApplicationService {
     private final CommonGenerator commonGenerator;
     private final ApplicationMapper applicationMapper;
     private final List<CandidateEvaluationStrategy> evaluationStrategies;
+    private final ObjectProvider<ApplicationService> selfProvider;
+
+    public ApplicationServiceImpl(
+            ApplicationRepository applicationRepository,
+            InterviewFeedbackRepository feedbackRepository,
+            VacancyApi vacancyApi,
+            ApplicationEventPublisher eventPublisher,
+            CommonGenerator commonGenerator,
+            ApplicationMapper applicationMapper,
+            List<CandidateEvaluationStrategy> evaluationStrategies
+    ) {
+        this(
+                applicationRepository,
+                feedbackRepository,
+                vacancyApi,
+                eventPublisher,
+                commonGenerator,
+                applicationMapper,
+                evaluationStrategies,
+                null
+        );
+    }
+
+    @Autowired
+    public ApplicationServiceImpl(
+            ApplicationRepository applicationRepository,
+            InterviewFeedbackRepository feedbackRepository,
+            VacancyApi vacancyApi,
+            ApplicationEventPublisher eventPublisher,
+            CommonGenerator commonGenerator,
+            ApplicationMapper applicationMapper,
+            List<CandidateEvaluationStrategy> evaluationStrategies,
+            @Nullable ObjectProvider<ApplicationService> selfProvider
+    ) {
+        this.applicationRepository = applicationRepository;
+        this.feedbackRepository = feedbackRepository;
+        this.vacancyApi = vacancyApi;
+        this.eventPublisher = eventPublisher;
+        this.commonGenerator = commonGenerator;
+        this.applicationMapper = applicationMapper;
+        this.evaluationStrategies = evaluationStrategies;
+        this.selfProvider = selfProvider;
+    }
 
     @Override
     @Transactional
@@ -136,7 +180,7 @@ public class ApplicationServiceImpl implements ApplicationService {
         existing.updateStatus(newStatus, matchingScore, comment, now);
 
         if (newStatus == ApplicationStatus.OFFER) {
-            EvaluationResult evaluation = evaluateCandidate(id);
+            EvaluationResult evaluation = self().evaluateCandidate(id);
             if (evaluation.recommendedDecision() == InterviewDecision.REJECT) {
                 log.warn("Blocked transition to OFFER for application {}: evaluation result was REJECT", id);
                 throw new InvalidStateTransitionException(
@@ -165,7 +209,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 
     @Override
     public ApplicationResponse updateStatus(UUID id, ApplicationStatus status, Integer matchingScore, String comment) {
-        return updateStatus(id, new UpdateApplicationStatusRequest(status, comment, matchingScore));
+        return self().updateStatus(id, new UpdateApplicationStatusRequest(status, comment, matchingScore));
     }
 
     @Override
@@ -257,5 +301,9 @@ public class ApplicationServiceImpl implements ApplicationService {
                     log.warn("Application not found with id: {}", id);
                     return new ResourceNotFoundException("Application not found with id: " + id);
                 });
+    }
+
+    private ApplicationService self() {
+        return selfProvider != null ? selfProvider.getIfAvailable(() -> this) : this;
     }
 }

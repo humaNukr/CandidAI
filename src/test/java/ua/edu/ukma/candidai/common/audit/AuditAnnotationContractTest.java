@@ -74,8 +74,8 @@ class AuditAnnotationContractTest {
     }
 
     @Test
-    @DisplayName("UserServiceImpl should declare @AuditAction on user creation method")
-    void givenUserServiceImpl_whenCheckingCreateUser_thenAuditActionPresent() throws Exception {
+    @DisplayName("UserServiceImpl and AuthController should declare @AuditAction on user and login methods")
+    void givenUserServiceImplAndAuthController_whenCheckingMethods_thenAuditActionPresent() throws Exception {
         Class<?> implClass = Class.forName("ua.edu.ukma.candidai.user.service.UserServiceImpl");
 
         Method createMethod = implClass.getDeclaredMethod("createUser", CreateUserRequest.class);
@@ -83,6 +83,15 @@ class AuditAnnotationContractTest {
         assertThat(createAudit).isNotNull();
         assertThat(createAudit.action()).isEqualTo("CREATE_USER");
         assertThat(createAudit.description()).isNotEmpty();
+
+        Class<?> authControllerClass = Class.forName(
+                "ua.edu.ukma.candidai.common.security.controller.AuthController"
+        );
+        Method loginMethod = authControllerClass.getDeclaredMethod("login", LoginRequest.class);
+        AuditAction loginAudit = loginMethod.getAnnotation(AuditAction.class);
+        assertThat(loginAudit).isNotNull();
+        assertThat(loginAudit.action()).isEqualTo("USER_LOGIN");
+        assertThat(loginAudit.description()).isNotEmpty();
     }
 
     @Test

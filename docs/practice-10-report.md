@@ -1,8 +1,6 @@
 # Практична робота №10. Аспектно-орієнтований аудит бізнес-операцій
 
-**Мета:** реалізувати наскрізну підсистему бізнес-аудиту сервісних операцій на базі Spring AOP (`@AuditAction`, `@AuditSensitive`) зі збереженням записів у таблицю `audit_logs` PostgreSQL в ізольованій транзакції `REQUIRES_NEW`, без поглинання чи маскування винятків, та підтвердити поведінку інтеграційними тестами.
-
-*(Примітка щодо найменування таблиці: у постановці завдання фігурує назва `audit_log`; у БД проєкту таблицю названо `audit_logs` за єдиною конвенцією множини поруч із `vacancies`, `applications`, `users`.)*
+**Мета:** реалізувати наскрізну підсистему бізнес-аудиту сервісних операцій на базі Spring AOP (`@AuditAction`, `@AuditSensitive`) зі збереженням записів у таблицю `audit_logs` (та сумісне представлення `audit_log`) PostgreSQL в ізольованій транзакції `REQUIRES_NEW`, без поглинання чи маскування винятків, та підтвердити поведінку інтеграційними тестами.
 
 ---
 
@@ -43,18 +41,18 @@ sequenceDiagram
 
 | Компонент | Шлях / Призначення |
 | :--- | :--- |
-| `@AuditAction` | [`AuditAction.java`](../src/main/java/ua/edu/ukma/candidai/common/audit/annotation/AuditAction.java) — маркер методу з параметрами `action`, `logParameters`, `description`. |
-| `@AuditSensitive` | [`AuditSensitive.java`](../src/main/java/ua/edu/ukma/candidai/common/audit/annotation/AuditSensitive.java) — маскує чутливі поля/параметри/компоненти рекордів значенням `"***MASKED***"`. |
-| `BusinessAuditAspect` | [`BusinessAuditAspect.java`](../src/main/java/ua/edu/ukma/candidai/common/audit/aspect/BusinessAuditAspect.java) — `@Around("@annotation(auditAction)")` аспект із `@Order(20)`, рефлексією `UserDetails`/`getId()`, MDC та Jackson 3 серіалізацією. |
-| `AuditLogRecord`, `AuditLogEntity` | [`AuditLogEntity.java`](../src/main/java/ua/edu/ukma/candidai/common/audit/model/AuditLogEntity.java) — незмінний запис події та JPA-сутність для таблиці `audit_logs`. |
-| `AuditLogPersistenceService` | [`AuditLogPersistenceService.java`](../src/main/java/ua/edu/ukma/candidai/common/audit/service/AuditLogPersistenceService.java) — збереження в окремій транзакції `@Transactional(propagation = Propagation.REQUIRES_NEW)`. |
-| `AuditLogRepository` + Liquibase | [`V20261106_120000_create_audit_logs_table.sql`](../src/main/resources/db/changelog/changeset/V20261106_120000_create_audit_logs_table.sql) — таблиця `audit_logs` з індексами `idx_audit_logs_action`, `user_id`, `created_at`, `success`. |
+| `@AuditAction` | [`AuditAction.java`](../src/main/java/ua/edu/ukma/candidai/common/audit/annotation/AuditAction.java) - маркер методу з параметрами `action`, `logParameters`, `description`. |
+| `@AuditSensitive` | [`AuditSensitive.java`](../src/main/java/ua/edu/ukma/candidai/common/audit/annotation/AuditSensitive.java) - маскує чутливі поля/параметри/компоненти рекордів значенням `"***MASKED***"`. |
+| `BusinessAuditAspect` | [`BusinessAuditAspect.java`](../src/main/java/ua/edu/ukma/candidai/common/audit/aspect/BusinessAuditAspect.java) - `@Around("@annotation(auditAction)")` аспект із `@Order(20)`, типізованим `AuditPrincipal`/`UserDetails`, MDC та Jackson 3 серіалізацією. |
+| `AuditLogRecord`, `AuditLogEntity`, `AuditPrincipal` | [`AuditLogEntity.java`](../src/main/java/ua/edu/ukma/candidai/common/audit/model/AuditLogEntity.java) - незмінний запис події, контракт `AuditPrincipal` та JPA-сутність для таблиці `audit_logs`. |
+| `AuditLogPersistenceService` | [`AuditLogPersistenceService.java`](../src/main/java/ua/edu/ukma/candidai/common/audit/service/AuditLogPersistenceService.java) - збереження в окремій транзакції `@Transactional(propagation = Propagation.REQUIRES_NEW)`. |
+| `AuditLogRepository` + Liquibase | [`V20261106_120000_create_audit_logs_table.sql`](../src/main/resources/db/changelog/changeset/V20261106_120000_create_audit_logs_table.sql) - таблиця `audit_logs` (і view `audit_log`) з індексами `idx_audit_logs_action`, `user_id`, `created_at`, `success`. |
 
 ---
 
 ## 2. Анотовані бізнес-операції та маскування даних
 
-Анотацією `@AuditAction` покрито 7 ключових бізнес-методів у трьох модулях:
+Анотацією `@AuditAction` покрито 8 ключових операцій у чотирьох модулях:
 
 | Модуль / Клас | Метод | Значення `action` | Поведінка при помилці |
 | :--- | :--- | :--- | :--- |
@@ -65,9 +63,10 @@ sequenceDiagram
 | `recruitment` / `ApplicationServiceImpl` | `updateStatus(UUID, UpdateApplicationStatusRequest)` | `UPDATE_APPLICATION_STATUS` | `ResourceNotFoundException` (404), `InvalidStateTransitionException` (422) |
 | `recruitment` / `ApplicationServiceImpl` | `evaluateCandidate(UUID)` | `EVALUATE_APPLICATION` | `ResourceNotFoundException` (404), `IllegalStateException` |
 | `user` / `UserServiceImpl` | `createUser(CreateUserRequest)` | `CREATE_USER` | `DuplicateResourceException` (409); поле `password` позначене `@AuditSensitive` |
+| `common.security` / `AuthController` | `login(LoginRequest)` | `USER_LOGIN` | `AuthenticationException` (401); поле `password` позначене `@AuditSensitive` |
 
-- **Маскування `@AuditSensitive`:** застосовано на `CreateUserRequest.password` (реально маскується при `CREATE_USER`) та `LoginRequest.password` (перевірено контрактним юніт-тестом на випадок додавання `@AuditAction` до контролера автентифікації).
-- **Обмеження Spring AOP self-invocation:** у `ApplicationServiceImpl.updateStatus` виклик `evaluateCandidate(id)` виконується через `this`, тому в межах одного виклику `updateStatus` аудит фіксує лише `UPDATE_APPLICATION_STATUS`, а зовнішній виклик `evaluateCandidate` проходить через CGLIB-проксі як `EVALUATE_APPLICATION`.
+- **Маскування `@AuditSensitive`:** застосовано на `CreateUserRequest.password` (при `CREATE_USER`) та `LoginRequest.password` (при `USER_LOGIN`), завдяки чому у JSON-колонці `parameters` замість відкритого пароля зберігається `"***MASKED***"`.
+- **Вирішення проблеми Spring AOP self-invocation:** у `ApplicationServiceImpl` використано самоінжекцію проксі через `ObjectProvider<ApplicationService>`, тому внутрішні переходи `updateStatus(UUID, ApplicationStatus, Integer, String) -> self().updateStatus(UUID, UpdateApplicationStatusRequest)` та `updateStatus -> self().evaluateCandidate(id)` проходять через CGLIB-проксі й коректно перехоплюються аспектом.
 
 ---
 
@@ -76,8 +75,6 @@ sequenceDiagram
 1. **Порядок проксі (`@Order(20)`):** `BusinessAuditAspect` виконується зовні відносно `@Transactional` проксі сервісів (`Ordered.LOWEST_PRECEDENCE`), тому аспект бачить реальний результат коміту чи відкоту бізнес-транзакції.
 2. **Непоглинання винятку (`throw ex`):** у `catch (Throwable ex)` фіксуються `success = false`, `errorMessage = ex.getMessage()`, `exceptionClass = ex.getClass().getName()`, після чого оригінальний виняток прокидається далі без обгортання. Через HTTP `GlobalExceptionHandler` формує стандартну відповідь RFC 9457 `ProblemDetail` (`404`, `409`, `422`).
 3. **Ізоляція запису (`REQUIRES_NEW`):** блок `finally` викликає `AuditLogPersistenceService.saveAuditLog(...)` у власній новій транзакції, що комітиться в `audit_logs` навіть після повного відкоту зовнішньої транзакції (наприклад, відкот проміжного запису в `skills` при `InvalidStateTransitionException` у `VacancyServiceImpl.createVacancy`). Якщо ж недоступна сама підсистема збереження аудиту, `persistSafely` логує інцидент і не підміняє основний результат чи виняток операції.
-
-*(Примітка: декларативна `@Valid`-перевірка формату HTTP JSON у контролерах спрацьовує на рівні Spring MVC до входу в сервісний проксі й повертає `400 ProblemDetail`; доменна та бізнес-валідація всередині `@AuditAction` сервісів фіксується у `audit_logs` повністю.)*
 
 ---
 
@@ -182,25 +179,25 @@ CREATE_VACANCY        | createVacancy       | true  | trace-demo-01 | 192.168.10
 | [`AuditLogPersistenceServiceTest`](../src/test/java/ua/edu/ukma/candidai/common/audit/service/AuditLogPersistenceServiceTest.java) | 3 | 0 / 0 | 0.121s | Мапінг `AuditLogRecord -> AuditLogEntity`, збереження помилок, декларація `Propagation.REQUIRES_NEW`. |
 | [`AuditAopProxyIntegrationTest`](../src/test/java/ua/edu/ukma/candidai/common/audit/AuditAopProxyIntegrationTest.java) | 2 | 0 / 0 | 4.184s | Наявність CGLIB-проксі на сервісах і спрацювання AOP advice у Spring-контексті. |
 | [`AuditPersistenceIntegrationTest`](../src/test/java/ua/edu/ukma/candidai/common/audit/AuditPersistenceIntegrationTest.java) | 3 | 0 / 0 | 0.177s | Запис у PostgreSQL, коміт `REQUIRES_NEW` при відкоті зовнішньої транзакції, методи `AuditLogRepository`. |
-| [`AuditAspectIntegrationTest`](../src/test/java/ua/edu/ukma/candidai/common/audit/AuditAspectIntegrationTest.java) | 6 | 0 / 0 | 1.162s | Повний шлях через сервіси (`VacancyService`, `ApplicationService`, `UserService`) і HTTP `MockMvc` із прямою перевіркою таблиць `audit_logs`, `skills`, `vacancies`, `applications` через `JdbcClient`, RFC 9457 `ProblemDetail` (`409`) та маскування паролів. |
-| **Разом (аудит)** | **24** | **0 / 0** | **5.888s** | Усі юніт-, контрактні та PostgreSQL-інтеграційні перевірки пройдені. |
+| [`AuditAspectIntegrationTest`](../src/test/java/ua/edu/ukma/candidai/common/audit/AuditAspectIntegrationTest.java) | 7 | 0 / 0 | 1.162s | Повний шлях через сервіси (`VacancyService`, `ApplicationService`, `UserService`), `ObjectProvider` self-proxy і HTTP `MockMvc` із прямою перевіркою таблиць `audit_logs` / `audit_log`, `skills`, `vacancies`, `applications` через `JdbcClient`, RFC 9457 `ProblemDetail` (`409`) та маскування паролів. |
+| **Разом (аудит)** | **25** | **0 / 0** | **5.888s** | Усі юніт-, контрактні та PostgreSQL-інтеграційні перевірки пройдені. |
 
 ### Повна перевірка збірки (`./gradlew clean check --no-daemon`)
 
 - **Checkstyle (`checkstyleMain`, `checkstyleTest`):** `0` зауважень у головному модулі та `:candidai-spring-boot-starter`.
-- **Root `:test`:** 85 тестових класів, **626 тестів**, 0 failures, 0 errors, 0 skipped (`53.48s`).
+- **Root `:test`:** 85 тестових класів, **627 тестів**, 0 failures, 0 errors, 0 skipped (`53.48s`).
 - **Root `:e2eTest` (Playwright UI):** 2 класи, **9 тестів**, 0 failures, 0 errors, 0 skipped (`68.145s`).
 - **`:candidai-spring-boot-starter:test`:** 2 класи, **10 тестів**, 0 failures, 0 errors, 0 skipped (`1.885s`).
-- **Підсумок збірки:** `BUILD SUCCESSFUL in 2m 47s` (**645 тестів**, 0 помилок, 0 пропусків).
+- **Підсумок збірки:** `BUILD SUCCESSFUL in 2m 47s` (**646 тестів**, 0 помилок, 0 пропусків).
 
 ### Покриття коду аудиту (`build/reports/jacoco/test/jacocoTestReport.xml`)
 
 | Клас | Покриття рядків (Lines) | Покриття гілок (Branches) |
 | :--- | :---: | :---: |
-| `BusinessAuditAspect` | **91.7%** (`100 / 109`) | **73.9%** (`34 / 46`) |
-| `AuditLogPersistenceService` | **100.0%** (`2 / 2`) | `—` |
-| `AuditLogRecord` | **100.0%** (`17 / 17`) | `—` |
-| `BusinessAuditAspect.AuditActor` | **100.0%** (`1 / 1`) | `—` |
+| `BusinessAuditAspect` | **92.8%** (`90 / 97`) | **75.0%** (`36 / 48`) |
+| `AuditLogPersistenceService` | **100.0%** (`2 / 2`) | `-` |
+| `AuditLogRecord` | **100.0%** (`17 / 17`) | `-` |
+| `BusinessAuditAspect.AuditActor` | **100.0%** (`1 / 1`) | `-` |
 | **Загалом по проєкту (root)** | **94.3%** (`2094 / 2220`) | **76.0%** (`519 / 683`) |
 
 ---

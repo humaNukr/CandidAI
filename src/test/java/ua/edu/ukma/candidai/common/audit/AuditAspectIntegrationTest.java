@@ -18,7 +18,9 @@ import ua.edu.ukma.candidai.common.audit.model.AuditLogEntity;
 import ua.edu.ukma.candidai.common.exception.DuplicateResourceException;
 import ua.edu.ukma.candidai.common.exception.InvalidStateTransitionException;
 import ua.edu.ukma.candidai.common.logging.TraceIdFilter;
+import ua.edu.ukma.candidai.recruitment.dto.model.ApplicationStatus;
 import ua.edu.ukma.candidai.recruitment.dto.request.ApplyForVacancyRequest;
+import ua.edu.ukma.candidai.recruitment.dto.response.ApplicationResponse;
 import ua.edu.ukma.candidai.recruitment.service.ApplicationService;
 import ua.edu.ukma.candidai.user.dto.request.CreateUserRequest;
 import ua.edu.ukma.candidai.user.model.User;
@@ -252,6 +254,34 @@ class AuditAspectIntegrationTest {
         assertThat(userLogs.getFirst().getParameters())
                 .contains("\"password\":\"" + MASKED_VALUE + "\"")
                 .doesNotContain(SECRET_PASSWORD);
+    }
+
+    @Test
+    @DisplayName("updateStatus overload - should route through ObjectProvider self-proxy and query audit_log view")
+    void givenOverloadedUpdateStatusCall_updateStatus_shouldInterceptViaSelfProxyAndExposeAuditLogView() {
+        authenticateSeedUser(SEED_RECRUITER_ID);
+        VacancyResponse createdVacancy = vacancyService.createVacancy(aValidCreateVacancyRequest());
+        authenticateSeedUser(SEED_CANDIDATE_ID);
+        ApplicationResponse application = applicationService.apply(aValidApplyRequest(createdVacancy.id()));
+
+        authenticateSeedUser(SEED_RECRUITER_ID);
+        setMdc("trace-self-proxy-01", "10.0.0.77");
+        applicationService.updateStatus(
+                application.id(),
+                ApplicationStatus.SCREENING,
+                85,
+                "Screening passed via self-injected proxy"
+        );
+
+        Long viewCount = jdbcClient.sql("""
+                        SELECT COUNT(*)
+                        FROM audit_log
+                        WHERE action = 'UPDATE_APPLICATION_STATUS' AND trace_id = :traceId
+                        """)
+                .param("traceId", "trace-self-proxy-01")
+                .query(Long.class)
+                .single();
+        assertThat(viewCount).isEqualTo(1L);
     }
 
     private User loadSeedUser(UUID userId) {
