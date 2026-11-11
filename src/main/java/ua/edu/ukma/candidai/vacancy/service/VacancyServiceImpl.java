@@ -7,6 +7,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ua.edu.ukma.candidai.common.audit.annotation.AuditAction;
 import ua.edu.ukma.candidai.common.exception.DuplicateResourceException;
 import ua.edu.ukma.candidai.common.exception.ResourceNotFoundException;
 import ua.edu.ukma.candidai.common.util.CommonGenerator;
@@ -40,6 +41,7 @@ class VacancyServiceImpl implements VacancyService {
 
     @Override
     @Transactional
+    @AuditAction(action = "CREATE_VACANCY", description = "Create new vacancy")
     public VacancyResponse createVacancy(CreateVacancyRequest request) {
         if (vacancyRepository.existsByAuthorIdAndTitleIgnoreCaseAndStatusAndDeletedFalse(
                 request.authorId(), request.title(), VacancyStatus.OPEN)) {
@@ -72,6 +74,7 @@ class VacancyServiceImpl implements VacancyService {
 
     @Override
     @Transactional
+    @AuditAction(action = "UPDATE_VACANCY_STATUS", description = "Update vacancy status")
     public VacancyResponse updateVacancyStatus(UUID id, UpdateVacancyStatusRequest request) {
         Vacancy vacancy = findActiveVacancyOrThrow(id);
         VacancyStatus oldStatus = vacancy.getStatus();
@@ -94,6 +97,7 @@ class VacancyServiceImpl implements VacancyService {
 
     @Override
     @Transactional
+    @AuditAction(action = "DELETE_VACANCY", description = "Archive vacancy")
     public void deleteVacancy(UUID id) {
         Vacancy vacancy = findActiveVacancyOrThrow(id);
         vacancy.softDelete(generator.now());
