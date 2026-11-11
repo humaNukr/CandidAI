@@ -29,6 +29,7 @@ dependencies {
     implementation(platform("org.springframework.modulith:spring-modulith-bom:$springModulithVersion"))
     implementation("org.springframework.boot:spring-boot-starter-webmvc")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
+    implementation("org.springframework.boot:spring-boot-starter-aspectj")
     implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.boot:spring-boot-starter-thymeleaf")
@@ -102,11 +103,11 @@ tasks.withType<Test>().configureEach {
 }
 
 val installPlaywright = tasks.register<JavaExec>("installPlaywright") {
-    description = "Installs Playwright browser binaries (Chromium) and system dependencies"
+    description = "Installs Playwright browser binaries (Chromium)"
     group = "verification"
     classpath = sourceSets["test"].runtimeClasspath
     mainClass.set("com.microsoft.playwright.CLI")
-    args = listOf("install", "--with-deps", "chromium")
+    args = listOf("install", "chromium")
 }
 
 checkstyle {
