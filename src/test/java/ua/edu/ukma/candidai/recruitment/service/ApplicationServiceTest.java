@@ -1,9 +1,9 @@
 package ua.edu.ukma.candidai.recruitment.service;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
@@ -61,20 +61,8 @@ class ApplicationServiceTest {
     @Mock
     private CandidateEvaluationService candidateEvaluationService;
 
+    @InjectMocks
     private ApplicationServiceImpl applicationService;
-
-    @BeforeEach
-    void setUp() {
-        applicationService = new ApplicationServiceImpl(
-                applicationRepository,
-                feedbackRepository,
-                vacancyApi,
-                eventPublisher,
-                commonGenerator,
-                applicationMapper,
-                candidateEvaluationService
-        );
-    }
 
     @Test
     @DisplayName("apply with valid request should save application, publish event, and return response")
