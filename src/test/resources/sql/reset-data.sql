@@ -4,7 +4,7 @@ TRUNCATE TABLE
     applications, 
     vacancy_skills, 
     vacancies,
-    audit_logs
+    audit_log
 RESTART IDENTITY CASCADE;
 
 DELETE FROM companies 

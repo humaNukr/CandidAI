@@ -21,6 +21,7 @@ import tools.jackson.databind.node.ObjectNode;
 import ua.edu.ukma.candidai.common.audit.annotation.AuditAction;
 import ua.edu.ukma.candidai.common.audit.annotation.AuditSensitive;
 import ua.edu.ukma.candidai.common.audit.model.AuditLogRecord;
+import ua.edu.ukma.candidai.common.audit.model.AuditPrincipal;
 import ua.edu.ukma.candidai.common.audit.service.AuditLogPersistenceService;
 import ua.edu.ukma.candidai.common.logging.TraceIdFilter;
 
@@ -76,6 +77,9 @@ public class BusinessAuditAspect {
             exceptionClass = ex.getClass().getName();
             throw ex;
         } finally {
+            if (actor.userId() == null && "ANONYMOUS".equals(actor.userEmail())) {
+                actor = resolveActor();
+            }
             long executionTimeMs = System.currentTimeMillis() - startTime;
             AuditLogRecord record = new AuditLogRecord(
                     auditAction.action(),
@@ -188,28 +192,11 @@ public class BusinessAuditAspect {
                 .orElse("ROLE_ANONYMOUS");
 
         Object principal = authentication.getPrincipal();
-        if (principal instanceof UserDetails userDetails) {
+        if (principal instanceof AuditPrincipal auditPrincipal) {
+            userId = auditPrincipal.getId();
+            userEmail = auditPrincipal.getEmail();
+        } else if (principal instanceof UserDetails userDetails) {
             userEmail = userDetails.getUsername();
-        } else {
-            try {
-                Method getEmailMethod = principal.getClass().getMethod("getEmail");
-                Object emailVal = getEmailMethod.invoke(principal);
-                if (emailVal instanceof String emailStr) {
-                    userEmail = emailStr;
-                }
-            } catch (ReflectiveOperationException ignored) {
-                userEmail = authentication.getName();
-            }
-        }
-
-        try {
-            Method getIdMethod = principal.getClass().getMethod("getId");
-            Object idVal = getIdMethod.invoke(principal);
-            if (idVal instanceof UUID uuid) {
-                userId = uuid;
-            }
-        } catch (ReflectiveOperationException ignored) {
-            userId = null;
         }
 
         return new AuditActor(userId, userEmail, userRole);

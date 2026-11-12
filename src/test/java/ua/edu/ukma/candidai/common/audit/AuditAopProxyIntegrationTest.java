@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import ua.edu.ukma.candidai.common.annotation.IntegrationTest;
 import ua.edu.ukma.candidai.common.audit.annotation.AuditAction;
 import ua.edu.ukma.candidai.recruitment.service.ApplicationService;
+import ua.edu.ukma.candidai.recruitment.service.CandidateEvaluationService;
 import ua.edu.ukma.candidai.user.service.UserService;
 import ua.edu.ukma.candidai.vacancy.dto.request.CreateVacancyRequest;
 import ua.edu.ukma.candidai.vacancy.dto.response.VacancyResponse;
@@ -38,6 +39,9 @@ class AuditAopProxyIntegrationTest {
     private ApplicationService applicationService;
 
     @Autowired
+    private CandidateEvaluationService candidateEvaluationService;
+
+    @Autowired
     private UserService userService;
 
     @Autowired
@@ -51,6 +55,9 @@ class AuditAopProxyIntegrationTest {
 
         assertThat(AopUtils.isAopProxy(applicationService)).isTrue();
         assertThat(AopUtils.isCglibProxy(applicationService)).isTrue();
+
+        assertThat(AopUtils.isAopProxy(candidateEvaluationService)).isTrue();
+        assertThat(AopUtils.isCglibProxy(candidateEvaluationService)).isTrue();
 
         assertThat(AopUtils.isAopProxy(userService)).isTrue();
         assertThat(AopUtils.isCglibProxy(userService)).isTrue();

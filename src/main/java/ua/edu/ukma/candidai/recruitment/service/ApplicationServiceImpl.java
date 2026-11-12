@@ -23,10 +23,8 @@ import ua.edu.ukma.candidai.recruitment.model.Application;
 import ua.edu.ukma.candidai.recruitment.model.InterviewFeedback;
 import ua.edu.ukma.candidai.recruitment.repository.ApplicationRepository;
 import ua.edu.ukma.candidai.recruitment.repository.InterviewFeedbackRepository;
-import ua.edu.ukma.candidai.recruitment.service.strategy.CandidateEvaluationStrategy;
 import ua.edu.ukma.candidai.recruitment.service.strategy.EvaluationResult;
 import ua.edu.ukma.candidai.vacancy.VacancyApi;
-import ua.edu.ukma.candidai.vacancy.model.JobCategory;
 
 import java.time.Instant;
 import java.util.Comparator;
@@ -45,7 +43,7 @@ public class ApplicationServiceImpl implements ApplicationService {
     private final ApplicationEventPublisher eventPublisher;
     private final CommonGenerator commonGenerator;
     private final ApplicationMapper applicationMapper;
-    private final List<CandidateEvaluationStrategy> evaluationStrategies;
+    private final CandidateEvaluationService candidateEvaluationService;
 
     @Override
     @Transactional
@@ -126,46 +124,14 @@ public class ApplicationServiceImpl implements ApplicationService {
     @Transactional
     @AuditAction(action = "UPDATE_APPLICATION_STATUS", description = "Update application status")
     public ApplicationResponse updateStatus(UUID id, UpdateApplicationStatusRequest request) {
-        Application existing = findApplicationOrThrow(id);
-        ApplicationStatus currentStatus = existing.getStatus();
-        ApplicationStatus newStatus = request.status();
-
-        Instant now = commonGenerator.now();
-        String comment = request.comment() != null ? request.comment() : existing.getComment();
-        Integer matchingScore = request.matchingScore() != null ? request.matchingScore() : existing.getMatchingScore();
-        existing.updateStatus(newStatus, matchingScore, comment, now);
-
-        if (newStatus == ApplicationStatus.OFFER) {
-            EvaluationResult evaluation = evaluateCandidate(id);
-            if (evaluation.recommendedDecision() == InterviewDecision.REJECT) {
-                log.warn("Blocked transition to OFFER for application {}: evaluation result was REJECT", id);
-                throw new InvalidStateTransitionException(
-                        "Cannot make an offer to candidate with REJECT evaluation"
-                );
-            }
-        }
-
-        Application saved = applicationRepository.save(existing);
-        log.info("Updated status for application {} from {} to {}", saved.getId(), currentStatus, newStatus);
-
-        eventPublisher.publishEvent(new ApplicationStatusChangedEvent(
-                saved.getId(),
-                saved.getVacancyId(),
-                saved.getCandidateId(),
-                saved.getCandidateName(),
-                saved.getEmail(),
-                currentStatus,
-                newStatus,
-                saved.getComment(),
-                now
-        ));
-
-        return applicationMapper.toResponse(saved);
+        return performUpdateStatus(id, request);
     }
 
     @Override
+    @Transactional
+    @AuditAction(action = "UPDATE_APPLICATION_STATUS", description = "Update application status")
     public ApplicationResponse updateStatus(UUID id, ApplicationStatus status, Integer matchingScore, String comment) {
-        return updateStatus(id, new UpdateApplicationStatusRequest(status, comment, matchingScore));
+        return performUpdateStatus(id, new UpdateApplicationStatusRequest(status, comment, matchingScore));
     }
 
     @Override
@@ -193,8 +159,8 @@ public class ApplicationServiceImpl implements ApplicationService {
                 .createdAt(now)
                 .build();
 
-        application.addFeedback(feedback);
         InterviewFeedback saved = feedbackRepository.save(feedback);
+        application.addFeedback(saved);
         log.info("Saved interview feedback {} for application {}: decision={}, score={}",
                 saved.getId(), id, saved.getDecision(), saved.getTechnicalScore());
         return applicationMapper.toResponse(saved);
@@ -210,22 +176,8 @@ public class ApplicationServiceImpl implements ApplicationService {
 
     @Override
     @Transactional(readOnly = true)
-    @AuditAction(action = "EVALUATE_APPLICATION", description = "AI screening evaluation")
     public EvaluationResult evaluateCandidate(UUID id) {
-        Application application = findApplicationOrThrow(id);
-        List<InterviewFeedback> feedbacks = feedbackRepository.findByApplicationId(id);
-        List<InterviewFeedbackResponse> feedbackResponses = applicationMapper.toFeedbackResponseList(feedbacks);
-
-        JobCategory category = vacancyApi.getVacancyCategory(application.getVacancyId());
-        CandidateEvaluationStrategy strategy = evaluationStrategies.stream()
-                .filter(s -> s.supports(category))
-                .findFirst()
-                .orElseThrow(() -> new IllegalStateException("No strategy found for category: " + category));
-
-        EvaluationResult result = strategy.evaluate(feedbackResponses);
-        log.info("Evaluated candidate for application {} (category: {}): recommendation={}, score={}",
-                id, category, result.recommendedDecision(), result.averageScore());
-        return result;
+        return candidateEvaluationService.evaluateCandidate(id);
     }
 
     @Override
@@ -249,6 +201,44 @@ public class ApplicationServiceImpl implements ApplicationService {
                     .toList();
         }
         return applications;
+    }
+
+    private ApplicationResponse performUpdateStatus(UUID id, UpdateApplicationStatusRequest request) {
+        Application existing = findApplicationOrThrow(id);
+        ApplicationStatus currentStatus = existing.getStatus();
+        ApplicationStatus newStatus = request.status();
+
+        Instant now = commonGenerator.now();
+        String comment = request.comment() != null ? request.comment() : existing.getComment();
+        Integer matchingScore = request.matchingScore() != null ? request.matchingScore() : existing.getMatchingScore();
+        existing.updateStatus(newStatus, matchingScore, comment, now);
+
+        if (newStatus == ApplicationStatus.OFFER) {
+            EvaluationResult evaluation = candidateEvaluationService.evaluateCandidate(id);
+            if (evaluation.recommendedDecision() == InterviewDecision.REJECT) {
+                log.warn("Blocked transition to OFFER for application {}: evaluation result was REJECT", id);
+                throw new InvalidStateTransitionException(
+                        "Cannot make an offer to candidate with REJECT evaluation"
+                );
+            }
+        }
+
+        Application saved = applicationRepository.save(existing);
+        log.info("Updated status for application {} from {} to {}", saved.getId(), currentStatus, newStatus);
+
+        eventPublisher.publishEvent(new ApplicationStatusChangedEvent(
+                saved.getId(),
+                saved.getVacancyId(),
+                saved.getCandidateId(),
+                saved.getCandidateName(),
+                saved.getEmail(),
+                currentStatus,
+                newStatus,
+                saved.getComment(),
+                now
+        ));
+
+        return applicationMapper.toResponse(saved);
     }
 
     private Application findApplicationOrThrow(UUID id) {

@@ -16,6 +16,7 @@ import lombok.ToString;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
+import ua.edu.ukma.candidai.common.audit.model.AuditPrincipal;
 import ua.edu.ukma.candidai.user.UserRole;
 
 import java.time.Instant;
@@ -32,7 +33,7 @@ import java.util.UUID;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class User implements UserDetails {
+public class User implements UserDetails, AuditPrincipal {
 
     @Id
     @EqualsAndHashCode.Include

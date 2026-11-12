@@ -18,7 +18,9 @@ import ua.edu.ukma.candidai.common.audit.model.AuditLogEntity;
 import ua.edu.ukma.candidai.common.exception.DuplicateResourceException;
 import ua.edu.ukma.candidai.common.exception.InvalidStateTransitionException;
 import ua.edu.ukma.candidai.common.logging.TraceIdFilter;
+import ua.edu.ukma.candidai.recruitment.dto.model.ApplicationStatus;
 import ua.edu.ukma.candidai.recruitment.dto.request.ApplyForVacancyRequest;
+import ua.edu.ukma.candidai.recruitment.dto.response.ApplicationResponse;
 import ua.edu.ukma.candidai.recruitment.service.ApplicationService;
 import ua.edu.ukma.candidai.user.dto.request.CreateUserRequest;
 import ua.edu.ukma.candidai.user.model.User;
@@ -29,10 +31,12 @@ import ua.edu.ukma.candidai.vacancy.dto.response.VacancyResponse;
 import ua.edu.ukma.candidai.vacancy.model.VacancyStatus;
 import ua.edu.ukma.candidai.vacancy.service.VacancyService;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.*;
+import static org.awaitility.Awaitility.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -40,7 +44,7 @@ import static ua.edu.ukma.candidai.common.audit.AuditAspectTestResources.*;
 import static ua.edu.ukma.candidai.testutils.IntegrationTestResources.*;
 
 @IntegrationTest
-@DisplayName("End-to-end integration tests for @AuditAction, BusinessAuditAspect and PostgreSQL audit_logs")
+@DisplayName("End-to-end integration tests for @AuditAction, BusinessAuditAspect and PostgreSQL audit_log")
 class AuditAspectIntegrationTest {
 
     @Autowired
@@ -71,7 +75,7 @@ class AuditAspectIntegrationTest {
     }
 
     @Test
-    @DisplayName("createVacancy - should persist audit_logs row with userId UUID, MDC context and JSON parameters")
+    @DisplayName("createVacancy - should persist audit_log row with userId UUID, MDC context and JSON parameters")
     void givenAuthenticatedRecruiterWithMdc_createVacancy_shouldPersistSuccessAuditLogInPostgres() {
         authenticateSeedUser(SEED_RECRUITER_ID);
         setMdc("trace-recruiter-01", "192.168.10.25");
@@ -234,7 +238,7 @@ class AuditAspectIntegrationTest {
     }
 
     @Test
-    @DisplayName("createUser - should mask @AuditSensitive password field in PostgreSQL audit_logs")
+    @DisplayName("createUser - should mask @AuditSensitive password field in PostgreSQL audit_log")
     void givenSensitivePassword_createUser_shouldMaskPasswordInPostgresAuditLogs() {
         authenticateSeedUser(SEED_ADMIN_ID);
         setMdc("trace-user-01", "10.0.0.99");
@@ -252,6 +256,61 @@ class AuditAspectIntegrationTest {
         assertThat(userLogs.getFirst().getParameters())
                 .contains("\"password\":\"" + MASKED_VALUE + "\"")
                 .doesNotContain(SECRET_PASSWORD);
+    }
+
+    @Test
+    @DisplayName("updateStatus overload - should audit direct overload without self-invocation")
+    void givenOverloadedUpdateStatusCall_updateStatus_shouldPersistAuditLogDirectly() {
+        authenticateSeedUser(SEED_RECRUITER_ID);
+        VacancyResponse createdVacancy = vacancyService.createVacancy(aValidCreateVacancyRequest());
+        authenticateSeedUser(SEED_CANDIDATE_ID);
+        ApplicationResponse application = applicationService.apply(aValidApplyRequest(createdVacancy.id()));
+        awaitApplicationScreening(application.id());
+        authenticateSeedUser(SEED_RECRUITER_ID);
+        setMdc("trace-overload-01", "10.0.0.77");
+
+        applicationService.updateStatus(
+                application.id(),
+                ApplicationStatus.INTERVIEW,
+                90,
+                "Interview scheduled"
+        );
+
+        List<AuditLogEntity> statusLogs = findAuditLogsByTraceId("UPDATE_APPLICATION_STATUS", "trace-overload-01");
+        assertThat(statusLogs)
+                .usingRecursiveFieldByFieldElementComparatorIgnoringFields(
+                        "id", "createdAt", "executionTimeMs", "parameters"
+                )
+                .containsExactly(expectedUpdateApplicationStatusSuccessAudit("trace-overload-01", "10.0.0.77"));
+    }
+
+    @Test
+    @DisplayName("updateStatus OFFER - should audit both UPDATE_APPLICATION_STATUS and EVALUATE_APPLICATION")
+    void givenOfferTransition_updateStatus_shouldAuditBothStatusUpdateAndCandidateEvaluation() {
+        authenticateSeedUser(SEED_RECRUITER_ID);
+        VacancyResponse createdVacancy = vacancyService.createVacancy(aValidCreateVacancyRequest());
+        authenticateSeedUser(SEED_CANDIDATE_ID);
+        ApplicationResponse application = applicationService.apply(aValidApplyRequest(createdVacancy.id()));
+        awaitApplicationScreening(application.id());
+        authenticateSeedUser(SEED_RECRUITER_ID);
+        applicationService.updateStatus(application.id(), ApplicationStatus.INTERVIEW, 90, "Scheduled interview");
+        applicationService.submitFeedback(application.id(), aHireFeedbackRequest());
+        setMdc("trace-offer-01", "10.0.0.88");
+
+        applicationService.updateStatus(application.id(), anOfferStatusRequest());
+
+        List<AuditLogEntity> evaluationLogs = findAuditLogsByTraceId("EVALUATE_APPLICATION", "trace-offer-01");
+        List<AuditLogEntity> offerStatusLogs = findAuditLogsByTraceId("UPDATE_APPLICATION_STATUS", "trace-offer-01");
+        assertThat(evaluationLogs)
+                .usingRecursiveFieldByFieldElementComparatorIgnoringFields(
+                        "id", "createdAt", "executionTimeMs", "parameters"
+                )
+                .containsExactly(expectedEvaluateApplicationSuccessAudit("trace-offer-01", "10.0.0.88"));
+        assertThat(offerStatusLogs)
+                .usingRecursiveFieldByFieldElementComparatorIgnoringFields(
+                        "id", "createdAt", "executionTimeMs", "parameters"
+                )
+                .containsExactly(expectedUpdateApplicationStatusSuccessAudit("trace-offer-01", "10.0.0.88"));
     }
 
     private User loadSeedUser(UUID userId) {
@@ -273,12 +332,28 @@ class AuditAspectIntegrationTest {
         MDC.put(TraceIdFilter.CLIENT_IP_MDC_KEY, clientIp);
     }
 
+    private void awaitApplicationScreening(UUID applicationId) {
+        await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> {
+            String status = jdbcClient.sql("SELECT status FROM applications WHERE id = :id")
+                    .param("id", applicationId)
+                    .query(String.class)
+                    .single();
+            assertThat(status).isEqualTo(ApplicationStatus.SCREENING.name());
+        });
+    }
+
+    private List<AuditLogEntity> findAuditLogsByTraceId(String action, String traceId) {
+        return findAuditLogsInDatabase(action).stream()
+                .filter(entry -> traceId.equals(entry.getTraceId()))
+                .toList();
+    }
+
     private List<AuditLogEntity> findAuditLogsInDatabase(String action) {
         return jdbcClient.sql("""
                         SELECT id, action, class_name, method_name, user_id, user_email, user_role,
                                trace_id, client_ip, parameters, execution_time_ms, success,
                                error_message, exception_class, created_at
-                        FROM audit_logs
+                        FROM audit_log
                         WHERE action = :action
                         ORDER BY created_at DESC
                         """)

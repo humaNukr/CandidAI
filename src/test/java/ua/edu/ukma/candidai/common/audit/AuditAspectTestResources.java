@@ -7,6 +7,10 @@ import tools.jackson.databind.ObjectMapper;
 import ua.edu.ukma.candidai.common.audit.model.AuditLogEntity;
 import ua.edu.ukma.candidai.common.exception.DuplicateResourceException;
 import ua.edu.ukma.candidai.common.exception.InvalidStateTransitionException;
+import ua.edu.ukma.candidai.recruitment.dto.model.ApplicationStatus;
+import ua.edu.ukma.candidai.recruitment.dto.model.InterviewDecision;
+import ua.edu.ukma.candidai.recruitment.dto.request.SubmitInterviewFeedbackRequest;
+import ua.edu.ukma.candidai.recruitment.dto.request.UpdateApplicationStatusRequest;
 import ua.edu.ukma.candidai.user.UserRole;
 import ua.edu.ukma.candidai.user.dto.request.CreateUserRequest;
 import ua.edu.ukma.candidai.vacancy.dto.request.CreateVacancyRequest;
@@ -180,6 +184,54 @@ public final class AuditAspectTestResources {
                 .success(false)
                 .errorMessage(expectedDuplicateApplyMessage(vacancyId))
                 .exceptionClass(DuplicateResourceException.class.getName())
+                .build();
+    }
+
+    public static SubmitInterviewFeedbackRequest aHireFeedbackRequest() {
+        return new SubmitInterviewFeedbackRequest(
+                "Tech Lead",
+                5,
+                "Strong Java and Spring knowledge",
+                InterviewDecision.HIRE
+        );
+    }
+
+    public static UpdateApplicationStatusRequest anOfferStatusRequest() {
+        return new UpdateApplicationStatusRequest(
+                ApplicationStatus.OFFER,
+                "Recommended for offer"
+        );
+    }
+
+    public static AuditLogEntity expectedUpdateApplicationStatusSuccessAudit(String traceId, String clientIp) {
+        return AuditLogEntity.builder()
+                .action("UPDATE_APPLICATION_STATUS")
+                .className("ApplicationServiceImpl")
+                .methodName("updateStatus")
+                .userId(SEED_RECRUITER_ID)
+                .userEmail(RECRUITER_EMAIL)
+                .userRole(ROLE_RECRUITER)
+                .traceId(traceId)
+                .clientIp(clientIp)
+                .success(true)
+                .errorMessage(null)
+                .exceptionClass(null)
+                .build();
+    }
+
+    public static AuditLogEntity expectedEvaluateApplicationSuccessAudit(String traceId, String clientIp) {
+        return AuditLogEntity.builder()
+                .action("EVALUATE_APPLICATION")
+                .className("CandidateEvaluationServiceImpl")
+                .methodName("evaluateCandidate")
+                .userId(SEED_RECRUITER_ID)
+                .userEmail(RECRUITER_EMAIL)
+                .userRole(ROLE_RECRUITER)
+                .traceId(traceId)
+                .clientIp(clientIp)
+                .success(true)
+                .errorMessage(null)
+                .exceptionClass(null)
                 .build();
     }
 

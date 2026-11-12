@@ -67,15 +67,30 @@ class AuditAnnotationContractTest {
         assertThat(updateAudit).isNotNull();
         assertThat(updateAudit.action()).isEqualTo("UPDATE_APPLICATION_STATUS");
 
-        Method evaluateMethod = implClass.getDeclaredMethod("evaluateCandidate", UUID.class);
+        Method overloadedUpdateStatusMethod = implClass.getDeclaredMethod(
+                "updateStatus", UUID.class,
+                ua.edu.ukma.candidai.recruitment.dto.model.ApplicationStatus.class,
+                Integer.class, String.class
+        );
+        AuditAction overloadedUpdateAudit = overloadedUpdateStatusMethod.getAnnotation(AuditAction.class);
+        assertThat(overloadedUpdateAudit).isNotNull();
+        assertThat(overloadedUpdateAudit.action()).isEqualTo("UPDATE_APPLICATION_STATUS");
+
+        Method delegateEvaluateMethod = implClass.getDeclaredMethod("evaluateCandidate", UUID.class);
+        assertThat(delegateEvaluateMethod.getAnnotation(AuditAction.class)).isNull();
+
+        Class<?> evaluationClass = Class.forName(
+                "ua.edu.ukma.candidai.recruitment.service.CandidateEvaluationServiceImpl"
+        );
+        Method evaluateMethod = evaluationClass.getDeclaredMethod("evaluateCandidate", UUID.class);
         AuditAction evaluateAudit = evaluateMethod.getAnnotation(AuditAction.class);
         assertThat(evaluateAudit).isNotNull();
         assertThat(evaluateAudit.action()).isEqualTo("EVALUATE_APPLICATION");
     }
 
     @Test
-    @DisplayName("UserServiceImpl should declare @AuditAction on user creation method")
-    void givenUserServiceImpl_whenCheckingCreateUser_thenAuditActionPresent() throws Exception {
+    @DisplayName("UserServiceImpl and AuthController should declare @AuditAction on user and login methods")
+    void givenUserServiceImplAndAuthController_whenCheckingMethods_thenAuditActionPresent() throws Exception {
         Class<?> implClass = Class.forName("ua.edu.ukma.candidai.user.service.UserServiceImpl");
 
         Method createMethod = implClass.getDeclaredMethod("createUser", CreateUserRequest.class);
@@ -83,6 +98,15 @@ class AuditAnnotationContractTest {
         assertThat(createAudit).isNotNull();
         assertThat(createAudit.action()).isEqualTo("CREATE_USER");
         assertThat(createAudit.description()).isNotEmpty();
+
+        Class<?> authControllerClass = Class.forName(
+                "ua.edu.ukma.candidai.common.security.controller.AuthController"
+        );
+        Method loginMethod = authControllerClass.getDeclaredMethod("login", LoginRequest.class);
+        AuditAction loginAudit = loginMethod.getAnnotation(AuditAction.class);
+        assertThat(loginAudit).isNotNull();
+        assertThat(loginAudit.action()).isEqualTo("USER_LOGIN");
+        assertThat(loginAudit.description()).isNotEmpty();
     }
 
     @Test

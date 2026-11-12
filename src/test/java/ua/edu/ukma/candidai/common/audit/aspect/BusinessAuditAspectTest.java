@@ -15,6 +15,7 @@ import tools.jackson.databind.ObjectMapper;
 import ua.edu.ukma.candidai.common.audit.annotation.AuditAction;
 import ua.edu.ukma.candidai.common.audit.annotation.AuditSensitive;
 import ua.edu.ukma.candidai.common.audit.model.AuditLogRecord;
+import ua.edu.ukma.candidai.common.audit.model.AuditPrincipal;
 import ua.edu.ukma.candidai.common.audit.service.AuditLogPersistenceService;
 import ua.edu.ukma.candidai.common.logging.TraceIdFilter;
 
@@ -262,11 +263,13 @@ class BusinessAuditAspectTest {
 
     record SampleUserDto(String email, @AuditSensitive String password) {}
 
-    record MockUserPrincipal(UUID id, String email) {
+    record MockUserPrincipal(UUID id, String email) implements AuditPrincipal {
+        @Override
         public UUID getId() {
             return id;
         }
 
+        @Override
         public String getEmail() {
             return email;
         }

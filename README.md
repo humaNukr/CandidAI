@@ -201,4 +201,4 @@
 * **Тімлід**: `techlead@candidai.com` / `TechLeadPass123!` (`ROLE_TECH_LEAD`)
 * **Адміністратор**: `admin@candidai.com` / `AdminPass123!` (`ROLE_ADMIN`)
 
-Звіти з архітектурними схемами та результатами перевірок наведені у файлах [`docs/practice-7-report.md`](docs/practice-7-report.md), [`docs/practice-8-report.md`](docs/practice-8-report.md) та [`docs/practice-9-report.md`](docs/practice-9-report.md).
+Звіти з архітектурними схемами та результатами перевірок наведені у файлах [`docs/practice-7-report.md`](docs/practice-7-report.md), [`docs/practice-8-report.md`](docs/practice-8-report.md), [`docs/practice-9-report.md`](docs/practice-9-report.md) та [`docs/practice-10-report.md`](docs/practice-10-report.md).
