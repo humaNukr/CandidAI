@@ -67,7 +67,22 @@ class AuditAnnotationContractTest {
         assertThat(updateAudit).isNotNull();
         assertThat(updateAudit.action()).isEqualTo("UPDATE_APPLICATION_STATUS");
 
-        Method evaluateMethod = implClass.getDeclaredMethod("evaluateCandidate", UUID.class);
+        Method overloadedUpdateStatusMethod = implClass.getDeclaredMethod(
+                "updateStatus", UUID.class,
+                ua.edu.ukma.candidai.recruitment.dto.model.ApplicationStatus.class,
+                Integer.class, String.class
+        );
+        AuditAction overloadedUpdateAudit = overloadedUpdateStatusMethod.getAnnotation(AuditAction.class);
+        assertThat(overloadedUpdateAudit).isNotNull();
+        assertThat(overloadedUpdateAudit.action()).isEqualTo("UPDATE_APPLICATION_STATUS");
+
+        Method delegateEvaluateMethod = implClass.getDeclaredMethod("evaluateCandidate", UUID.class);
+        assertThat(delegateEvaluateMethod.getAnnotation(AuditAction.class)).isNull();
+
+        Class<?> evaluationClass = Class.forName(
+                "ua.edu.ukma.candidai.recruitment.service.CandidateEvaluationServiceImpl"
+        );
+        Method evaluateMethod = evaluationClass.getDeclaredMethod("evaluateCandidate", UUID.class);
         AuditAction evaluateAudit = evaluateMethod.getAnnotation(AuditAction.class);
         assertThat(evaluateAudit).isNotNull();
         assertThat(evaluateAudit.action()).isEqualTo("EVALUATE_APPLICATION");
