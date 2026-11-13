@@ -34,6 +34,7 @@ public class CandidateEvaluationServiceImpl implements CandidateEvaluationServic
     @Transactional(readOnly = true)
     @AuditAction(action = "EVALUATE_APPLICATION", description = "AI screening evaluation")
     public EvaluationResult evaluateCandidate(UUID id) {
+        log.debug("Starting candidate evaluation for application id: {}", id);
         Application application = applicationRepository.findById(id)
                 .orElseThrow(() -> {
                     log.warn("Application not found with id: {}", id);
@@ -41,9 +42,11 @@ public class CandidateEvaluationServiceImpl implements CandidateEvaluationServic
                 });
 
         List<InterviewFeedback> feedbacks = feedbackRepository.findByApplicationId(id);
+        log.debug("Retrieved {} interview feedbacks for application id: {}", feedbacks.size(), id);
         List<InterviewFeedbackResponse> feedbackResponses = applicationMapper.toFeedbackResponseList(feedbacks);
 
         JobCategory category = vacancyApi.getVacancyCategory(application.getVacancyId());
+        log.debug("Matching candidate evaluation strategy for category: {}", category);
         CandidateEvaluationStrategy strategy = evaluationStrategies.stream()
                 .filter(s -> s.supports(category))
                 .findFirst()
