@@ -9,11 +9,6 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.web.SecurityFilterChain;
 
-/**
- * Dedicated security filter chain for Spring Boot Actuator endpoints.
- * Public health probes (/actuator/health/**) and info (/actuator/info) are open for infrastructure monitoring.
- * Sensitive management operations (/actuator/loggers/**, /actuator/env/**, etc.) require ROLE_ADMIN.
- */
 @Configuration(proxyBeanMethods = false)
 public class ActuatorSecurityConfiguration {
 
