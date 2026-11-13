@@ -42,9 +42,9 @@ public final class DeploymentConfigTestResources {
                 "8080",
                 "native",
                 "false",
-                "health",
+                "health,info,loggers,env,metrics",
                 "true",
-                "never"
+                "when-authorized"
         );
     }
 
