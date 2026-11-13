@@ -31,14 +31,21 @@ public class AssessmentServiceImpl implements AssessmentService {
         log.info("Executing AI screening for application: {}", applicationId);
 
         ApplicationDetails application = recruitmentApi.getApplication(applicationId);
+        log.debug("Retrieved application details: candidateName='{}', vacancyId={}",
+                application.candidateName(), application.vacancyId());
         VacancyDetails vacancy = vacancyApi.getVacancyDetails(application.vacancyId());
+        log.debug("Retrieved vacancy details: title='{}'", vacancy.title());
 
         String resumeText = resumeContentExtractor.extractText(
                 application.resumeUrl(),
                 application.candidateName()
         );
+        log.debug("Extracted resume text with length={} for candidate='{}'",
+                resumeText != null ? resumeText.length() : 0, application.candidateName());
 
         AiScreeningResult result = aiScreeningService.screenCandidate(applicationId, resumeText, vacancy);
+        log.debug("Received AI screening result: status={}, score={}, passed={}",
+                result.status(), result.matchingScore(), result.passed());
         screeningResultRepository.save(result);
 
         if (result.status() == ScreeningStatus.FAILED) {
@@ -77,6 +84,7 @@ public class AssessmentServiceImpl implements AssessmentService {
     @Override
     public AiScreeningResult getScreeningResult(UUID applicationId) {
         log.info("Fetching screening report for application: {}", applicationId);
+        log.debug("Querying screening repository for applicationId: {}", applicationId);
         return screeningResultRepository.findByApplicationId(applicationId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Screening result not found for application: " + applicationId
