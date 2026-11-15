@@ -11,6 +11,8 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static ua.edu.ukma.candidai.common.security.SecurityTestResources.ADMIN_EMAIL;
+import static ua.edu.ukma.candidai.common.security.SecurityTestResources.ADMIN_PASSWORD;
 
 @IntegrationTest
 @DisplayName("Integration tests for Actuator security rules, endpoints isolation, and HTTP Basic authentication")
@@ -111,7 +113,7 @@ class ActuatorSecurityIntegrationTest {
     @DisplayName("GET /actuator/loggers - should authenticate seeded admin user via HTTP Basic")
     void loggers_WhenAdminHttpBasicCredentials_ShouldReturnOk() throws Exception {
         mockMvc.perform(get("/actuator/loggers")
-                        .with(httpBasic("admin@candidai.com", "AdminPass123!")))
+                        .with(httpBasic(ADMIN_EMAIL, ADMIN_PASSWORD)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.levels").isArray())
                 .andExpect(jsonPath("$.loggers").isMap());
