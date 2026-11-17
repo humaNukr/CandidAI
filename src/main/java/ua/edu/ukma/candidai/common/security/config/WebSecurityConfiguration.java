@@ -17,7 +17,7 @@ import org.springframework.security.web.session.HttpSessionEventPublisher;
 @Configuration(proxyBeanMethods = false)
 public class WebSecurityConfiguration {
 
-    private static final int CHAIN_ORDER = 3;
+    private static final int CHAIN_ORDER = 4;
 
     @Bean
     @Order(CHAIN_ORDER)
@@ -26,8 +26,6 @@ public class WebSecurityConfiguration {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 "/login",
-                                "/actuator/health",
-                                "/actuator/health/**",
                                 "/css/**",
                                 "/webjars/**",
                                 "/favicon.ico",

@@ -104,9 +104,13 @@ management:
   endpoints:
     web:
       exposure:
-        include: health
+        include: health,info,loggers,env,metrics
   endpoint:
     health:
       probes:
         enabled: true
-      show-details: never
+      show-details: when-authorized
+      roles: ADMIN
+    env:
+      show-values: when-authorized
+      roles: ADMIN

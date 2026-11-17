@@ -123,11 +123,10 @@ class DeploymentLifecycleAndHealthIntegrationTest {
     }
 
     @Test
-    @DisplayName("getActuatorEnv - should not expose sensitive actuator endpoints anonymously")
-    void givenAnonymousRequest_getUnexposedActuatorEnv_shouldRedirectToLogin() throws Exception {
+    @DisplayName("getActuatorEnv - should not expose sensitive actuator endpoints anonymously and return 401")
+    void givenAnonymousRequest_getUnexposedActuatorEnv_shouldReturnUnauthorized() throws Exception {
         mockMvc.perform(get(ACTUATOR_ENV_PATH))
-                .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl(LOGIN_PATH));
+                .andExpect(status().isUnauthorized());
     }
 
     private <T> T parseResponse(MvcResult result, Class<T> responseType) throws Exception {
