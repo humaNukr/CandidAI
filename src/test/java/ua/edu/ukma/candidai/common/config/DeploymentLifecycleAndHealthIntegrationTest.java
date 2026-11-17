@@ -43,7 +43,8 @@ class DeploymentLifecycleAndHealthIntegrationTest {
                 environment.getProperty("server.servlet.session.cookie.secure"),
                 environment.getProperty("management.endpoints.web.exposure.include"),
                 environment.getProperty("management.endpoint.health.probes.enabled"),
-                environment.getProperty("management.endpoint.health.show-details")
+                environment.getProperty("management.endpoint.health.show-details"),
+                environment.getProperty("management.endpoint.health.show-components")
         );
 
         assertThat(actual)

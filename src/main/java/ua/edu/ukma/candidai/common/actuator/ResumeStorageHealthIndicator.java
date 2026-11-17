@@ -1,7 +1,6 @@
 package ua.edu.ukma.candidai.common.actuator;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.health.contributor.Health;
 import org.springframework.boot.health.contributor.HealthIndicator;
 import org.springframework.stereotype.Component;
@@ -13,7 +12,6 @@ import java.nio.file.Paths;
 
 @Component("resumeStorage")
 @RequiredArgsConstructor
-@EnableConfigurationProperties(StorageProperties.class)
 public class ResumeStorageHealthIndicator implements HealthIndicator {
 
     private final StorageProperties storageProperties;

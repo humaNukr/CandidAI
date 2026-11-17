@@ -19,14 +19,15 @@ flowchart LR
     Req -->|"Інші маршрути (/api/**, /v3/api-docs/**, /**)"| Other["Ланцюги @Order(2..4)"]
 ```
 
-### Конфігурація у [`application.yaml`](../src/main/resources/application.yaml) та [`application-prod.yaml`](../src/main/resources/application-prod.yaml)
+### Конфігурація у [`application.yaml`](../src/main/resources/application.yaml)
 
 | Параметр | Значення | Призначення |
 |---|---|---|
 | `management.endpoints.web.exposure.include` | `health,info,loggers,env,metrics` | Явна веб-експозиція потрібних ендпоінтів (без `*`) |
 | `management.endpoint.health.probes.enabled` | `true` | Підтримка Kubernetes/Docker проб `liveness` та `readiness` |
-| `management.endpoint.health.show-details` | `when-authorized` | Приховування деталей компонентів від неавторизованих клієнтів |
-| `management.endpoint.health.roles` | `ADMIN` | Перегляд деталей `/actuator/health` лише для ролі `ADMIN` |
+| `management.endpoint.health.show-details` | `when-authorized` | Приховування деталей здоров'я від неавторизованих клієнтів |
+| `management.endpoint.health.show-components` | `when-authorized` | Приховування окремих компонентів здоров'я від неавторизованих клієнтів |
+| `management.endpoint.health.roles` | `ADMIN` | Перегляд деталей та компонентів `/actuator/health` лише для ролі `ADMIN` |
 | `management.endpoint.env.show-values` | `when-authorized` | Доступ до значень `/actuator/env` лише з роллю `ADMIN` |
 | `management.info.env.enabled` | `true` | Публікація властивостей `info.app.*` у `/actuator/info` |
 
@@ -40,6 +41,12 @@ flowchart LR
 - Налаштовано `securityMatcher(EndpointRequest.toAnyEndpoint())`, `SessionCreationPolicy.STATELESS` та вимкнено CSRF для підтримки `POST /actuator/loggers/...`.
 - Публічний доступ (`permitAll()`) залишено лише для `health` та `info`.
 - Усі інші ендпоінти Actuator вимагають роль `ADMIN` та підтримують `httpBasic(Customizer.withDefaults())`.
+
+Перевірка блокування неавторизованого доступу до захищених ресурсів:
+```bash
+curl -i http://localhost:8080/actuator/loggers
+```
+Відповідь сервера: `HTTP/1.1 401 Unauthorized` (`WWW-Authenticate: Basic realm="Realm"`). Запити від авторизованих користувачів із ролями `CANDIDATE` або `RECRUITER` повертають `403 Forbidden`.
 
 ### 2.2. Блок 2: Динамічне логування (`Loggers API`)
 
@@ -68,26 +75,26 @@ flowchart LR
    - Перевіряє існування каталогу `StorageProperties.uploadDir()`, тип директорії, доступність на запис та вільне місце (`freeSpaceBytes`).
    - Штатний стан повертає `Health.up()` (`200 OK`), відсутність каталогу або невалідний шлях повертає `Health.down()` (`503 Service Unavailable`).
 
-   Запит `GET /actuator/health/resumeStorage` (штатний стан `UP`):
+   Запит `GET /actuator/health/resumeStorage` (штатний стан `UP`, `200 OK`):
    ```json
    {
-     "status": "UP",
      "details": {
-       "path": "/app/uploads/resumes",
+       "path": "E:\\work\\CandidAI\\uploads\\resumes",
        "writable": true,
-       "freeSpaceBytes": 42815422464
-     }
+       "freeSpaceBytes": 344286081024
+     },
+     "status": "UP"
    }
    ```
 
-   Змодельований збій (`DOWN`, відсутній каталог сховища):
+   Змодельований збій (`DOWN`, `503 Service Unavailable`, відсутній каталог сховища):
    ```json
    {
-     "status": "DOWN",
      "details": {
-       "path": "/tmp/missing-resumes",
+       "path": "E:\\work\\CandidAI\\uploads\\resumes",
        "reason": "Storage directory does not exist"
-     }
+     },
+     "status": "DOWN"
    }
    ```
 
@@ -97,9 +104,9 @@ flowchart LR
 
 2. **[`ActuatorEnvSanitizingConfiguration.java`](../src/main/java/ua/edu/ukma/candidai/common/actuator/ActuatorEnvSanitizingConfiguration.java)** (`SanitizingFunction`):
    - У Spring Boot 4.1 при `show-values: when-authorized` вбудованого маскування за ключами немає, тому зареєстровано власний бін `SanitizingFunction`.
-   - Ключі, що містять `jwt.secret`, `spring.datasource.password`, `telegram.bot-token`, `gemini.api-key`, `password`, `secret`, `token`, `api-key`, `apikey`, `credential`, `private-key` (з нормалізацією `_` -> `-`), маскуються значенням `******`.
+   - Ключі, що містять чутливі маркери (`password`, `secret`, `token`, `api-key`, `apikey`, `credential`, `private-key` з нормалізацією `_` -> `-`), маскуються значенням `******`.
 
    > ![Знімок консолі: замасковані секрети у відповіді GET /actuator/env](screenshots/actuator/04-env-sanitizing.jpg)
 
 3. **[`CandidAiInfoContributor.java`](../src/main/java/ua/edu/ukma/candidai/common/actuator/CandidAiInfoContributor.java)** (`implements InfoContributor`):
-   - Публікує у `GET /actuator/info` опис застосунку та стан інтеграцій (`mailNotificationsEnabled`, `telegramBotEnabled`, `aiScreeningConfigured`).
+   - Доповнює статичні метадані `info.app.*` у `GET /actuator/info` динамічним станом інтеграцій (`mailNotificationsEnabled`, `telegramBotEnabled`, `aiScreeningConfigured`).

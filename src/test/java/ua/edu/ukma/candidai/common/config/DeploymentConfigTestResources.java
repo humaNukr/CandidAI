@@ -44,6 +44,7 @@ public final class DeploymentConfigTestResources {
                 "false",
                 "health,info,loggers,env,metrics",
                 "true",
+                "when-authorized",
                 "when-authorized"
         );
     }
@@ -73,7 +74,8 @@ public final class DeploymentConfigTestResources {
             String sessionCookieSecure,
             String exposedEndpoints,
             String probesEnabled,
-            String showDetails
+            String showDetails,
+            String showComponents
     ) {
     }
 

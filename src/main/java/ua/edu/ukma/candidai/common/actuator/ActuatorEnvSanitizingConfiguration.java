@@ -12,11 +12,6 @@ import java.util.Locale;
 public class ActuatorEnvSanitizingConfiguration {
 
     private static final List<String> SENSITIVE_KEY_MARKERS = List.of(
-            "jwt.secret",
-            "spring.datasource.password",
-            "telegram.bot.token",
-            "telegram.bot-token",
-            "gemini.api-key",
             "password",
             "secret",
             "token",

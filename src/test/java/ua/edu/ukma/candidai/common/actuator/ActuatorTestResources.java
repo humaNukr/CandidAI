@@ -77,10 +77,6 @@ public final class ActuatorTestResources {
             boolean geminiConfigured
     ) {
         return new Info.Builder()
-                .withDetail("application", Map.of(
-                        "name", "CandidAI",
-                        "description", "Smart HR & AI Candidate Screening Platform"
-                ))
                 .withDetail("features", Map.of(
                         "mailNotificationsEnabled", mailEnabled,
                         "telegramBotEnabled", telegramEnabled,
@@ -97,7 +93,6 @@ public final class ActuatorTestResources {
 
     public record ActuatorInfoPayload(
             ApplicationInfoPayload app,
-            ApplicationInfoPayload application,
             FeaturesInfoPayload features
     ) {
     }

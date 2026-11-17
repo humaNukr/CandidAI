@@ -25,10 +25,6 @@ public class CandidAiInfoContributor implements InfoContributor {
                 environment.getProperty("notification.telegram.enabled", "false")
         );
 
-        builder.withDetail("application", Map.of(
-                "name", "CandidAI",
-                "description", "Smart HR & AI Candidate Screening Platform"
-        ));
         builder.withDetail("features", Map.of(
                 "mailNotificationsEnabled", mailEnabled,
                 "telegramBotEnabled", telegramEnabled,
