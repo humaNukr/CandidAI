@@ -1,5 +1,6 @@
 package ua.edu.ukma.candidai.common.actuator;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.boot.actuate.info.Info;
 import org.springframework.boot.actuate.info.InfoContributor;
 import org.springframework.core.env.Environment;
@@ -8,13 +9,10 @@ import org.springframework.stereotype.Component;
 import java.util.Map;
 
 @Component
+@RequiredArgsConstructor
 public class CandidAiInfoContributor implements InfoContributor {
 
     private final Environment environment;
-
-    public CandidAiInfoContributor(Environment environment) {
-        this.environment = environment;
-    }
 
     @Override
     public void contribute(Info.Builder builder) {
