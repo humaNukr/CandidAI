@@ -58,7 +58,9 @@ flowchart LR
 3. Виклик сервісу фіксує появу `DEBUG`-рядків у журналі консолі.
 4. Скидання рівня на дефолтний (`{"configuredLevel":null}`) -> `204 No Content`, подальші виклики не виводять `DEBUG`-повідомлення.
 
-> ![Знімок консолі: перемикання рівня логування на DEBUG та поява діагностичних логів](screenshots/actuator/01-dynamic-logging-debug.png)
+> ![Знімок консолі: поява діагностичних DEBUG-повідомлень після перемикання рівня](screenshots/actuator/01-dynamic-logging-debug.png)
+
+> ![Знімок консолі: відсутність DEBUG-повідомлень після скидання рівня на INFO](screenshots/actuator/02-dynamic-logging-reset-info.png)
 
 ### 2.3. Блок 3: Кастомний індикатор здоров'я, маскування секретів та `/actuator/info`
 
@@ -89,13 +91,13 @@ flowchart LR
    }
    ```
 
-   > ![Знімок консолі: перевірка /actuator/health та /actuator/health/resumeStorage у стані UP і DOWN](screenshots/actuator/02-health-indicator-up-down.png)
+   > ![Знімок консолі: перевірка /actuator/health/resumeStorage у штатному стані UP](screenshots/actuator/03-health-resume-storage-up.png)
 
 2. **[`ActuatorEnvSanitizingConfiguration.java`](../src/main/java/ua/edu/ukma/candidai/common/actuator/ActuatorEnvSanitizingConfiguration.java)** (`SanitizingFunction`):
    - У Spring Boot 4.1 при `show-values: when-authorized` вбудованого маскування за ключами немає, тому зареєстровано власний бін `SanitizingFunction`.
    - Ключі, що містять `jwt.secret`, `spring.datasource.password`, `telegram.bot-token`, `gemini.api-key`, `password`, `secret`, `token`, `api-key`, `apikey`, `credential`, `private-key` (з нормалізацією `_` -> `-`), маскуються значенням `******`.
 
-   > ![Знімок консолі: замасковані секрети у відповіді GET /actuator/env](screenshots/actuator/03-env-sanitizing.png)
+   > ![Знімок консолі: замасковані секрети у відповіді GET /actuator/env](screenshots/actuator/04-env-sanitizing.jpg)
 
 3. **[`CandidAiInfoContributor.java`](../src/main/java/ua/edu/ukma/candidai/common/actuator/CandidAiInfoContributor.java)** (`implements InfoContributor`):
    - Публікує у `GET /actuator/info` опис застосунку та стан інтеграцій (`mailNotificationsEnabled`, `telegramBotEnabled`, `aiScreeningConfigured`).
