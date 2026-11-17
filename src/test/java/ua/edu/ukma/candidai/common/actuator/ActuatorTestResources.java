@@ -1,5 +1,6 @@
 package ua.edu.ukma.candidai.common.actuator;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import org.springframework.boot.actuate.endpoint.SanitizableData;
 import org.springframework.boot.actuate.info.Info;
 import org.springframework.boot.health.contributor.Status;
@@ -95,12 +96,15 @@ public final class ActuatorTestResources {
     public record StorageHealthErrorSnapshot(String status, String path, String reason) {
     }
 
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public record ActuatorInfoPayload(ApplicationInfoPayload application, FeaturesInfoPayload features) {
     }
 
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public record ApplicationInfoPayload(String name, String description) {
     }
 
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public record FeaturesInfoPayload(
             boolean mailNotificationsEnabled,
             boolean telegramBotEnabled,
@@ -108,24 +112,31 @@ public final class ActuatorTestResources {
     ) {
     }
 
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public record HealthComponentPayload(String status, Map<String, Object> details) {
     }
 
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public record HealthRootPayload(String status, Map<String, HealthComponentPayload> components) {
     }
 
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public record EnvPropertyValue(Object value) {
     }
 
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public record EnvPropertySource(String name, Map<String, EnvPropertyValue> properties) {
     }
 
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public record EnvEndpointPayload(List<EnvPropertySource> propertySources) {
     }
 
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public record LoggersSummaryPayload(List<String> levels, Map<String, LoggerLevelPayload> loggers) {
     }
 
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public record LoggerLevelPayload(String configuredLevel, String effectiveLevel) {
     }
 }
