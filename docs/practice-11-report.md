@@ -93,6 +93,8 @@ flowchart LR
 
    > ![Знімок консолі: перевірка /actuator/health/resumeStorage у штатному стані UP](screenshots/actuator/03-health-resume-storage-up.png)
 
+   > ![Знімок консолі: перевірка /actuator/health/resumeStorage у стані збою DOWN (503)](screenshots/actuator/05-health-resume-storage-down.jpg)
+
 2. **[`ActuatorEnvSanitizingConfiguration.java`](../src/main/java/ua/edu/ukma/candidai/common/actuator/ActuatorEnvSanitizingConfiguration.java)** (`SanitizingFunction`):
    - У Spring Boot 4.1 при `show-values: when-authorized` вбудованого маскування за ключами немає, тому зареєстровано власний бін `SanitizingFunction`.
    - Ключі, що містять `jwt.secret`, `spring.datasource.password`, `telegram.bot-token`, `gemini.api-key`, `password`, `secret`, `token`, `api-key`, `apikey`, `credential`, `private-key` (з нормалізацією `_` -> `-`), маскуються значенням `******`.
