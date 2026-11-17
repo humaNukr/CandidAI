@@ -1,6 +1,6 @@
 # Звіт до Практичної роботи №11
 
-## Тема: Spring Boot Actuator - Захист службових ендпоінтів, кастомні індикатори стану, маскування секретів та динамічне логування
+## Тема: Spring Boot Actuator
 
 ---
 
@@ -103,12 +103,3 @@ flowchart LR
 
 3. **[`CandidAiInfoContributor.java`](../src/main/java/ua/edu/ukma/candidai/common/actuator/CandidAiInfoContributor.java)** (`implements InfoContributor`):
    - Публікує у `GET /actuator/info` опис застосунку та стан інтеграцій (`mailNotificationsEnabled`, `telegramBotEnabled`, `aiScreeningConfigured`).
-
----
-
-## 3. Автоматизована верифікація
-
-- `./gradlew checkstyleMain checkstyleTest` - 0 порушень Checkstyle.
-- `./gradlew :test --tests "ua.edu.ukma.candidai.common.actuator.ResumeStorageHealthIndicatorTest" --tests "ua.edu.ukma.candidai.common.actuator.ActuatorEnvSanitizingConfigurationTest" --tests "ua.edu.ukma.candidai.common.actuator.CandidAiInfoContributorTest"` - модульні тести Блоку 3 пройдено успішно.
-- `./gradlew :test --tests "*Modularity*"` - архітектурні межі Spring Modulith дотримано.
-- Інтеграційні тести (`ActuatorSecurityIntegrationTest`, `ActuatorLoggersIntegrationTest`, `ActuatorIndicatorsAndSanitizingIntegrationTest`) налаштовані для перевірки через MockMvc + Testcontainers (PostgreSQL 17).
