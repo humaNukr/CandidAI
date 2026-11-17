@@ -79,6 +79,7 @@ class ActuatorIndicatorsAndSanitizingIntegrationTest {
 
         ActuatorInfoPayload expected = new ActuatorInfoPayload(
                 new ApplicationInfoPayload("CandidAI", "Smart HR & AI Candidate Screening Platform"),
+                new ApplicationInfoPayload("CandidAI", "Smart HR & AI Candidate Screening Platform"),
                 new FeaturesInfoPayload(false, false, false)
         );
         assertThat(actual)
