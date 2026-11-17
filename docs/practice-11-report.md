@@ -1,239 +1,110 @@
-# Практична робота №11. Spring Boot Actuator — Захист службових ендпоінтів, кастомні індикатори та динамічне логування
+# Звіт до Практичної роботи №11
 
-**Мета:** налаштувати production-ready моніторинг, захист службових ендпоінтів Spring Boot Actuator через окремий ланцюг безпеки Spring Security, маскування чутливих властивостей оточення (`SanitizingFunction`), кастомний індикатор здоров'я (`ResumeStorageHealthIndicator`), розширення `/actuator/info` (`CandidAiInfoContributor`) та динамічну зміну рівнів логування без перезапуску JVM (`Loggers API`).
+## Тема: Spring Boot Actuator - Захист службових ендпоінтів, кастомні індикатори стану, маскування секретів та динамічне логування
 
 ---
 
-## 1. Архітектура моніторингу та безпеки Actuator у CandidAI
+## 1. Архітектура безпеки та конфігурація Actuator
 
-У проєкті `CandidAI` (Spring Boot 4.1.1, Java 25, Spring Modulith) безпеку розділено на незалежні ланцюги `SecurityFilterChain` за пріоритетом `@Order`. Для службових ендпоінтів Actuator виділено перший ланцюг з `@Order(1)` у [`ActuatorSecurityConfiguration.java`](../src/main/java/ua/edu/ukma/candidai/common/security/config/ActuatorSecurityConfiguration.java):
+У проєкті CandidAI для службових ендпоінтів Spring Boot Actuator виділено окремий ланцюг безпеки з найвищим пріоритетом `@Order(1)` у [`ActuatorSecurityConfiguration.java`](../src/main/java/ua/edu/ukma/candidai/common/security/config/ActuatorSecurityConfiguration.java):
 
 ```mermaid
 flowchart LR
-    Req["HTTP Request"] --> Chain1["@Order(1) ActuatorSecurityConfiguration\nEndpointRequest.toAnyEndpoint()"]
+    Req["HTTP-запит"] --> Chain1["@Order(1) ActuatorSecurityConfiguration\nEndpointRequest.toAnyEndpoint()"]
     Chain1 -->|"/actuator/health, /actuator/health/*, /actuator/info"| Public["permitAll() -> 200 OK"]
-    Chain1 -->|"/actuator/loggers, /actuator/env, /actuator/metrics"| Auth{"HTTP Basic / Role ADMIN?"}
-    Auth -->|"Anonymous"| R401["401 Unauthorized"]
+    Chain1 -->|"/actuator/loggers, /actuator/env, /actuator/metrics"| Auth{"HTTP Basic / ROLE_ADMIN?"}
+    Auth -->|"Анонімний запит"| R401["401 Unauthorized"]
     Auth -->|"CANDIDATE / RECRUITER"| R403["403 Forbidden"]
     Auth -->|"ROLE_ADMIN"| R200["200 OK / 204 No Content"]
-    Req -->|"Other paths (/api/**, /v3/api-docs/**, /**)"| Other["Chains @Order(2..4)"]
+    Req -->|"Інші маршрути (/api/**, /v3/api-docs/**, /**)"| Other["Ланцюги @Order(2..4)"]
 ```
 
-### Ключові параметри конфігурації ([`application.yaml`](../src/main/resources/application.yaml) та [`application-prod.yaml`](../src/main/resources/application-prod.yaml))
+### Конфігурація у [`application.yaml`](../src/main/resources/application.yaml) та [`application-prod.yaml`](../src/main/resources/application-prod.yaml)
 
 | Параметр | Значення | Призначення |
-| :--- | :--- | :--- |
-| `management.endpoints.web.exposure.include` | `health,info,loggers,env,metrics` | Явна експозиція лише необхідних ендпоінтів (без `*`) |
-| `management.endpoint.health.probes.enabled` | `true` | Активація груп `liveness` та `readiness` для оркестратора |
-| `management.endpoint.health.show-details` | `when-authorized` | Приховування деталей інфраструктури від анонімних запитів |
-| `management.endpoint.health.roles` | `ADMIN` | Перегляд деталей компонентів здоров'я лише для `ROLE_ADMIN` |
-| `management.endpoint.env.show-values` | `when-authorized` | Доступ до значень `/actuator/env` лише авторизованим (`ADMIN`) |
-| `management.info.env.enabled` | `true` | Публікація `info.app.*` у відповідь `/actuator/info` |
+|---|---|---|
+| `management.endpoints.web.exposure.include` | `health,info,loggers,env,metrics` | Явна веб-експозиція потрібних ендпоінтів (без `*`) |
+| `management.endpoint.health.probes.enabled` | `true` | Підтримка Kubernetes/Docker проб `liveness` та `readiness` |
+| `management.endpoint.health.show-details` | `when-authorized` | Приховування деталей компонентів від неавторизованих клієнтів |
+| `management.endpoint.health.roles` | `ADMIN` | Перегляд деталей `/actuator/health` лише для ролі `ADMIN` |
+| `management.endpoint.env.show-values` | `when-authorized` | Доступ до значень `/actuator/env` лише з роллю `ADMIN` |
+| `management.info.env.enabled` | `true` | Публікація властивостей `info.app.*` у `/actuator/info` |
 
 ---
 
-## 2. Власний індикатор працездатності (`ResumeStorageHealthIndicator`) та `/actuator/info`
+## 2. Реалізація завдань за блоками
 
-### 2.1. Реалізація [`ResumeStorageHealthIndicator.java`](../src/main/java/ua/edu/ukma/candidai/common/actuator/ResumeStorageHealthIndicator.java)
+### 2.1. Блок 1: Захист Actuator та матриця доступу
 
-Індикатор зареєстрований як бін `@Component("resumeStorage")` та реалізує `org.springframework.boot.health.contributor.HealthIndicator`. Він перевіряє каталог завантаження резюме (`StorageProperties.uploadDir()`):
-1. Наявність каталогу (`Files.exists`), тип директорії (`Files.isDirectory`) та право запису (`Files.isWritable`).
-2. За успішної перевірки обчислює доступний обсяг дискового простору (`Files.getFileStore(storagePath).getUsableSpace()`) і повертає `Health.up()` з полями `path`, `writable`, `freeSpaceBytes`.
-3. У разі відсутності каталогу, некоректного шляху або відмови доступу повертає `Health.down()` з діагностичним полем `reason`.
+У [`ActuatorSecurityConfiguration.java`](../src/main/java/ua/edu/ukma/candidai/common/security/config/ActuatorSecurityConfiguration.java):
+- Налаштовано `securityMatcher(EndpointRequest.toAnyEndpoint())`, `SessionCreationPolicy.STATELESS` та вимкнено CSRF для підтримки `POST /actuator/loggers/...`.
+- Публічний доступ (`permitAll()`) залишено лише для `health` та `info`.
+- Усі інші ендпоінти Actuator вимагають роль `ADMIN` та підтримують `httpBasic(Customizer.withDefaults())`.
 
-### 2.2. Перевірка штатного стану (`UP`) та змодельованого збою (`DOWN`)
+### 2.2. Блок 2: Динамічне логування (`Loggers API`)
 
-**Запит (адміністратор, штатний стан `UP`):**
+У бізнес-сервіси [`AssessmentServiceImpl.java`](../src/main/java/ua/edu/ukma/candidai/assessment/service/AssessmentServiceImpl.java) та [`CandidateEvaluationServiceImpl.java`](../src/main/java/ua/edu/ukma/candidai/recruitment/service/CandidateEvaluationServiceImpl.java) додано діагностичні `log.debug(...)` повідомлення.
 
-```bash
-curl -s -u admin@candidai.com:AdminPass123! http://localhost:8080/actuator/health/resumeStorage
-```
+Сценарій перевірки без перезапуску JVM:
+1. Перевірка поточного рівня: `GET /actuator/loggers/ua.edu.ukma.candidai.assessment.service` -> `effectiveLevel: "INFO"`.
+2. Перемикання рівня на `DEBUG`:
+   ```bash
+   curl -i -X POST -u admin@candidai.com:AdminPass123! \
+     -H "Content-Type: application/json" \
+     -d '{"configuredLevel":"DEBUG"}' \
+     http://localhost:8080/actuator/loggers/ua.edu.ukma.candidai.assessment.service
+   ```
+   Відповідь: `204 No Content`.
+3. Виклик сервісу фіксує появу `DEBUG`-рядків у журналі консолі.
+4. Скидання рівня на дефолтний (`{"configuredLevel":null}`) -> `204 No Content`, подальші виклики не виводять `DEBUG`-повідомлення.
 
-**Очікувана та тестована JSON-відповідь (`200 OK`):**
+> ![Знімок консолі: перемикання рівня логування на DEBUG та поява діагностичних логів](screenshots/actuator/01-dynamic-logging-debug.png)
 
-```json
-{
-  "status": "UP",
-  "details": {
-    "path": "/app/uploads/resumes",
-    "writable": true,
-    "freeSpaceBytes": 42815422464
-  }
-}
-```
+### 2.3. Блок 3: Кастомний індикатор здоров'я, маскування секретів та `/actuator/info`
 
-**Зведений стан `/actuator/health` для адміністратора (`200 OK`):**
+1. **[`ResumeStorageHealthIndicator.java`](../src/main/java/ua/edu/ukma/candidai/common/actuator/ResumeStorageHealthIndicator.java)** (`@Component("resumeStorage")`, `implements HealthIndicator`):
+   - Перевіряє існування каталогу `StorageProperties.uploadDir()`, тип директорії, доступність на запис та вільне місце (`freeSpaceBytes`).
+   - Штатний стан повертає `Health.up()` (`200 OK`), відсутність каталогу або невалідний шлях повертає `Health.down()` (`503 Service Unavailable`).
 
-```json
-{
-  "status": "UP",
-  "components": {
-    "db": {
-      "status": "UP",
-      "details": {
-        "database": "PostgreSQL",
-        "validationQuery": "isValid()"
-      }
-    },
-    "diskSpace": {
-      "status": "UP"
-    },
-    "livenessState": {
-      "status": "UP"
-    },
-    "ping": {
-      "status": "UP"
-    },
-    "readinessState": {
-      "status": "UP"
-    },
-    "resumeStorage": {
-      "status": "UP",
-      "details": {
-        "path": "/app/uploads/resumes",
-        "writable": true,
-        "freeSpaceBytes": 42815422464
-      }
-    }
-  },
-  "groups": ["liveness", "readiness"]
-}
-```
+   Запит `GET /actuator/health/resumeStorage` (штатний стан `UP`):
+   ```json
+   {
+     "status": "UP",
+     "details": {
+       "path": "/app/uploads/resumes",
+       "writable": true,
+       "freeSpaceBytes": 42815422464
+     }
+   }
+   ```
 
-**Анонімний запит `GET /actuator/health` (`200 OK`, без розкриття деталей):**
+   Змодельований збій (`DOWN`, відсутній каталог сховища):
+   ```json
+   {
+     "status": "DOWN",
+     "details": {
+       "path": "/tmp/missing-resumes",
+       "reason": "Storage directory does not exist"
+     }
+   }
+   ```
 
-```json
-{
-  "status": "UP",
-  "groups": ["liveness", "readiness"]
-}
-```
+   > ![Знімок консолі: перевірка /actuator/health та /actuator/health/resumeStorage у стані UP і DOWN](screenshots/actuator/02-health-indicator-up-down.png)
 
-**Змодельований збій (`DOWN`, наприклад, відсутній або невалідний каталог сховища — `503 Service Unavailable`):**
+2. **[`ActuatorEnvSanitizingConfiguration.java`](../src/main/java/ua/edu/ukma/candidai/common/actuator/ActuatorEnvSanitizingConfiguration.java)** (`SanitizingFunction`):
+   - У Spring Boot 4.1 при `show-values: when-authorized` вбудованого маскування за ключами немає, тому зареєстровано власний бін `SanitizingFunction`.
+   - Ключі, що містять `jwt.secret`, `spring.datasource.password`, `telegram.bot-token`, `gemini.api-key`, `password`, `secret`, `token`, `api-key`, `apikey`, `credential`, `private-key` (з нормалізацією `_` -> `-`), маскуються значенням `******`.
 
-```json
-{
-  "status": "DOWN",
-  "details": {
-    "path": "/tmp/missing-resumes",
-    "reason": "Storage directory does not exist"
-  }
-}
-```
+   > ![Знімок консолі: замасковані секрети у відповіді GET /actuator/env](screenshots/actuator/03-env-sanitizing.png)
 
-### 2.3. Розширення `/actuator/info` ([`CandidAiInfoContributor.java`](../src/main/java/ua/edu/ukma/candidai/common/actuator/CandidAiInfoContributor.java))
-
-Публічний запит `GET /actuator/info` (`200 OK`) повертає опис платформи та статус функціональних інтеграцій:
-
-```json
-{
-  "app": {
-    "name": "CandidAI",
-    "description": "Smart HR & AI Candidate Screening Platform"
-  },
-  "application": {
-    "name": "CandidAI",
-    "description": "Smart HR & AI Candidate Screening Platform"
-  },
-  "features": {
-    "mailNotificationsEnabled": false,
-    "telegramBotEnabled": false,
-    "aiScreeningConfigured": false
-  }
-}
-```
+3. **[`CandidAiInfoContributor.java`](../src/main/java/ua/edu/ukma/candidai/common/actuator/CandidAiInfoContributor.java)** (`implements InfoContributor`):
+   - Публікує у `GET /actuator/info` опис застосунку та стан інтеграцій (`mailNotificationsEnabled`, `telegramBotEnabled`, `aiScreeningConfigured`).
 
 ---
 
-## 3. Маскування чутливих змінних у `/actuator/env` (`SanitizingFunction`)
+## 3. Автоматизована верифікація
 
-У Spring Boot 4.1 вбудоване маскування за ключами в режимах `show-values: when-authorized` та `always` відсутнє, тому реалізовано власний бін `SanitizingFunction` у [`ActuatorEnvSanitizingConfiguration.java`](../src/main/java/ua/edu/ukma/candidai/common/actuator/ActuatorEnvSanitizingConfiguration.java).
-
-Функція нормалізує ключ (нижній регістр, заміна `_` на `-`) та перевіряє наявність чутливих маркерів (`jwt.secret`, `spring.datasource.password`, `telegram.bot-token`, `gemini.api-key`, `password`, `secret`, `token`, `api-key`, `apikey`, `credential`, `private-key`), замінюючи значення на `SanitizableData.SANITIZED_VALUE` (`"******"`):
-
-```json
-{
-  "candidai.security.jwt.secret": {
-    "value": "******"
-  },
-  "spring.datasource.password": {
-    "value": "******"
-  },
-  "spring.application.name": {
-    "value": "CandidAI"
-  }
-}
-```
-
----
-
-## 4. Сценарій динамічної зміни рівня логування без перезапуску JVM
-
-Для діагностики бізнес-процесів у [`AssessmentServiceImpl.java`](../src/main/java/ua/edu/ukma/candidai/assessment/service/AssessmentServiceImpl.java) та [`CandidateEvaluationServiceImpl.java`](../src/main/java/ua/edu/ukma/candidai/recruitment/service/CandidateEvaluationServiceImpl.java) додано `log.debug(...)` повідомлення.
-
-### Покроковий сценарій верифікації
-
-1. **Перевірка поточного рівня логування (за замовчуванням `INFO`):**
-
-```bash
-curl -s -u admin@candidai.com:AdminPass123! \
-  http://localhost:8080/actuator/loggers/ua.edu.ukma.candidai.assessment.service
-```
-
-Відповідь (`200 OK`):
-
-```json
-{
-  "configuredLevel": null,
-  "effectiveLevel": "INFO"
-}
-```
-
-2. **Спроба зміни рівня анонімно або роллю `RECRUITER` / `CANDIDATE`:**
-   - Без авторизації $\rightarrow$ `401 Unauthorized`
-   - З JWT/автентифікацією `CANDIDATE` або `RECRUITER` $\rightarrow$ `403 Forbidden`
-
-3. **Динамічне перемикання рівня на `DEBUG` без перезапуску сервісу:**
-
-```bash
-curl -i -X POST \
-  -u admin@candidai.com:AdminPass123! \
-  -H "Content-Type: application/json" \
-  -d '{"configuredLevel":"DEBUG"}' \
-  http://localhost:8080/actuator/loggers/ua.edu.ukma.candidai.assessment.service
-```
-
-Відповідь: `HTTP/1.1 204 No Content`.
-
-4. **Поява діагностичних повідомлень у журналі під час виклику сервісу:**
-
-```text
-DEBUG u.e.u.c.a.s.AssessmentServiceImpl : Querying screening repository for applicationId=c0a80101-...
-DEBUG u.e.u.c.a.s.AssessmentServiceImpl : Initiating AI screening for applicationId=c0a80101-..., vacancyId=...
-```
-
-5. **Скидання рівня логування до успадкованого значення (`INFO`):**
-
-```bash
-curl -i -X POST \
-  -u admin@candidai.com:AdminPass123! \
-  -H "Content-Type: application/json" \
-  -d '{"configuredLevel":null}' \
-  http://localhost:8080/actuator/loggers/ua.edu.ukma.candidai.assessment.service
-```
-
-Відповідь: `HTTP/1.1 204 No Content`, подальші виклики сервісу знову припиняють логування `DEBUG`-подій.
-
----
-
-## 5. Автоматизована верифікація та статичний аналіз
-
-| Набір перевірок | Клас / Завдання | Покриття |
-| :--- | :--- | :--- |
-| Модульні тести індикатора сховища | `ResumeStorageHealthIndicatorTest` | Штатний стан `UP` (`writable`, `freeSpaceBytes`), збої `DOWN` (відсутній каталог, файл замість директорії) |
-| Модульні тести маскування `/actuator/env` | `ActuatorEnvSanitizingConfigurationTest` | Маскування секретів (`jwt.secret`, `datasource.password`, `bot-token`, `api-key`, env-ключів з `_`) та збереження безпечних значень |
-| Модульні тести `/actuator/info` | `CandidAiInfoContributorTest` | Відображення метаданих застосунку та прапорців інтеграцій (`mail`, `telegram`, `aiScreening`) |
-| Інтеграційні тести безпеки | `ActuatorSecurityIntegrationTest` | Публічність `/actuator/health`, `/health/liveness`, `/health/readiness`, `/info`; `401`/`403`/`200` для захищених ендпоінтів |
-| Інтеграційні тести динамічного логування | `ActuatorLoggersIntegrationTest` | Перевірка `401`/`403`/`400`/`204`/`200`, наскрізна перевірка `DEBUG`-логів через Logback `ListAppender` і скидання рівня |
-| Інтеграційні тести індикаторів і санітизації | `ActuatorIndicatorsAndSanitizingIntegrationTest` | Компоненти `resumeStorage` і `db` у `/actuator/health`, маскування у `/actuator/env`, відповідь `/actuator/info` |
-| Статичний аналіз коду | `checkstyleMain`, `checkstyleTest` | 0 порушень |
+- `./gradlew checkstyleMain checkstyleTest` - 0 порушень Checkstyle.
+- `./gradlew :test --tests "ua.edu.ukma.candidai.common.actuator.ResumeStorageHealthIndicatorTest" --tests "ua.edu.ukma.candidai.common.actuator.ActuatorEnvSanitizingConfigurationTest" --tests "ua.edu.ukma.candidai.common.actuator.CandidAiInfoContributorTest"` - модульні тести Блоку 3 пройдено успішно.
+- `./gradlew :test --tests "*Modularity*"` - архітектурні межі Spring Modulith дотримано.
+- Інтеграційні тести (`ActuatorSecurityIntegrationTest`, `ActuatorLoggersIntegrationTest`, `ActuatorIndicatorsAndSanitizingIntegrationTest`) налаштовані для перевірки через MockMvc + Testcontainers (PostgreSQL 17).
