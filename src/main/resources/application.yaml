@@ -114,3 +114,11 @@ management:
     env:
       show-values: when-authorized
       roles: ADMIN
+  info:
+    env:
+      enabled: true
+
+info:
+  app:
+    name: CandidAI
+    description: Smart HR & AI Candidate Screening Platform
