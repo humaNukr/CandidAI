@@ -1,121 +1,156 @@
 package ua.edu.ukma.candidai.common.security;
 
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
+import tools.jackson.databind.ObjectMapper;
 import ua.edu.ukma.candidai.common.annotation.IntegrationTest;
+import ua.edu.ukma.candidai.common.config.DeploymentConfigTestResources;
 
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.httpBasic;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static ua.edu.ukma.candidai.common.security.SecurityTestResources.ADMIN_EMAIL;
-import static ua.edu.ukma.candidai.common.security.SecurityTestResources.ADMIN_PASSWORD;
+import static org.assertj.core.api.Assertions.*;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static ua.edu.ukma.candidai.common.actuator.ActuatorTestResources.*;
+import static ua.edu.ukma.candidai.common.security.SecurityTestResources.*;
 
 @IntegrationTest
-@DisplayName("Integration tests for Actuator security rules, endpoints isolation, and HTTP Basic authentication")
 class ActuatorSecurityIntegrationTest {
 
     @Autowired
     private MockMvc mockMvc;
 
+    @Autowired
+    private ObjectMapper objectMapper;
+
     @Test
-    @DisplayName("GET /actuator/health - should be publicly accessible without authentication")
-    void health_WhenAnonymous_ShouldReturnOk() throws Exception {
-        mockMvc.perform(get("/actuator/health"))
+    void givenAnonymousRequest_getHealth_shouldReturnOk() throws Exception {
+        MvcResult result = mockMvc.perform(get(ACTUATOR_HEALTH_PATH))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("UP"));
+                .andReturn();
+
+        DeploymentConfigTestResources.ActuatorRootHealthPayload actual = parseResponse(
+                result,
+                DeploymentConfigTestResources.ActuatorRootHealthPayload.class
+        );
+
+        assertThat(actual)
+                .usingRecursiveComparison()
+                .isEqualTo(DeploymentConfigTestResources.expectedRootHealthPayload());
     }
 
     @Test
-    @DisplayName("GET /actuator/health/liveness - should be publicly accessible for container probes")
-    void livenessProbe_WhenAnonymous_ShouldReturnOk() throws Exception {
-        mockMvc.perform(get("/actuator/health/liveness"))
+    void givenAnonymousRequest_getLivenessProbe_shouldReturnOk() throws Exception {
+        MvcResult result = mockMvc.perform(get(ACTUATOR_LIVENESS_PATH))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("UP"));
+                .andReturn();
+
+        DeploymentConfigTestResources.ActuatorProbePayload actual = parseResponse(
+                result,
+                DeploymentConfigTestResources.ActuatorProbePayload.class
+        );
+
+        assertThat(actual)
+                .usingRecursiveComparison()
+                .isEqualTo(DeploymentConfigTestResources.expectedUpProbePayload());
     }
 
     @Test
-    @DisplayName("GET /actuator/health/readiness - should be publicly accessible for container probes")
-    void readinessProbe_WhenAnonymous_ShouldReturnOk() throws Exception {
-        mockMvc.perform(get("/actuator/health/readiness"))
+    void givenAnonymousRequest_getReadinessProbe_shouldReturnOk() throws Exception {
+        MvcResult result = mockMvc.perform(get(ACTUATOR_READINESS_PATH))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("UP"));
+                .andReturn();
+
+        DeploymentConfigTestResources.ActuatorProbePayload actual = parseResponse(
+                result,
+                DeploymentConfigTestResources.ActuatorProbePayload.class
+        );
+
+        assertThat(actual)
+                .usingRecursiveComparison()
+                .isEqualTo(DeploymentConfigTestResources.expectedUpProbePayload());
     }
 
     @Test
-    @DisplayName("GET /actuator/info - should be publicly accessible without authentication")
-    void info_WhenAnonymous_ShouldReturnOk() throws Exception {
-        mockMvc.perform(get("/actuator/info"))
+    void givenAnonymousRequest_getInfo_shouldReturnOk() throws Exception {
+        mockMvc.perform(get(ACTUATOR_INFO_PATH))
                 .andExpect(status().isOk());
     }
 
     @Test
-    @DisplayName("GET /actuator/loggers - should return 401 Unauthorized for anonymous requests")
-    void loggers_WhenAnonymous_ShouldReturnUnauthorized() throws Exception {
-        mockMvc.perform(get("/actuator/loggers"))
+    void givenAnonymousRequest_getLoggers_shouldReturnUnauthorized() throws Exception {
+        mockMvc.perform(get(ACTUATOR_LOGGERS_PATH))
                 .andExpect(status().isUnauthorized());
     }
 
     @Test
-    @DisplayName("GET /actuator/env - should return 401 Unauthorized for anonymous requests")
-    void env_WhenAnonymous_ShouldReturnUnauthorized() throws Exception {
-        mockMvc.perform(get("/actuator/env"))
+    void givenAnonymousRequest_getEnv_shouldReturnUnauthorized() throws Exception {
+        mockMvc.perform(get(ACTUATOR_ENV_PATH))
                 .andExpect(status().isUnauthorized());
     }
 
     @Test
-    @DisplayName("GET /actuator/metrics - should return 401 Unauthorized for anonymous requests")
-    void metrics_WhenAnonymous_ShouldReturnUnauthorized() throws Exception {
-        mockMvc.perform(get("/actuator/metrics"))
+    void givenAnonymousRequest_getMetrics_shouldReturnUnauthorized() throws Exception {
+        mockMvc.perform(get(ACTUATOR_METRICS_PATH))
                 .andExpect(status().isUnauthorized());
     }
 
     @Test
     @WithMockUser(roles = "CANDIDATE")
-    @DisplayName("GET /actuator/loggers - should return 403 Forbidden for candidate role")
-    void loggers_WhenCandidateRole_ShouldReturnForbidden() throws Exception {
-        mockMvc.perform(get("/actuator/loggers"))
+    void givenCandidateRole_getLoggers_shouldReturnForbidden() throws Exception {
+        mockMvc.perform(get(ACTUATOR_LOGGERS_PATH))
                 .andExpect(status().isForbidden());
     }
 
     @Test
     @WithMockUser(roles = "RECRUITER")
-    @DisplayName("GET /actuator/loggers - should return 403 Forbidden for recruiter role")
-    void loggers_WhenRecruiterRole_ShouldReturnForbidden() throws Exception {
-        mockMvc.perform(get("/actuator/loggers"))
+    void givenRecruiterRole_getLoggers_shouldReturnForbidden() throws Exception {
+        mockMvc.perform(get(ACTUATOR_LOGGERS_PATH))
                 .andExpect(status().isForbidden());
     }
 
     @Test
     @WithMockUser(roles = "ADMIN")
-    @DisplayName("GET /actuator/loggers - should return 200 OK for ADMIN role")
-    void loggers_WhenAdminRole_ShouldReturnOk() throws Exception {
-        mockMvc.perform(get("/actuator/loggers"))
+    void givenAdminRole_getLoggers_shouldReturnOk() throws Exception {
+        MvcResult result = mockMvc.perform(get(ACTUATOR_LOGGERS_PATH))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.levels").isArray())
-                .andExpect(jsonPath("$.loggers").isMap());
+                .andReturn();
+
+        LoggersSummaryPayload actual = parseResponse(result, LoggersSummaryPayload.class);
+
+        assertThat(actual.levels()).isNotEmpty();
+        assertThat(actual.loggers()).isNotEmpty();
     }
 
     @Test
     @WithMockUser(roles = "ADMIN")
-    @DisplayName("GET /actuator/health - should include component details for ADMIN role")
-    void health_WhenAdminRole_ShouldIncludeDetails() throws Exception {
-        mockMvc.perform(get("/actuator/health"))
+    void givenAdminRole_getHealth_shouldIncludeDetails() throws Exception {
+        MvcResult result = mockMvc.perform(get(ACTUATOR_HEALTH_PATH))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("UP"))
-                .andExpect(jsonPath("$.components").isMap());
+                .andReturn();
+
+        HealthRootPayload actual = parseResponse(result, HealthRootPayload.class);
+
+        assertThat(actual.status()).isEqualTo("UP");
+        assertThat(actual.components()).isNotEmpty();
     }
 
     @Test
-    @DisplayName("GET /actuator/loggers - should authenticate seeded admin user via HTTP Basic")
-    void loggers_WhenAdminHttpBasicCredentials_ShouldReturnOk() throws Exception {
-        mockMvc.perform(get("/actuator/loggers")
+    void givenAdminHttpBasicCredentials_getLoggers_shouldReturnOk() throws Exception {
+        MvcResult result = mockMvc.perform(get(ACTUATOR_LOGGERS_PATH)
                         .with(httpBasic(ADMIN_EMAIL, ADMIN_PASSWORD)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.levels").isArray())
-                .andExpect(jsonPath("$.loggers").isMap());
+                .andReturn();
+
+        LoggersSummaryPayload actual = parseResponse(result, LoggersSummaryPayload.class);
+
+        assertThat(actual.levels()).isNotEmpty();
+        assertThat(actual.loggers()).isNotEmpty();
+    }
+
+    private <T> T parseResponse(MvcResult result, Class<T> responseType) throws Exception {
+        return objectMapper.readValue(result.getResponse().getContentAsString(), responseType);
     }
 }
