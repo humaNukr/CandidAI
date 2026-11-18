@@ -23,8 +23,10 @@ import ua.edu.ukma.candidai.common.security.jwt.JwtValidatorService;
 @EnableWebSecurity
 public class SecurityConfiguration {
 
+    public static final int CHAIN_ORDER = 2;
+
     @Bean
-    @Order(1)
+    @Order(CHAIN_ORDER)
     public SecurityFilterChain securityFilterChain(
             HttpSecurity http,
             JwtValidatorService jwtValidatorService,

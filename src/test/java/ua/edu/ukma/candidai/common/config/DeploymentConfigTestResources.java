@@ -42,9 +42,10 @@ public final class DeploymentConfigTestResources {
                 "8080",
                 "native",
                 "false",
-                "health",
+                "health,info,loggers,env,metrics",
                 "true",
-                "never"
+                "when-authorized",
+                "when-authorized"
         );
     }
 
@@ -73,7 +74,8 @@ public final class DeploymentConfigTestResources {
             String sessionCookieSecure,
             String exposedEndpoints,
             String probesEnabled,
-            String showDetails
+            String showDetails,
+            String showComponents
     ) {
     }
 

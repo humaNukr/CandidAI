@@ -43,7 +43,8 @@ class DeploymentLifecycleAndHealthIntegrationTest {
                 environment.getProperty("server.servlet.session.cookie.secure"),
                 environment.getProperty("management.endpoints.web.exposure.include"),
                 environment.getProperty("management.endpoint.health.probes.enabled"),
-                environment.getProperty("management.endpoint.health.show-details")
+                environment.getProperty("management.endpoint.health.show-details"),
+                environment.getProperty("management.endpoint.health.show-components")
         );
 
         assertThat(actual)
@@ -123,11 +124,10 @@ class DeploymentLifecycleAndHealthIntegrationTest {
     }
 
     @Test
-    @DisplayName("getActuatorEnv - should not expose sensitive actuator endpoints anonymously")
-    void givenAnonymousRequest_getUnexposedActuatorEnv_shouldRedirectToLogin() throws Exception {
+    @DisplayName("getActuatorEnv - should not expose sensitive actuator endpoints anonymously and return 401")
+    void givenAnonymousRequest_getUnexposedActuatorEnv_shouldReturnUnauthorized() throws Exception {
         mockMvc.perform(get(ACTUATOR_ENV_PATH))
-                .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl(LOGIN_PATH));
+                .andExpect(status().isUnauthorized());
     }
 
     private <T> T parseResponse(MvcResult result, Class<T> responseType) throws Exception {

@@ -16,7 +16,7 @@ import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWrite
 @Configuration(proxyBeanMethods = false)
 public class OpenApiSecurityConfiguration {
 
-    private static final int CHAIN_ORDER = 2;
+    private static final int CHAIN_ORDER = 3;
 
     @Bean
     @Order(CHAIN_ORDER)
