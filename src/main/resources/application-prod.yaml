@@ -30,3 +30,4 @@ logging:
     org.springframework.boot: INFO
     com.zaxxer.hikari: INFO
     ua.edu.ukma.candidai: INFO
+
