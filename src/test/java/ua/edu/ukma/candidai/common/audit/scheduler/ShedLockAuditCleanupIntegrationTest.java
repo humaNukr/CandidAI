@@ -32,7 +32,7 @@ class ShedLockAuditCleanupIntegrationTest {
 
     @Test
     @DisplayName("purgeExpiredAuditLogs - should acquire ShedLock in database and remove expired audit logs")
-    @DataSet(value = "datasets/audit/expired-and-recent-audit-logs.yml", cleanBefore = true)
+    @DataSet(value = "datasets/audit/expired-and-recent-audit-logs.yml")
     @ExpectedDataSet(
             value = "datasets/audit/expected-after-audit-cleanup.yml",
             ignoreCols = {"created_at", "lock_until", "locked_at"}
@@ -50,7 +50,7 @@ class ShedLockAuditCleanupIntegrationTest {
 
     @Test
     @DisplayName("purgeExpiredAuditLogs - should skip execution when ShedLock is already held by another instance")
-    @DataSet(value = "datasets/audit/active-lock-by-another-node.yml", cleanBefore = true)
+    @DataSet(value = "datasets/audit/active-lock-by-another-node.yml")
     @ExpectedDataSet(
             value = "datasets/audit/expected-when-locked-by-another-node.yml",
             ignoreCols = {"created_at", "lock_until", "locked_at"}
