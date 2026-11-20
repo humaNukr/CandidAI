@@ -1,0 +1,32 @@
+audit_log:
+  - id: "11111111-1111-1111-1111-111111111111"
+    action: "CREATE_VACANCY"
+    class_name: "VacancyServiceImpl"
+    method_name: "createVacancy"
+    user_id: "e0000000-0000-0000-0000-000000000001"
+    user_email: "recruiter@candidai.com"
+    user_role: "ROLE_RECRUITER"
+    trace_id: "4f8b2c1a"
+    client_ip: "192.168.1.10"
+    parameters: "{\"title\":\"Senior Java Engineer\"}"
+    execution_time_ms: 42
+    success: true
+    created_at: "2020-01-01 00:00:00"
+  - id: "22222222-2222-2222-2222-222222222222"
+    action: "APPLY_VACANCY"
+    class_name: "ApplicationServiceImpl"
+    method_name: "apply"
+    user_id: "c0000000-0000-0000-0000-000000000001"
+    user_email: "candidate@candidai.com"
+    user_role: "ROLE_CANDIDATE"
+    trace_id: "4f8b2c1a"
+    client_ip: "192.168.1.10"
+    parameters: "{\"vacancyId\":\"b0000000-0000-0000-0000-000000000001\"}"
+    execution_time_ms: 15
+    success: true
+    created_at: "[now]"
+shedlock:
+  - name: "AuditCleanupJob"
+    lock_until: "2020-01-01 00:00:00"
+    locked_at: "2020-01-01 00:00:00"
+    locked_by: "previous-run"

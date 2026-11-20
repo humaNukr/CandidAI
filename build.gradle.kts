@@ -23,10 +23,14 @@ repositories {
 val springModulithVersion = "2.1.1"
 val mapstructVersion = "1.6.3"
 val lombokMapstructBindingVersion = "0.2.0"
+val shedlockVersion = "7.11.0"
+val dbRiderVersion = "1.44.0"
 
 dependencies {
     implementation(project(":candidai-spring-boot-starter"))
     implementation(platform("org.springframework.modulith:spring-modulith-bom:$springModulithVersion"))
+    implementation("net.javacrumbs.shedlock:shedlock-spring:$shedlockVersion")
+    implementation("net.javacrumbs.shedlock:shedlock-provider-jdbc-template:$shedlockVersion")
     implementation("org.springframework.boot:spring-boot-starter-webmvc")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-aspectj")
@@ -75,6 +79,7 @@ dependencies {
     testImplementation("org.testcontainers:junit-jupiter")
     testImplementation("org.testcontainers:postgresql")
     testImplementation("org.wiremock:wiremock-standalone:3.13.2")
+    testImplementation("com.github.database-rider:rider-spring:$dbRiderVersion")
 
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     testImplementation("com.microsoft.playwright:playwright:1.49.0")
