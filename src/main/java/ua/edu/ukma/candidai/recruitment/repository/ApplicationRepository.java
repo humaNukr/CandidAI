@@ -1,15 +1,16 @@
 package ua.edu.ukma.candidai.recruitment.repository;
 
+import java.time.Instant;
+import java.util.Collection;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import ua.edu.ukma.candidai.recruitment.dto.model.ApplicationStatus;
 import ua.edu.ukma.candidai.recruitment.model.Application;
-
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
 
 @Repository
 public interface ApplicationRepository extends JpaRepository<Application, UUID> {
@@ -28,7 +29,7 @@ public interface ApplicationRepository extends JpaRepository<Application, UUID> 
     Optional<Application> findByIdWithFeedbacks(@Param("id") UUID id);
 
     List<Application> findByStatusInAndUpdatedAtBefore(
-            java.util.Collection<ApplicationStatus> statuses,
-            java.time.Instant cutoff
+            Collection<ApplicationStatus> statuses,
+            Instant cutoff
     );
 }
