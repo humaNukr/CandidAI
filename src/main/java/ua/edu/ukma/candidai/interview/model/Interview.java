@@ -63,6 +63,9 @@ public class Interview {
     @Column(name = "cancellation_reason", length = 500)
     private String cancellationReason;
 
+    @Column(name = "reminder_sent_at")
+    private Instant reminderSentAt;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -136,7 +139,17 @@ public class Interview {
                     : "Reschedule reason: " + reason;
         }
         this.status = InterviewStatus.RESCHEDULED;
+        this.reminderSentAt = null;
         this.updatedAt = now;
+    }
+
+    public void markReminderSent(Instant now) {
+        this.reminderSentAt = now;
+        this.updatedAt = now;
+    }
+
+    public boolean isReminderSent() {
+        return this.reminderSentAt != null;
     }
 
     public void cancel(String reason, Instant now) {

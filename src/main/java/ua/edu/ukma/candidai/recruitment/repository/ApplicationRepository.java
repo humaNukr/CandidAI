@@ -26,4 +26,9 @@ public interface ApplicationRepository extends JpaRepository<Application, UUID> 
 
     @Query("SELECT a FROM Application a LEFT JOIN FETCH a.feedbacks WHERE a.id = :id")
     Optional<Application> findByIdWithFeedbacks(@Param("id") UUID id);
+
+    List<Application> findByStatusInAndUpdatedAtBefore(
+            java.util.Collection<ApplicationStatus> statuses,
+            java.time.Instant cutoff
+    );
 }

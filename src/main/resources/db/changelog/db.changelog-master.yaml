@@ -7,4 +7,8 @@ databaseChangeLog:
       file: db/changelog/changeset/V20261005_100000_seed_e2e_data.sql
   - include:
       file: db/changelog/changeset/V20261106_120000_create_audit_logs_table.sql
+  - include:
+      file: db/changelog/changeset/V20261120_120000_create_shedlock_table.sql
+  - include:
+      file: db/changelog/changeset/V20261121_120000_add_interview_reminder_sent_at.sql
 

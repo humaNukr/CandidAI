@@ -1,0 +1,16 @@
+audit_log:
+  - id: "22222222-2222-2222-2222-222222222222"
+    action: "APPLY_VACANCY"
+    class_name: "ApplicationServiceImpl"
+    method_name: "apply"
+    user_id: "c0000000-0000-0000-0000-000000000001"
+    user_email: "candidate@candidai.com"
+    user_role: "ROLE_CANDIDATE"
+    trace_id: "4f8b2c1a"
+    client_ip: "192.168.1.10"
+    parameters: "{\"vacancyId\":\"b0000000-0000-0000-0000-000000000001\"}"
+    execution_time_ms: 15
+    success: true
+shedlock:
+  - name: "AuditCleanupJob"
+    locked_by: "regex:^(?!previous-run$).+"

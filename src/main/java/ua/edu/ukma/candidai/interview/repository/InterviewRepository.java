@@ -20,5 +20,16 @@ public interface InterviewRepository extends JpaRepository<Interview, UUID> {
 
     List<Interview> findByScheduledAtBetween(Instant from, Instant to);
 
+    @org.springframework.data.jpa.repository.Query(
+            "SELECT i FROM Interview i WHERE i.status IN :statuses "
+                    + "AND i.scheduledAt >= :start AND i.scheduledAt <= :end "
+                    + "AND i.reminderSentAt IS NULL"
+    )
+    List<Interview> findUpcomingPendingReminders(
+            @org.springframework.data.repository.query.Param("statuses") java.util.Collection<InterviewStatus> statuses,
+            @org.springframework.data.repository.query.Param("start") Instant start,
+            @org.springframework.data.repository.query.Param("end") Instant end
+    );
+
     boolean existsByApplicationIdAndStatus(UUID applicationId, InterviewStatus status);
 }
