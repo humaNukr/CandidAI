@@ -2,13 +2,14 @@ package ua.edu.ukma.candidai.recruitment.repository;
 
 import java.util.List;
 import java.util.UUID;
+import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.Repository;
+import org.springframework.stereotype.Repository;
 import ua.edu.ukma.candidai.recruitment.dto.response.ApplicationStatusCount;
 import ua.edu.ukma.candidai.recruitment.model.Application;
 
-@org.springframework.stereotype.Repository
-public interface ApplicationFunnelRepository extends Repository<Application, UUID> {
+@Repository
+public interface ApplicationFunnelRepository extends JpaRepository<Application, UUID> {
 
     @Query("""
             SELECT new ua.edu.ukma.candidai.recruitment.dto.response.ApplicationStatusCount(a.status, COUNT(a))
