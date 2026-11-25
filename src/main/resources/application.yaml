@@ -44,6 +44,12 @@ spring:
   threads:
     virtual:
       enabled: true
+  task:
+    scheduling:
+      thread-name-prefix: candidai-scheduler-
+      shutdown:
+        await-termination: true
+        await-termination-period: 30s
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/candidai}
     username: ${DB_USERNAME:candidai_user}
@@ -86,6 +92,14 @@ candidai:
     model: ${GEMINI_MODEL:gemini-3.5-flash-lite}
     base-url: https://generativelanguage.googleapis.com
     timeout-seconds: 15
+  audit:
+    retention-days: ${AUDIT_RETENTION_DAYS:90}
+  scheduler:
+    funnel-metrics:
+      fixed-delay-seconds: ${FUNNEL_METRICS_FIXED_DELAY_SECONDS:900}
+      initial-delay-seconds: ${FUNNEL_METRICS_INITIAL_DELAY_SECONDS:900}
+      lock-at-least-for: ${FUNNEL_METRICS_LOCK_AT_LEAST_FOR:PT10S}
+      lock-at-most-for: ${FUNNEL_METRICS_LOCK_AT_MOST_FOR:PT2M}
 notification:
   mail:
     enabled: ${MAIL_ENABLED:false}
