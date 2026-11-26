@@ -44,6 +44,14 @@ spring:
   threads:
     virtual:
       enabled: true
+  ai:
+    google:
+      genai:
+        api-key: ${GEMINI_API_KEY:}
+        chat:
+          options:
+            model: ${GEMINI_MODEL:gemini-2.5-flash-lite}
+            temperature: 0.2
   task:
     scheduling:
       thread-name-prefix: candidai-scheduler-
@@ -87,11 +95,6 @@ candidai:
     jwt:
       secret: ${JWT_SECRET:candidai-super-secret-jwt-key-for-hmac-sha-256-which-is-at-least-256-bits-long!}
       expiration-minutes: 60
-  gemini:
-    api-key: ${GEMINI_API_KEY:}
-    model: ${GEMINI_MODEL:gemini-3.5-flash-lite}
-    base-url: https://generativelanguage.googleapis.com
-    timeout-seconds: 15
   audit:
     retention-days: ${AUDIT_RETENTION_DAYS:90}
   scheduler:

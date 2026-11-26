@@ -14,7 +14,7 @@ class CandidAiInfoContributorTest {
         MockEnvironment environment = new MockEnvironment()
                 .withProperty("notification.mail.enabled", "true")
                 .withProperty("notification.telegram.enabled", "false")
-                .withProperty("candidai.gemini.api-key", "test-gemini-key");
+                .withProperty("spring.ai.google.genai.api-key", "test-gemini-key");
         CandidAiInfoContributor contributor = new CandidAiInfoContributor(environment);
         Info.Builder builder = new Info.Builder();
 
@@ -30,7 +30,7 @@ class CandidAiInfoContributorTest {
         MockEnvironment environment = new MockEnvironment()
                 .withProperty("notification.mail.enabled", "false")
                 .withProperty("notification.telegram.enabled", "true")
-                .withProperty("candidai.gemini.api-key", "");
+                .withProperty("spring.ai.google.genai.api-key", "");
         CandidAiInfoContributor contributor = new CandidAiInfoContributor(environment);
         Info.Builder builder = new Info.Builder();
 
