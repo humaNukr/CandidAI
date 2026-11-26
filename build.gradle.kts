@@ -21,6 +21,7 @@ repositories {
 }
 
 val springModulithVersion = "2.1.1"
+val springAiVersion = "2.1.0"
 val mapstructVersion = "1.6.3"
 val lombokMapstructBindingVersion = "0.2.0"
 val shedlockVersion = "7.11.0"
@@ -29,6 +30,8 @@ val dbRiderVersion = "1.44.0"
 dependencies {
     implementation(project(":candidai-spring-boot-starter"))
     implementation(platform("org.springframework.modulith:spring-modulith-bom:$springModulithVersion"))
+    implementation(platform("org.springframework.ai:spring-ai-bom:$springAiVersion"))
+    implementation("org.springframework.ai:spring-ai-starter-model-google-genai")
     implementation("net.javacrumbs.shedlock:shedlock-spring:$shedlockVersion")
     implementation("net.javacrumbs.shedlock:shedlock-provider-jdbc-template:$shedlockVersion")
     implementation("org.springframework.boot:spring-boot-starter-webmvc")

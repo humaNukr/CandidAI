@@ -14,13 +14,13 @@ import org.springframework.test.web.servlet.MvcResult;
 import tools.jackson.databind.ObjectMapper;
 import ua.edu.ukma.candidai.common.annotation.IntegrationTest;
 import ua.edu.ukma.candidai.common.wiremock.ExternalServicesStubConfiguration;
+import ua.edu.ukma.candidai.common.wiremock.ExternalServicesStubConfiguration.TestStubChatModel;
 import ua.edu.ukma.candidai.recruitment.dto.model.ApplicationStatus;
 import ua.edu.ukma.candidai.recruitment.dto.request.ApplyForVacancyRequest;
 import ua.edu.ukma.candidai.recruitment.dto.response.ApplicationResponse;
 import ua.edu.ukma.candidai.vacancy.dto.request.CreateVacancyRequest;
 import ua.edu.ukma.candidai.vacancy.dto.response.VacancyResponse;
 
-import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -29,8 +29,6 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static ua.edu.ukma.candidai.common.wiremock.ExternalServicesStubConfiguration.GEMINI_API_KEY;
-import static ua.edu.ukma.candidai.common.wiremock.ExternalServicesStubConfiguration.GEMINI_PATH;
 import static ua.edu.ukma.candidai.common.wiremock.ExternalServicesStubConfiguration.TELEGRAM_PATH;
 import static ua.edu.ukma.candidai.testutils.IntegrationTestResources.SEED_CANDIDATE_ID;
 import static ua.edu.ukma.candidai.testutils.IntegrationTestResources.aValidApplyRequest;
@@ -41,6 +39,8 @@ class ApplicationFlowIntegrationTest {
 
     private static final String VACANCIES_URL = "/api/v1/vacancies";
     private static final String APPLICATIONS_URL = "/api/v1/applications";
+    private static final int EXPECTED_PASS_SCORE = 88;
+    private static final int EXPECTED_REJECT_SCORE = 35;
 
     @Autowired
     private MockMvc mockMvc;
@@ -54,10 +54,14 @@ class ApplicationFlowIntegrationTest {
     @Autowired
     private WireMockServer wireMockServer;
 
+    @Autowired
+    private TestStubChatModel stubChatModel;
+
     @BeforeEach
     void setUp() {
         wireMockServer.resetAll();
         ExternalServicesStubConfiguration.setupDefaultStubs(wireMockServer);
+        stubChatModel.resetToDefault();
     }
 
     @Test
@@ -89,8 +93,7 @@ class ApplicationFlowIntegrationTest {
         assertThat(initialStatus).isEqualTo(ApplicationStatus.APPLIED.name());
 
         await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> {
-            wireMockServer.verify(postRequestedFor(urlEqualTo(GEMINI_PATH))
-                    .withHeader("x-goog-api-key", equalTo(GEMINI_API_KEY)));
+            assertThat(stubChatModel.getCallCount()).isEqualTo(1);
 
             String updatedStatus = jdbcClient.sql("SELECT status FROM applications WHERE id = :id")
                     .param("id", response.id())
@@ -103,7 +106,7 @@ class ApplicationFlowIntegrationTest {
                     .query(Integer.class)
                     .optional()
                     .orElse(null);
-            assertThat(score).isEqualTo(88);
+            assertThat(score).isEqualTo(EXPECTED_PASS_SCORE);
 
             wireMockServer.verify(postRequestedFor(urlEqualTo(TELEGRAM_PATH)));
         });
@@ -112,7 +115,7 @@ class ApplicationFlowIntegrationTest {
     @Test
     @WithMockUser(username = "candidate@candidai.ua", roles = "CANDIDATE")
     void geminiError_shouldKeepApplicationAsAppliedSafely() throws Exception {
-        ExternalServicesStubConfiguration.stubGeminiError(wireMockServer, 500);
+        stubChatModel.stubError(new RuntimeException("Simulated Gemini error"));
 
         UUID vacancyId = createVacancyAsRecruiter();
         ApplyForVacancyRequest applyRequest = aValidApplyRequest(vacancyId);
@@ -135,7 +138,7 @@ class ApplicationFlowIntegrationTest {
         assertThat(statusInDb).isEqualTo(ApplicationStatus.APPLIED.name());
 
         await().pollDelay(Duration.ofMillis(500)).atMost(Duration.ofSeconds(2)).untilAsserted(() -> {
-            wireMockServer.verify(postRequestedFor(urlEqualTo(GEMINI_PATH)));
+            assertThat(stubChatModel.getCallCount()).isEqualTo(1);
 
             String statusAfterFailure = jdbcClient.sql("SELECT status FROM applications WHERE id = :id")
                     .param("id", response.id())
@@ -148,9 +151,8 @@ class ApplicationFlowIntegrationTest {
     @Test
     @WithMockUser(username = "candidate@candidai.ua", roles = "CANDIDATE")
     void candidateRejectedByScreening_shouldUpdateStatusToRejected() throws Exception {
-        ExternalServicesStubConfiguration.stubGeminiSuccess(
-                wireMockServer,
-                35,
+        stubChatModel.stubSuccess(
+                EXPECTED_REJECT_SCORE,
                 false,
                 "Candidate skills do not meet minimum seniority requirements."
         );
@@ -181,7 +183,7 @@ class ApplicationFlowIntegrationTest {
                     .query(Integer.class)
                     .optional()
                     .orElse(null);
-            assertThat(score).isEqualTo(35);
+            assertThat(score).isEqualTo(EXPECTED_REJECT_SCORE);
         });
     }
 

@@ -34,7 +34,7 @@ public final class ActuatorTestResources {
             "candidai.security.jwt.secret",
             "spring.datasource.password",
             "notification.telegram.bot-token",
-            "candidai.gemini.api-key",
+            "spring.ai.google.genai.api-key",
             "DB_PASSWORD",
             "JWT_SECRET",
             "TELEGRAM_BOT_TOKEN",
@@ -44,7 +44,7 @@ public final class ActuatorTestResources {
     public static final Map<String, String> SAFE_PROPERTIES = Map.of(
             "spring.application.name", "CandidAI",
             "server.port", "8080",
-            "candidai.gemini.model", "gemini-3.5-flash-lite"
+            "spring.ai.google.genai.chat.options.model", "gemini-2.5-flash-lite"
     );
 
     public static final MapPropertySource TEST_PROPERTY_SOURCE = new MapPropertySource(

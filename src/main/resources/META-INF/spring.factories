@@ -1,0 +1,1 @@
+org.springframework.boot.EnvironmentPostProcessor=ua.edu.ukma.candidai.assessment.config.GoogleGenAiEnvironmentPostProcessor

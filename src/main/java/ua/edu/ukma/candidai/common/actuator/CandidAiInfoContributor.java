@@ -16,7 +16,7 @@ public class CandidAiInfoContributor implements InfoContributor {
 
     @Override
     public void contribute(Info.Builder builder) {
-        String geminiApiKey = environment.getProperty("candidai.gemini.api-key", "");
+        String geminiApiKey = environment.getProperty("spring.ai.google.genai.api-key", "");
         boolean aiScreeningConfigured = !geminiApiKey.isBlank();
         boolean mailEnabled = Boolean.parseBoolean(
                 environment.getProperty("notification.mail.enabled", "false")

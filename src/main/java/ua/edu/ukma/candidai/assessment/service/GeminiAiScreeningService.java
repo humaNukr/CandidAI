@@ -1,69 +1,70 @@
 package ua.edu.ukma.candidai.assessment.service;
 
+import java.util.List;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.MediaType;
+import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestClient;
-import tools.jackson.databind.ObjectMapper;
-import ua.edu.ukma.candidai.assessment.config.GeminiProperties;
 import ua.edu.ukma.candidai.assessment.dto.AiScreeningResult;
-import ua.edu.ukma.candidai.assessment.dto.gemini.GeminiApiModels.GenerateContentRequest;
-import ua.edu.ukma.candidai.assessment.dto.gemini.GeminiApiModels.GenerateContentResponse;
-import ua.edu.ukma.candidai.assessment.dto.gemini.GeminiApiModels.GeminiScreeningPayload;
 import ua.edu.ukma.candidai.common.util.CommonGenerator;
 import ua.edu.ukma.candidai.vacancy.VacancyDetails;
-
-import java.util.UUID;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class GeminiAiScreeningService implements AiScreeningService {
 
-    private static final int JSON_PREFIX_LENGTH = 7;
-    private static final int MARKDOWN_FENCE_LENGTH = 3;
+    private static final int MIN_SCORE = 0;
+    private static final int MAX_SCORE = 100;
+    private static final String USER_PROMPT_TEMPLATE = """
+            Evaluate how well the candidate matches the job requirements.
 
-    private final RestClient geminiRestClient;
-    private final GeminiProperties properties;
-    private final ObjectMapper objectMapper;
+            Job Vacancy:
+            - Title: {title}
+            - Seniority: {seniority}
+            - Description: {description}
+            - Required Skills: {requiredSkills}
+            - Preferred Skills: {preferredSkills}
+
+            Candidate Resume:
+            {resumeText}
+
+            Evaluation Instructions:
+            1. Calculate matchingScore as an integer from 0 to 100.
+            2. Set passed to true if matchingScore >= 60, else false.
+            3. Provide a concise summary (2-3 sentences) explaining the decision.
+            4. List 2-4 candidate strengths.
+            5. List 1-3 candidate weaknesses or gaps.
+            6. Suggest 3-5 technical interview questions.
+            """;
+
+    private final ChatClient screeningChatClient;
     private final CommonGenerator commonGenerator;
 
     @Override
     public AiScreeningResult screenCandidate(UUID applicationId, String resumeText, VacancyDetails vacancy) {
-        String apiKey = properties.apiKey();
-        if (apiKey == null || apiKey.isBlank()) {
-            String error = "Gemini API key is not configured. AI screening is unavailable.";
-            log.warn(error);
-            return AiScreeningResult.failed(applicationId, vacancy.id(), error, commonGenerator.now());
-        }
-
         try {
-            String prompt = buildScreeningPrompt(resumeText, vacancy);
-            log.debug("Screening prompt for application {}:\n{}", applicationId, prompt);
-            GenerateContentRequest request = GenerateContentRequest.of(prompt);
+            log.info("Sending screening request via Spring AI ChatClient for application: {}", applicationId);
 
-            log.info("Sending screening request to Gemini [{}] for application: {}",
-                    properties.model(), applicationId);
+            ScreeningEvaluationPayload payload = screeningChatClient.prompt()
+                    .user(userSpec -> userSpec
+                            .text(USER_PROMPT_TEMPLATE)
+                            .param("title", nullToEmpty(vacancy.title()))
+                            .param("seniority", nullToEmpty(vacancy.seniorityLevel()))
+                            .param("description", nullToEmpty(vacancy.description()))
+                            .param("requiredSkills", String.valueOf(vacancy.requiredSkills()))
+                            .param("preferredSkills", String.valueOf(vacancy.preferredSkills()))
+                            .param("resumeText", nullToEmpty(resumeText)))
+                    .call()
+                    .entity(ScreeningEvaluationPayload.class);
 
-            String url = "/v1beta/models/" + properties.model() + ":generateContent";
-
-            GenerateContentResponse response = geminiRestClient.post()
-                    .uri(url)
-                    .header("x-goog-api-key", apiKey)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(request)
-                    .retrieve()
-                    .body(GenerateContentResponse.class);
-
-            if (response == null || response.extractText() == null) {
-                String error = "Empty response received from Gemini API.";
+            if (payload == null) {
+                String error = "Empty response received from AI model.";
                 log.warn(error);
                 return AiScreeningResult.failed(applicationId, vacancy.id(), error, commonGenerator.now());
             }
 
-            String jsonText = sanitizeJson(response.extractText());
-            GeminiScreeningPayload payload = objectMapper.readValue(jsonText, GeminiScreeningPayload.class);
             payload.validate();
 
             log.info("Received screening response for application {}: score={}/100, passed={}",
@@ -81,64 +82,34 @@ public class GeminiAiScreeningService implements AiScreeningService {
                     commonGenerator.now()
             );
         } catch (Exception ex) {
-            String error = "Gemini API call failed: " + ex.getMessage();
+            String error = "AI screening call failed: " + ex.getMessage();
             log.error(error, ex);
             return AiScreeningResult.failed(applicationId, vacancy.id(), error, commonGenerator.now());
         }
     }
 
-    private String buildScreeningPrompt(String resumeText, VacancyDetails vacancy) {
-        return """
-                You are a senior technical recruiter and hiring manager conducting automated resume screening.
-                Evaluate how well the candidate matches the job requirements.
-
-                Job Vacancy:
-                - Title: %s
-                - Seniority: %s
-                - Description: %s
-                - Required Skills: %s
-                - Preferred Skills: %s
-
-                Candidate Resume:
-                %s
-
-                Evaluation Instructions:
-                1. Calculate matchingScore as an integer 0..100.
-                2. Set passed to true if matchingScore >= 60, else false.
-                3. Provide a concise summary (2-3 sentences) explaining the decision.
-                4. List 2-4 candidate strengths.
-                5. List 1-3 candidate weaknesses or gaps.
-                6. Suggest 3-5 technical interview questions.
-
-                Respond ONLY with a JSON object adhering to this schema:
-                {
-                  "matchingScore": 85,
-                  "passed": true,
-                  "summary": "...",
-                  "strengths": ["..."],
-                  "weaknesses": ["..."],
-                  "suggestedQuestions": ["..."]
-                }
-                """.formatted(
-                vacancy.title(),
-                vacancy.seniorityLevel(),
-                vacancy.description(),
-                vacancy.requiredSkills(),
-                vacancy.preferredSkills(),
-                resumeText
-        );
+    private String nullToEmpty(String value) {
+        return value != null ? value : "";
     }
 
-    private String sanitizeJson(String raw) {
-        String trimmed = raw.trim();
-        if (trimmed.startsWith("```json")) {
-            trimmed = trimmed.substring(JSON_PREFIX_LENGTH);
-        } else if (trimmed.startsWith("```")) {
-            trimmed = trimmed.substring(MARKDOWN_FENCE_LENGTH);
+    public record ScreeningEvaluationPayload(
+            Integer matchingScore,
+            Boolean passed,
+            String summary,
+            List<String> strengths,
+            List<String> weaknesses,
+            List<String> suggestedQuestions
+    ) {
+        public void validate() {
+            if (matchingScore == null || matchingScore < MIN_SCORE || matchingScore > MAX_SCORE) {
+                throw new IllegalStateException("Matching score must be between 0 and 100: " + matchingScore);
+            }
+            if (passed == null) {
+                throw new IllegalStateException("Passed flag must not be null");
+            }
+            if (summary == null || summary.isBlank()) {
+                throw new IllegalStateException("Summary must not be blank");
+            }
         }
-        if (trimmed.endsWith("```")) {
-            trimmed = trimmed.substring(0, trimmed.length() - MARKDOWN_FENCE_LENGTH);
-        }
-        return trimmed.trim();
     }
 }
