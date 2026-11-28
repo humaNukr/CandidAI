@@ -98,8 +98,9 @@ candidai:
     funnel-metrics:
       fixed-delay-seconds: ${FUNNEL_METRICS_FIXED_DELAY_SECONDS:900}
       initial-delay-seconds: ${FUNNEL_METRICS_INITIAL_DELAY_SECONDS:900}
-      lock-at-least-for: ${FUNNEL_METRICS_LOCK_AT_LEAST_FOR:PT10S}
-      lock-at-most-for: ${FUNNEL_METRICS_LOCK_AT_MOST_FOR:PT2M}
+    storage-diagnostics:
+      fixed-delay-seconds: ${STORAGE_DIAGNOSTICS_FIXED_DELAY_SECONDS:900}
+      initial-delay-seconds: ${STORAGE_DIAGNOSTICS_INITIAL_DELAY_SECONDS:900}
 notification:
   mail:
     enabled: ${MAIL_ENABLED:false}
