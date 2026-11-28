@@ -1,11 +1,7 @@
 package ua.edu.ukma.candidai.recruitment.scheduler;
 
-import java.sql.Timestamp;
-import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
-import net.javacrumbs.shedlock.core.LockProvider;
-import net.javacrumbs.shedlock.support.StorageBasedLockProvider;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -25,10 +21,10 @@ import ua.edu.ukma.candidai.vacancy.repository.VacancyRepository;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @IntegrationTest
-@DisplayName("Integration tests for CandidateFunnelMetricsScheduler with ShedLock")
-class ShedLockCandidateFunnelMetricsIntegrationTest {
+@DisplayName("Integration tests for CandidateFunnelMetricsScheduler")
+class CandidateFunnelMetricsSchedulerIntegrationTest {
 
-    private static final String LOCK_NAME = "CandidateFunnelMetricsJob";
+    private static final String JOB_NAME = "CandidateFunnelMetricsJob";
     private static final UUID COMPANY_ID = UUID.fromString("c0000000-0000-0000-0000-000000000003");
     private static final int SCORE_APPLIED = 70;
     private static final int SCORE_SCREENING = 80;
@@ -46,18 +42,10 @@ class ShedLockCandidateFunnelMetricsIntegrationTest {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
-    @Autowired
-    private LockProvider lockProvider;
-
     private UUID vacancyId;
 
     @BeforeEach
     void setUpTestData() {
-        if (lockProvider instanceof StorageBasedLockProvider storageBasedLockProvider) {
-            storageBasedLockProvider.clearCache();
-        }
-        jdbcTemplate.update("DELETE FROM shedlock WHERE name = ?", LOCK_NAME);
-
         Instant now = Instant.now();
         vacancyId = UUID.randomUUID();
         Vacancy vacancy = Vacancy.builder()
@@ -83,12 +71,11 @@ class ShedLockCandidateFunnelMetricsIntegrationTest {
     void cleanUp() {
         applicationRepository.deleteAll();
         vacancyRepository.deleteAll();
-        jdbcTemplate.update("DELETE FROM shedlock WHERE name = ?", LOCK_NAME);
     }
 
     @Test
-    @DisplayName("calculateFunnelMetrics - should acquire ShedLock and compute snapshot from database")
-    void calculateFunnelMetrics_ShouldAcquireLockAndComputeFunnelMetrics() {
+    @DisplayName("calculateFunnelMetrics - should compute snapshot from PostgreSQL without ShedLock")
+    void calculateFunnelMetrics_ShouldComputeFunnelMetricsWithoutShedLock() {
         scheduler.calculateFunnelMetrics();
 
         CandidateFunnelMetricsSnapshot snapshot = scheduler.getLatestSnapshot().orElseThrow();
@@ -103,43 +90,9 @@ class ShedLockCandidateFunnelMetricsIntegrationTest {
         Integer lockCount = jdbcTemplate.queryForObject(
                 "SELECT count(*) FROM shedlock WHERE name = ?",
                 Integer.class,
-                LOCK_NAME
+                JOB_NAME
         );
-        assertThat(lockCount).isEqualTo(1);
-    }
-
-    @Test
-    @DisplayName("calculateFunnelMetrics - should skip execution when ShedLock is held by another node")
-    void calculateFunnelMetrics_WhenLockedByAnotherNode_ShouldSkipExecution() {
-        scheduler.calculateFunnelMetrics();
-        CandidateFunnelMetricsSnapshot initialSnapshot = scheduler.getLatestSnapshot().orElseThrow();
-
-        if (lockProvider instanceof StorageBasedLockProvider storageBasedLockProvider) {
-            storageBasedLockProvider.clearCache();
-        }
-        Instant now = Instant.now();
-        jdbcTemplate.update("DELETE FROM shedlock WHERE name = ?", LOCK_NAME);
-        jdbcTemplate.update(
-                "INSERT INTO shedlock (name, lock_until, locked_at, locked_by) VALUES (?, ?, ?, ?)",
-                LOCK_NAME,
-                Timestamp.from(now.plus(Duration.ofMinutes(10))),
-                Timestamp.from(now),
-                "instance-2"
-        );
-
-        saveApplication("candidate5@example.com", ApplicationStatus.HIRED, SCORE_HIRED, now);
-
-        scheduler.calculateFunnelMetrics();
-
-        CandidateFunnelMetricsSnapshot snapshotAfterLockedCall = scheduler.getLatestSnapshot().orElseThrow();
-        assertThat(snapshotAfterLockedCall).isEqualTo(initialSnapshot);
-
-        String lockedBy = jdbcTemplate.queryForObject(
-                "SELECT locked_by FROM shedlock WHERE name = ?",
-                String.class,
-                LOCK_NAME
-        );
-        assertThat(lockedBy).isEqualTo("instance-2");
+        assertThat(lockCount).isZero();
     }
 
     private void saveApplication(String email, ApplicationStatus status, Integer matchingScore, Instant now) {

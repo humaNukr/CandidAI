@@ -12,7 +12,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,11 +35,6 @@ public class CandidateFunnelMetricsScheduler {
             fixedDelayString = "${candidai.scheduler.funnel-metrics.fixed-delay-seconds:900}",
             initialDelayString = "${candidai.scheduler.funnel-metrics.initial-delay-seconds:900}",
             timeUnit = TimeUnit.SECONDS
-    )
-    @SchedulerLock(
-            name = "CandidateFunnelMetricsJob",
-            lockAtLeastFor = "${candidai.scheduler.funnel-metrics.lock-at-least-for:PT10S}",
-            lockAtMostFor = "${candidai.scheduler.funnel-metrics.lock-at-most-for:PT2M}"
     )
     @Transactional(readOnly = true)
     public void calculateFunnelMetrics() {
